@@ -48,7 +48,7 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.2.12</version>
-<!--            <scope>test</scope>-->
+            <scope>test</scope>
         </dependency>
 
         <dependency>
