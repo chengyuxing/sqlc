@@ -117,6 +117,9 @@ public class DataSourceLoader {
         if (url.startsWith("jdbc:mysql")) {
             return "com.mysql.jdbc.Driver";
         }
+        if (url.startsWith("jdbc:sqlite")) {
+            return "org.sqlite.JDBC";
+        }
         throw new IllegalArgumentException("jdbc url error:" + url);
     }
 
