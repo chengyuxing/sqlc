@@ -15,10 +15,14 @@ if hash rlwrap 2>/dev/null; then
   fi
   # 根据数据库加载指定的关键字提示自动完成配置文件
   DBNAME="default"
-  if [[ $1 == jdbc:* ]]; then
-    DBNAME=${1%:/*}
-    DBNAME=${DBNAME#jdbc:}
-  fi
+  for item in "$@"; do
+    if [[ $item == -ujdbc:* ]]; then
+      DBNAME=${item%:/*}
+      DBNAME=${DBNAME#-ujdbc:}
+      break
+    fi
+  done
+
   rlwrap -c \
     -H $H_FILE \
     -f $CURDIR/completion/$DBNAME.cnf \

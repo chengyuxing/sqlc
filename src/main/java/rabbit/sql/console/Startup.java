@@ -37,26 +37,13 @@ public class Startup {
             System.out.println("--help to get some help.");
             System.exit(0);
         }
-        if (args.length < 3) {
-            String command = Command.get(args[0]);
-            if (command == null) {
-                System.out.println("--help to get some help.");
-            } else {
-                System.out.println(command);
-            }
-            System.exit(0);
-        }
 
         Map<String, String> argMap = DataSourceLoader.resolverArgs(args);
-        if (argMap.size() >= 3) {
-            if (!argMap.containsKey("jdbcUrl") || !argMap.containsKey("-u") || !argMap.containsKey("-p")) {
-                System.out.println("jdbcUrl and username and password is required!");
-                System.exit(0);
-            }
+        if (argMap.containsKey("-u")) {
             DataSourceLoader.loadDrivers("drivers");
-            DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("jdbcUrl"),
-                    argMap.get("-u"),
-                    argMap.get("-p"));
+            DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"),
+                    Optional.ofNullable(argMap.get("-n")).orElse(""),
+                    Optional.ofNullable(argMap.get("-p")).orElse(""));
             Light light = dsLoader.getLight();
 
             if (light != null) {
@@ -470,7 +457,10 @@ public class Startup {
                 }
                 System.exit(0);
             }
+        } else {
+            System.out.println(Command.get(args[0]));
         }
+        System.exit(0);
     }
 
     public static void printPrefix(AtomicBoolean isTxActive, String mode) {

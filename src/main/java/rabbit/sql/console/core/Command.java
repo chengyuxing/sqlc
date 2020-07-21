@@ -13,16 +13,15 @@ public class Command {
                 "sql key words completion(require c lib: readline, rlwrap);\n" +
                 "Control+r (require c lib: readline, rlwrap);\n" +
                 "Author: chengyuxing@gmail.com\n" +
-                "Login:\n" +
-                "\t[arg1]\t\t\t\t--jdbc url, e.g.: jdbc:postgresql://...(require)\n" +
-                "\t-u[username]\t\t\t--database username.(require)\n" +
-                "\t-p[password]\t\t\t--database password.(require)\n" +
-                "Command Mode:\n" +
-                "\t-v\t\t\t\t--version\n" +
-                "\t-h\t\t\t\t--help\n" +
+                "Command:\n" +
+                "\t-u[url]\t\t\t\t--jdbc url, e.g.: -ujdbc:postgresql://...\n" +
+                "\t-n[username]\t\t\t--database username.\n" +
+                "\t-p[password]\t\t\t--database password.\n" +
                 "\t-e\"[sql]\"\t\t\t--execute a sql(query or ddl/dml) e.g. -e\"select * from user;\"\n" +
                 "\t-f[tsv|csv|json|excel]\t\t--format of query result which will be executed.(default tsv)\n" +
                 "\t-s[path]\t\t\t--full file path of query result which will be saved.\n" +
+                "\t-v\t\t\t\t--version\n" +
+                "\t-h\t\t\t\t--help\n" +
                 "Interactive Mode:\n" +
                 "\t:q\t\t\t\t--quit.\n" +
                 "\t:c\t\t\t\t--enable cache query results (Warning: be careful out of memory).\n" +

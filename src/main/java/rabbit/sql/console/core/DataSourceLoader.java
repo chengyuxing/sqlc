@@ -15,9 +15,8 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class DataSourceLoader {
@@ -123,22 +122,18 @@ public class DataSourceLoader {
         throw new IllegalArgumentException("jdbc url error:" + url);
     }
 
-    public static Map<String, String> resolverArgs(String[] args) {
-        Map<String, String> argMap = new HashMap<>();
-        argMap.put("jdbcUrl", args[0]);
-        for (int i = 1; i < args.length; i++) {
-            if (args[i].startsWith("-u")) {
-                argMap.put("-u", args[i].substring(2));
-            } else if (args[i].startsWith("-p")) {
-                argMap.put("-p", args[i].substring(2));
-            } else if (args[i].startsWith("-f")) {
-                argMap.put("-f", args[i].substring(2));
-            } else if (args[i].startsWith("-s")) {
-                argMap.put("-s", args[i].substring(2));
-            } else if (args[i].startsWith("-e")) {
-                argMap.put("-e", args[i].substring(2));
-            }
-        }
-        return argMap;
+    public static Map<String, String> resolverArgs(String... args) {
+        List<String> argNames = Arrays.asList(
+                "-u",   //url
+                "-p",   //password
+                "-n",   //name
+                "-f",   //format
+                "-s",   //savePath
+                "-e"    //executed sql
+        );
+        return Stream.of(args)
+                .filter(arg -> arg.length() >= 2)
+                .filter(arg -> argNames.contains(arg.substring(0, 2)))
+                .collect(Collectors.toMap(k -> k.substring(0, 2), v -> v.substring(2)));
     }
 }

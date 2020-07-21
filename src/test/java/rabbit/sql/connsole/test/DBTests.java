@@ -6,6 +6,7 @@ import rabbit.common.types.DataRow;
 import rabbit.sql.Light;
 import rabbit.sql.console.core.DataSourceLoader;
 import rabbit.sql.console.core.ViewPrinter;
+import rabbit.sql.console.util.SqlUtil;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -83,6 +84,11 @@ public class DBTests {
         };
         Map<String, String> map = DataSourceLoader.resolverArgs(args);
         System.out.println(map);
+    }
+
+    @Test
+    public void sss() throws Exception{
+        System.out.println(DataSourceLoader.resolverArgs("-n","-p123456","-asss"));
     }
 
     @Test
