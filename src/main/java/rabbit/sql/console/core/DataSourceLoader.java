@@ -78,7 +78,7 @@ public class DataSourceLoader {
             dataSource = new HikariDataSource(config);
             light = LightDao.of(dataSource);
         }
-        log.info("Current DataBase: {}", getDbInfo());
+        log.info("Login: {}", getDbInfo());
         return light;
     }
 
