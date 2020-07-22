@@ -1,5 +1,8 @@
 package rabbit.sql.console;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rabbit.common.io.DSVWriter;
 import rabbit.common.io.TSVWriter;
 import rabbit.common.types.DataRow;
@@ -25,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,6 +36,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Startup {
+    private static final Logger log = LoggerFactory.getLogger("SQLC");
+
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out.println("--help to get some help.");
@@ -84,7 +90,9 @@ public class Startup {
                             } else if (mode.get() == View.EXCEL) {
                                 if (argMap.containsKey("-s")) {
                                     String path = argMap.get("-s");
-                                    writeExcel(s, path);
+                                    int size = Optional.ofNullable(argMap.get("-b"))
+                                            .map(Integer::parseInt).filter(v -> v > 0).orElse(-1);
+                                    writeExcel(s, path, size);
                                 } else {
                                     AtomicBoolean first = new AtomicBoolean(true);
                                     s.forEach(row -> ViewPrinter.printQueryResult(row, mode, first));
@@ -122,6 +130,8 @@ public class Startup {
                 AtomicBoolean enableCache = new AtomicBoolean(false);
                 // 结果集缓存key自增
                 AtomicInteger idx = new AtomicInteger(0);
+                // 批量下载excel数据分页大小（默认不分页）
+                AtomicInteger pageSize = new AtomicInteger(-1);
                 // 保存文件格式验证正则
                 Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save *\\$(?<key>res[\\d]+) *> *(?<path>[\\S]+)$");
                 // 直接保存查询结果到文件正则
@@ -138,6 +148,8 @@ public class Startup {
                 Pattern GET_SIZE_FORMAT = Pattern.compile("^:size *\\$(?<key>res[\\d]+)$");
                 // 判断是否是内置指令正则
                 Pattern IS_CMD_FORMAT = Pattern.compile("^:[a-z]+");
+                // 判断分页下载大小正则
+                Pattern PAGE_SIZE_FORMAT = Pattern.compile("^:batch *(?<size>\\d+)$");
 
                 //如果使用杀进程或ctrl+c结束，或者关机的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -165,6 +177,7 @@ public class Startup {
                                 System.out.println("\033[96mView Mode:" + viewMode.get() + "\033[0m");
                                 System.out.println("\033[96mTransaction:" + (txActive.get() ? "enabled" : "disabled") + "\033[0m");
                                 System.out.println("\033[96mCache:" + (enableCache.get() ? "enabled" : "disabled") + "\033[0m");
+                                System.out.println("\033[96mExcel Batch save size:" + (pageSize.get() == -1 ? "unset" : pageSize.get()) + "\033[0m");
                                 printPrefix(txActive, "sqlc>");
                                 break;
                             case ":c":
@@ -245,6 +258,7 @@ public class Startup {
                                 Matcher m_save = SAVE_FILE_FORMAT.matcher(line);
                                 Matcher m_size = GET_SIZE_FORMAT.matcher(line);
                                 Matcher m_query_save = SAVE_QUERY_FORMAT.matcher(line);
+                                Matcher m_page_size = PAGE_SIZE_FORMAT.matcher(line);
 
                                 if (m_save.matches()) {
                                     String key = m_save.group("key");
@@ -370,14 +384,19 @@ public class Startup {
                                         } else if (mode == View.JSON) {
                                             writeJSON(s, path);
                                         } else if (mode == View.EXCEL) {
-                                            writeExcel(s, path);
+                                            writeExcel(s, path, pageSize.get());
                                         }
                                     } catch (Exception e) {
                                         System.out.println(e.getMessage());
                                     }
                                     printPrefix(txActive, "sqlc>");
+                                } else if (m_page_size.matches()) {
+                                    int size = Integer.parseInt(m_page_size.group("size"));
+                                    pageSize.set(size);
+                                    System.out.println("size: " + size + " !");
+                                    printPrefix(txActive, "sqlc>");
                                 } else {
-                                    System.out.println("command not found, command :help to get some help!");
+                                    System.out.println("command not found or format invalid, command :help to get some help!");
                                     printPrefix(txActive, "sqlc>");
                                 }
                                 break;
@@ -470,56 +489,88 @@ public class Startup {
 
     public static void writeDSV(Stream<DataRow> s, AtomicReference<View> mode, String path, String suffix) throws Exception {
         DSVWriter writer = mode.get() == View.TSV ? TSVWriter.of(path + suffix) : new CSVWriter(new FileOutputStream(path + suffix));
-        Iterator<DataRow> iterator = s.iterator();
         System.out.println("\033[36mwaiting...\033[0m");
-        int i = 0;
-        while (iterator.hasNext()) {
-            writer.writeLine(iterator.next());
-            i++;
-            if (i % 10000 == 0) {
-                System.out.printf("\033[36m[%s] %s rows has written.\033[0m", LocalDateTime.now(), i);
-                System.out.println();
+        AtomicLong i = new AtomicLong(0);
+        s.forEach(row -> {
+            try {
+                writer.writeLine(row);
+                long offset = i.getAndIncrement();
+                if (offset % 10000 == 0) {
+                    System.out.printf("\033[36m[%s] %s rows has written.\033[0m", LocalDateTime.now(), offset);
+                    System.out.println();
+                }
+            } catch (IOException e) {
+                log.error(e.getMessage());
             }
-        }
+        });
         writer.close();
-        System.out.printf("\033[36m[%s] %s rows completed.\033[0m", LocalDateTime.now(), i);
+        System.out.printf("\033[36m[%s] %s rows completed.\033[0m", LocalDateTime.now(), i.get());
         System.out.println();
         System.out.println(path + suffix + " saved!");
     }
 
     public static void writeJSON(Stream<DataRow> s, String path) throws IOException {
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(path + ".json"))) {
-            boolean first = true;
-            Iterator<DataRow> iterator = s.iterator();
             System.out.println("\033[36mwaiting...\033[0m");
-            int i = 0;
-            while (iterator.hasNext()) {
-                if (first) {
-                    writer.write("[");
-                    writer.write(ViewPrinter.getJson(iterator.next()));
-                    first = false;
-                } else {
-                    writer.write(", " + ViewPrinter.getJson(iterator.next()));
+            AtomicBoolean first = new AtomicBoolean(true);
+            AtomicLong i = new AtomicLong(0);
+            s.forEach(row -> {
+                try {
+                    if (first.get()) {
+                        writer.write("[");
+                        writer.write(ViewPrinter.getJson(row));
+                        first.set(false);
+                    } else {
+                        writer.write(", " + ViewPrinter.getJson(row));
+                    }
+                    long offset = i.getAndIncrement();
+                    if (offset % 10000 == 0) {
+                        System.out.printf("\033[36m[%s] %s object has written.\033[0m", LocalDateTime.now(), offset);
+                        System.out.println();
+                    }
+                } catch (JsonProcessingException e) {
+                    log.error("json parse error:{}", e.getMessage());
+                } catch (IOException e) {
+                    log.error(e.getMessage());
                 }
-                i++;
-                if (i % 10000 == 0) {
-                    System.out.printf("\033[36m[%s] %s object has written.\033[0m", LocalDateTime.now(), i);
-                    System.out.println();
-                }
-            }
+            });
             writer.write("]");
-            System.out.printf("\033[36m[%s] %s object completed.\033[0m", LocalDateTime.now(), i);
+            System.out.printf("\033[36m[%s] %s object completed.\033[0m", LocalDateTime.now(), i.get());
             System.out.println();
             System.out.println(path + ".json saved!");
         }
     }
 
-    public static void writeExcel(Stream<DataRow> s, String path) throws Exception {
+    public static void writeExcel(List<DataRow> rows, String path) {
         try (ExcelWriter writer = Excels.writer()) {
-            ISheet sheet = ISheet.of("Sheet1", s.collect(Collectors.toList()));
-            System.out.println("\033[36mwaiting...\033[0m");
+            ISheet sheet = ISheet.of("Sheet1", rows);
             writer.write(sheet).saveTo(path + ".xlsx");
             System.out.println(path + ".xlsx saved!");
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    public static void writeExcel(Stream<DataRow> s, String path, int size) {
+        System.out.println("\033[36mwaiting...\033[0m");
+        if (size == -1) {
+            writeExcel(s.collect(Collectors.toList()), path);
+        } else {
+            AtomicLong i = new AtomicLong(1);
+            AtomicInteger z = new AtomicInteger(1);
+            List<DataRow> pagedResource = new ArrayList<>();
+            s.forEach(row -> {
+                pagedResource.add(row);
+                long offset = i.getAndIncrement();
+                if (offset % size == 0) {
+                    writeExcel(pagedResource, path + z.getAndIncrement());
+                    pagedResource.clear();
+                }
+            });
+            if (!pagedResource.isEmpty()) {
+                writeExcel(pagedResource, path + z.getAndIncrement());
+                pagedResource.clear();
+            }
         }
     }
 }

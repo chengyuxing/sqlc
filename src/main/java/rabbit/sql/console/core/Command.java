@@ -20,6 +20,7 @@ public class Command {
                 "\t-e\"[sql]\"\t\t\t--execute a sql(query or ddl/dml) e.g. -e\"select * from user;\"\n" +
                 "\t-f[tsv|csv|json|excel]\t\t--format of query result which will be executed.(default tsv)\n" +
                 "\t-s[path]\t\t\t--full file path of query result which will be saved.\n" +
+                "\t-b[size]\t\t\t--set size for paged query result which will be batch saved(only valid in excel format).\n" +
                 "\t-v\t\t\t\t--version\n" +
                 "\t-h\t\t\t\t--help\n" +
                 "Interactive Mode:\n" +
@@ -35,6 +36,7 @@ public class Command {
                 "\t:csv\t\t\t\t--use CSV(Comma-separated) as query format.\n" +
                 "\t:json\t\t\t\t--use JSON as query format.\n" +
                 "\t:excel\t\t\t\t--use excel(grid) as query format.\n" +
+                "\t:batch [size]\t\t\t--set size for paged uncached query result which will be batch saved(only valid in excel format).\n" +
                 "\t:keys\t\t\t\t--list all keys of cache.\n" +
                 "\t:get $[key]\t\t\t--query all items of cache by key.\n" +
                 "\t:get $[key]<[index]\t\t--query indexed item of cache by key.\n" +

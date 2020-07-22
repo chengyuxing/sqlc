@@ -129,7 +129,8 @@ public class DataSourceLoader {
                 "-n",   //name
                 "-f",   //format
                 "-s",   //savePath
-                "-e"    //executed sql
+                "-e",   //executed sql
+                "-b"    // batch size
         );
         return Stream.of(args)
                 .filter(arg -> arg.length() >= 2)
