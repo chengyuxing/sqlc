@@ -490,7 +490,7 @@ public class Startup {
     public static void writeDSV(Stream<DataRow> s, AtomicReference<View> mode, String path, String suffix) throws Exception {
         DSVWriter writer = mode.get() == View.TSV ? TSVWriter.of(path + suffix) : new CSVWriter(new FileOutputStream(path + suffix));
         System.out.println("\033[36mwaiting...\033[0m");
-        AtomicLong i = new AtomicLong(0);
+        AtomicLong i = new AtomicLong(1);
         s.forEach(row -> {
             try {
                 writer.writeLine(row);
@@ -513,7 +513,7 @@ public class Startup {
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(path + ".json"))) {
             System.out.println("\033[36mwaiting...\033[0m");
             AtomicBoolean first = new AtomicBoolean(true);
-            AtomicLong i = new AtomicLong(0);
+            AtomicLong i = new AtomicLong(1);
             s.forEach(row -> {
                 try {
                     if (first.get()) {
