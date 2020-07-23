@@ -151,7 +151,7 @@ public class Startup {
                 // 判断分页下载大小正则
                 Pattern PAGE_SIZE_FORMAT = Pattern.compile("^:batch *(?<size>\\d+)$");
 
-                //如果使用杀进程或ctrl+c结束，或者关机的情况下，做一些收尾工作
+                //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     if (txActive.get()) {
                         Tx.rollback();
