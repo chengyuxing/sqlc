@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 
 public class DBTests {
 
-    public static void main(String[] args) {
+    public static void m(String[] args) {
         System.out.println(System.getProperty("java.class.path"));
     }
 
