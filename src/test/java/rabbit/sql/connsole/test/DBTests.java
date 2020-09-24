@@ -19,6 +19,11 @@ import java.util.stream.Stream;
 
 public class DBTests {
 
+    @Test
+    public void aaa() throws Exception{
+        System.out.println(SqlUtil.getType("((  select 1"));
+    }
+
     public static void m(String[] args) {
         System.out.println(System.getProperty("java.class.path"));
     }

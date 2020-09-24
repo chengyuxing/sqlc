@@ -100,14 +100,8 @@ public class Startup {
                             }
                         }
                     } else if (sqlType == SqlType.OTHER) {
-                        long res = light.execute(sql);
-                        if (res == 1) {
-                            System.out.println("execute DML complete.");
-                        } else if (res == 0) {
-                            System.out.println("execute DDL complete.");
-                        } else {
-                            System.out.println("execute failed.");
-                        }
+                        DataRow res = light.execute(sql);
+                        System.out.println("execute " + res.getString("type") + ":" + res.getInt("result"));
                     } else {
                         System.out.println("function not support now!");
                     }
@@ -452,14 +446,8 @@ public class Startup {
                                     System.out.println("function not support now!");
                                     break;
                                 case OTHER:
-                                    long res = light.execute(sql);
-                                    if (res == 1) {
-                                        System.out.println("execute DML complete.");
-                                    } else if (res == 0) {
-                                        System.out.println("execute DDL complete.");
-                                    } else {
-                                        System.out.println("execute failed.");
-                                    }
+                                    DataRow res = light.execute(sql);
+                                    System.out.println("execute " + res.getString("type") + ":" + res.getInt("result"));
                                     break;
                                 default:
                                     break;
