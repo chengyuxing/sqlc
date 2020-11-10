@@ -465,7 +465,12 @@ public class Startup {
                 System.exit(0);
             }
         } else {
-            System.out.println("-u(jdbc url) is required or -h to get some help.");
+            String msg = Command.get(args[0]);
+            if (msg != null) {
+                System.out.println(msg);
+            } else {
+                System.out.println("-u(jdbc url) is required or -h to get some help.");
+            }
         }
         System.exit(0);
     }

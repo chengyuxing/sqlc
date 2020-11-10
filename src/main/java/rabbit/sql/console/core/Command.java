@@ -47,7 +47,7 @@ public class Command {
                 "\t:save ${[query]}>[path]\t\t--save the query result to local file.(faster than cached result, no cache and it doesn't print the result.)\n" +
                 "\t:help\t\t\t\t--get some help.\033[0m");
         commands.put("-h", commands.get("--help"));
-        commands.put("-v", "1.0.0");
+        commands.put("-v", "1.0.2");
     }
 
     public static String get(String key) {
