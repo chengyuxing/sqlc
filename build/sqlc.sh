@@ -17,8 +17,9 @@ if hash rlwrap 2>/dev/null; then
   DBNAME="default"
   for item in "$@"; do
     if [[ $item == -ujdbc:* ]]; then
-      DBNAME=${item%:/*}
-      DBNAME=${DBNAME#-ujdbc:}
+      DBNAME=${item#-ujdbc:*}
+      DBNAME=${DBNAME%:*}
+      DBNAME=${DBNAME%:*}
       break
     fi
   done
