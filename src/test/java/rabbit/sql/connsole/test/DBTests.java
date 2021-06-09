@@ -1,9 +1,9 @@
 package rabbit.sql.connsole.test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.sql.Baki;
 import org.junit.Test;
-import rabbit.common.types.DataRow;
-import rabbit.sql.Light;
 import rabbit.sql.console.core.DataSourceLoader;
 import rabbit.sql.console.core.ViewPrinter;
 import rabbit.sql.console.util.SqlUtil;
@@ -31,7 +31,7 @@ public class DBTests {
     @Test
     public void test1() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "123456");
-        Light light = loader.getLight();
+        Baki light = loader.getLight();
         Stream<DataRow> s = light.query("select * from test.user");
         s.limit(5).forEach(System.out::println);
         s.limit(5).forEach(System.out::println);

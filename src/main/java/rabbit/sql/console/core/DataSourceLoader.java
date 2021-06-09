@@ -1,11 +1,11 @@
 package rabbit.sql.console.core;
 
+import com.github.chengyuxing.sql.Baki;
+import com.github.chengyuxing.sql.BakiDao;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rabbit.sql.Light;
-import rabbit.sql.dao.LightDao;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public class DataSourceLoader {
     private static final Logger log = LoggerFactory.getLogger(DataSourceLoader.class);
 
-    private Light light;
+    private Baki light;
     private final HikariConfig config;
     private HikariDataSource dataSource;
 
@@ -76,10 +76,10 @@ public class DataSourceLoader {
      * @return light
      * @throws SQLException sqlExp
      */
-    public Light getLight() throws SQLException {
+    public Baki getLight() throws SQLException {
         if (light == null) {
             dataSource = new HikariDataSource(config);
-            light = LightDao.of(dataSource);
+            light = BakiDao.of(dataSource);
         }
         log.info("Login: {}", getDbInfo());
         return light;

@@ -2,7 +2,7 @@ package rabbit.sql.console.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import rabbit.common.types.DataRow;
+import com.github.chengyuxing.common.DataRow;
 import rabbit.sql.console.types.View;
 
 import java.io.*;

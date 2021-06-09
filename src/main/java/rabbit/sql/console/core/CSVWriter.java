@@ -1,6 +1,7 @@
 package rabbit.sql.console.core;
 
-import rabbit.common.io.DSVWriter;
+
+import com.github.chengyuxing.common.io.DSVWriter;
 
 import java.io.OutputStream;
 
