@@ -8,7 +8,12 @@
 - 支持命令行历史记录**（依赖C库：`readline`，`rlwrap`）**；
 - 支持命令模式和交互模式；
 
+## 关于批量执行SQL（-b）
+- sql文件内多条sql以分号(;)分隔；
+- sql名和sql必须成对，如果没有使用过rabbit-sql的`XQLFileManager`，格式为：`/*[扩展注释的sql名（包含中括号）]*/`占一行，下一行为sql并以分号结尾；
+
 ## 帮助文档
 
-`sqlc.sh -h` 或 `sqlc.sh --help`
+- 命令模式 `sqlc.sh -h` 或 `sqlc.sh --help`
+- 交互模式 `:help`
 

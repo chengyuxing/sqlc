@@ -1,5 +1,8 @@
 package rabbit.sql.console.core;
 
+import com.github.chengyuxing.common.console.Color;
+import com.github.chengyuxing.common.console.Printer;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -7,7 +10,7 @@ public class Command {
     private static final Map<String, String> commands = new LinkedHashMap<>();
 
     static {
-        commands.put("--help", "\033[96mA Command Line sql tool, support Query, DDL, DML, Transaction!\n" +
+        commands.put("--help", Printer.colorful("A Command Line sql tool, support Query, DDL, DML, Transaction!\n" +
                 "Notice: add your jdbc driver into the drivers folder;\n" +
                 "command history(require c lib: readline, rlwrap);\n" +
                 "sql key words completion(require c lib: readline, rlwrap);\n" +
@@ -17,10 +20,11 @@ public class Command {
                 "\t-u[url]\t\t\t\t--jdbc url, e.g.: -ujdbc:postgresql://...\n" +
                 "\t-n[username]\t\t\t--database username.\n" +
                 "\t-p[password]\t\t\t--database password.\n" +
-                "\t-e\"[sql]\"\t\t\t--execute a sql(query or ddl/dml) e.g. -e\"select * from user;\"\n" +
+                "\t-e\"[sql]\"\t\t\t--execute one sql(query or ddl/dml) e.g. -e\"select * from user\"\n" +
+                "\t-x\"[sqlFile]\"\t\t\t--execute one sql which in sql file e.g. -x\"/usr/local/a.sql\"\n" +
+                "\t-b\"[sqlFile]\"\t\t\t--batch execute sql which in sql file e.g. -b\"/usr/local/a.sql\"\n" +
                 "\t-f[tsv|csv|json|excel]\t\t--format of query result which will be executed.(default tsv)\n" +
-                "\t-s[path]\t\t\t--full file path of query result which will be saved.\n" +
-                "\t-b[size]\t\t\t--set size for paged query result which will be batch saved(only valid in excel format).\n" +
+                "\t-s[path]\t\t\t--full file path of query result which will be saved(with -e or -x).\n" +
                 "\t-v\t\t\t\t--version\n" +
                 "\t-h\t\t\t\t--help\n" +
                 "Interactive Mode:\n" +
@@ -36,7 +40,6 @@ public class Command {
                 "\t:csv\t\t\t\t--use CSV(Comma-separated) as query format.\n" +
                 "\t:json\t\t\t\t--use JSON as query format.\n" +
                 "\t:excel\t\t\t\t--use excel(grid) as query format.\n" +
-                "\t:batch [size]\t\t\t--set size for paged uncached query result which will be batch saved(only valid in excel format).\n" +
                 "\t:keys\t\t\t\t--list all keys of cache.\n" +
                 "\t:get $[key]\t\t\t--query all items of cache by key.\n" +
                 "\t:get $[key]<[index]\t\t--query indexed item of cache by key.\n" +
@@ -45,9 +48,9 @@ public class Command {
                 "\t:size $[key]\t\t\t--query cache size by key.\n" +
                 "\t:save $[key]>[path]\t\t--if cache enabled, save the selected cache to local file.\n" +
                 "\t:save ${[query]}>[path]\t\t--save the query result to local file.(faster than cached result, no cache and it doesn't print the result.)\n" +
-                "\t:help\t\t\t\t--get some help.\033[0m");
+                "\t:help\t\t\t\t--get some help.", Color.CYAN));
         commands.put("-h", commands.get("--help"));
-        commands.put("-v", "1.0.2");
+        commands.put("-v", "1.0.3");
     }
 
     public static String get(String key) {

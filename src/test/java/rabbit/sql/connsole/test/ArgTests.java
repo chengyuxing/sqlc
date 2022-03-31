@@ -34,5 +34,6 @@ public class ArgTests {
 
     public void run() {
         System.out.println(url);
+        System.out.println(password);
     }
 }

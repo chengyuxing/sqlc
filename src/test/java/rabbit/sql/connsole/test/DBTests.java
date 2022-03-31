@@ -2,7 +2,11 @@ package rabbit.sql.connsole.test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.common.console.Color;
+import com.github.chengyuxing.common.console.Printer;
+import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
+import com.github.chengyuxing.sql.XQLFileManager;
 import org.junit.Test;
 import rabbit.sql.console.core.DataSourceLoader;
 import rabbit.sql.console.core.ViewPrinter;
@@ -20,7 +24,7 @@ import java.util.stream.Stream;
 public class DBTests {
 
     @Test
-    public void aaa() throws Exception{
+    public void aaa() throws Exception {
         System.out.println(SqlUtil.getType("((  select 1"));
     }
 
@@ -31,7 +35,7 @@ public class DBTests {
     @Test
     public void test1() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "123456");
-        Baki light = loader.getLight();
+        Baki light = loader.getBaki();
         Stream<DataRow> s = light.query("select * from test.user");
         s.limit(5).forEach(System.out::println);
         s.limit(5).forEach(System.out::println);
@@ -60,7 +64,7 @@ public class DBTests {
     }
 
     @Test
-    public void cmdTest() throws Exception{
+    public void cmdTest() throws Exception {
         Pattern IS_CMD_FORMAT = Pattern.compile("^:[\\w]+");
         String s = ":get $res0 *dd://\\";
         Matcher m = IS_CMD_FORMAT.matcher(s);
@@ -70,7 +74,7 @@ public class DBTests {
     }
 
     @Test
-    public void con() throws Exception{
+    public void con() throws Exception {
         System.out.println(System.getProperty("java.class.path"));
     }
 
@@ -92,8 +96,19 @@ public class DBTests {
     }
 
     @Test
-    public void sss() throws Exception{
-        System.out.println(DataSourceLoader.resolverArgs("-n","-p123456","-asss"));
+    public void sss() throws Exception {
+        System.out.println(DataSourceLoader.resolverArgs("-n", "-p123456", "-asss"));
+    }
+
+    @Test
+    public void sqlFile() throws Exception {
+        XQLFileManager manager = new XQLFileManager(Args.of("sql", "/Users/chengyuxing/Downloads/sqlc.sql"));
+        manager.init();
+        manager.foreachEntry((k, r) -> r.foreach((n, v) -> {
+            if (!n.startsWith("${")) {
+                Printer.println("Execute sql [ " + n + " ] ::: ", Color.DARK_CYAN);
+            }
+        }));
     }
 
     @Test

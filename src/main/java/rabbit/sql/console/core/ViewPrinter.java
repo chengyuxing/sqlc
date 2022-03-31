@@ -3,6 +3,8 @@ package rabbit.sql.console.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.common.console.Color;
+import com.github.chengyuxing.common.console.Printer;
 import rabbit.sql.console.types.View;
 
 import java.io.*;
@@ -18,7 +20,7 @@ public class ViewPrinter {
 
     public static void writeJsonArray(List<DataRow> rows, String path) {
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(path))) {
-            if (rows == null) {
+            if (rows == null || rows.isEmpty()) {
                 writer.write("[]");
             } else {
                 for (int i = 0, j = rows.size(); i < j; i++) {
@@ -43,49 +45,57 @@ public class ViewPrinter {
 
     public static void printJSON(DataRow data, AtomicBoolean firstLine) throws JsonProcessingException {
         if (!firstLine.get()) {
-            System.out.print(", \033[96m" + getJson(data) + "\033[0m");
+            Printer.print(", " + getJson(data), Color.CYAN);
         } else {
-            System.out.print("\033[93m[\033[0m\033[96m" + getJson(data) + "\033[0m");
+            System.out.print(Printer.colorful("[", Color.YELLOW) + Printer.colorful(getJson(data), Color.CYAN));
             firstLine.set(false);
         }
     }
 
     public static void printDSV(DataRow data, String d, AtomicBoolean firstLine) {
         if (firstLine.get()) {
-            System.out.println("\033[93m" + data.getTypes().stream()
-                    .map(v -> {
+            String typesLine = data.getNames().stream()
+                    .map(n -> {
+                        String v = data.getType(n);
                         int idx = v.lastIndexOf(".");
                         if (idx == -1) {
                             return v;
                         }
                         return v.substring(idx + 1);
-                    }).collect(Collectors.joining(d, "[", "]")) + "\033[0m");
-
-            System.out.println("\033[93m" + data.getNames().stream()
-                    .collect(Collectors.joining(d, "[", "]")) + "\033[0m");
+                    }).collect(Collectors.joining(d, "[", "]"));
+            Printer.println(typesLine, Color.YELLOW);
+            String namesLine = data.getNames().stream()
+                    .collect(Collectors.joining(d, "[", "]"));
+            Printer.println(namesLine, Color.YELLOW);
             firstLine.set(false);
         }
-        System.out.println("\033[96m" + data.getValues().stream().map(v -> {
+        String valuesLine = data.getValues().stream().map(v -> {
             if (null == v) {
                 return "null";
             }
             return v.toString();
-        }).collect(Collectors.joining(d, "[", "]")) + "\033[0m");
+        }).collect(Collectors.joining(d, "[", "]"));
+        Printer.println(valuesLine, Color.CYAN);
     }
 
     public static void printQueryResult(DataRow row, AtomicReference<View> viewMode, AtomicBoolean first) {
-        if (viewMode.get() == View.TSV) {
-            ViewPrinter.printDSV(row, "\t", first);
-        } else if (viewMode.get() == View.JSON) {
-            try {
-                ViewPrinter.printJSON(row, first);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
-        } else if (viewMode.get() == View.EXCEL) {
-            ViewPrinter.printDSV(row, " | ", first);
-        } else {
-            ViewPrinter.printDSV(row, ", ", first);
+        switch (viewMode.get()) {
+            case JSON:
+                try {
+                    ViewPrinter.printJSON(row, first);
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+                break;
+            case CSV:
+                ViewPrinter.printDSV(row, ", ", first);
+                break;
+            case EXCEL:
+                ViewPrinter.printDSV(row, " | ", first);
+                break;
+            default:
+                ViewPrinter.printDSV(row, "\t", first);
+                break;
         }
     }
 }

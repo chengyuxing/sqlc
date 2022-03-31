@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public class DataSourceLoader {
     private static final Logger log = LoggerFactory.getLogger(DataSourceLoader.class);
 
-    private Baki light;
+    private Baki baki;
     private final HikariConfig config;
     private HikariDataSource dataSource;
 
@@ -73,16 +73,16 @@ public class DataSourceLoader {
     /**
      * 获取light实例
      *
-     * @return light
+     * @return baki
      * @throws SQLException sqlExp
      */
-    public Baki getLight() throws SQLException {
-        if (light == null) {
+    public Baki getBaki() throws SQLException {
+        if (baki == null) {
             dataSource = new HikariDataSource(config);
-            light = BakiDao.of(dataSource);
+            baki = BakiDao.of(dataSource);
         }
         log.info("Login: {}", getDbInfo());
-        return light;
+        return baki;
     }
 
     public void release() {
@@ -96,7 +96,7 @@ public class DataSourceLoader {
      * @throws SQLException sqlExp
      */
     public String getDbInfo() throws SQLException {
-        DatabaseMetaData metaData = light.getMetaData();
+        DatabaseMetaData metaData = baki.metaData();
         return metaData.getDatabaseProductName() + " " + metaData.getDatabaseProductVersion();
     }
 
@@ -133,7 +133,8 @@ public class DataSourceLoader {
                 "-f",   //format
                 "-s",   //savePath
                 "-e",   //executed sql
-                "-b"    // batch size
+                "-b",   //批量单文件内的多条sql，使用;号分隔
+                "-x"    //执行单文件内的一条sql
         );
         return Stream.of(args)
                 .filter(arg -> arg.length() >= 2)

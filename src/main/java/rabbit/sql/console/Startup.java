@@ -1,17 +1,20 @@
 package rabbit.sql.console;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.common.io.DSVWriter;
-import com.github.chengyuxing.common.io.TSVWriter;
+import com.github.chengyuxing.common.console.Color;
+import com.github.chengyuxing.common.console.Printer;
+import com.github.chengyuxing.common.io.Lines;
 import com.github.chengyuxing.excel.Excels;
+import com.github.chengyuxing.excel.io.BigExcelLineWriter;
 import com.github.chengyuxing.excel.io.ExcelWriter;
 import com.github.chengyuxing.excel.type.XSheet;
+import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
+import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.transaction.Tx;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rabbit.sql.console.core.CSVWriter;
 import rabbit.sql.console.core.Command;
 import rabbit.sql.console.core.DataSourceLoader;
 import rabbit.sql.console.core.ViewPrinter;
@@ -19,10 +22,9 @@ import rabbit.sql.console.types.SqlType;
 import rabbit.sql.console.types.View;
 import rabbit.sql.console.util.SqlUtil;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -32,12 +34,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Startup {
-    private static final Logger log = LoggerFactory.getLogger("SQLC");
-
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out.println("--help to get some help.");
@@ -50,11 +49,16 @@ public class Startup {
             DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"),
                     Optional.ofNullable(argMap.get("-n")).orElse(""),
                     Optional.ofNullable(argMap.get("-p")).orElse(""));
-            Baki light = dsLoader.getLight();
+            Baki light = dsLoader.getBaki();
 
             if (light != null) {
-                if (argMap.containsKey("-e")) {
-                    String sql = argMap.get("-e");
+                if (argMap.containsKey("-e") || argMap.containsKey("-x")) {
+                    String sql;
+                    if (argMap.containsKey("-e")) {
+                        sql = argMap.get("-e");
+                    } else {
+                        sql = String.join("\n", Files.readAllLines(Paths.get(argMap.get("-x"))));
+                    }
                     SqlType sqlType = SqlUtil.getType(sql);
                     if (sqlType == SqlType.QUERY) {
                         try (Stream<DataRow> s = light.query(sql)) {
@@ -83,27 +87,42 @@ public class Startup {
                                     AtomicBoolean first = new AtomicBoolean(true);
                                     s.forEach(row -> ViewPrinter.printQueryResult(row, mode, first));
                                     if (mode.get() == View.JSON) {
-                                        System.out.print("\033[93m]\033[0m");
+                                        Printer.print("]", Color.YELLOW);
                                         System.out.println();
                                     }
                                 }
                             } else if (mode.get() == View.EXCEL) {
                                 if (argMap.containsKey("-s")) {
                                     String path = argMap.get("-s");
-                                    int size = Optional.ofNullable(argMap.get("-b"))
-                                            .map(Integer::parseInt).filter(v -> v > 0).orElse(-1);
-                                    writeExcel(s, path, size);
+                                    writeExcel(s, path);
                                 } else {
                                     AtomicBoolean first = new AtomicBoolean(true);
                                     s.forEach(row -> ViewPrinter.printQueryResult(row, mode, first));
                                 }
                             }
+                        } catch (Exception e) {
+                            printError(e);
                         }
                     } else if (sqlType == SqlType.OTHER) {
                         DataRow res = light.execute(sql);
-                        System.out.println("execute " + res.getString("type") + ":" + res.getInt("result"));
+                        Printer.println("execute " + res.getString("type") + ":" + res.getInt("result"), Color.DARK_CYAN);
                     } else {
                         System.out.println("function not support now!");
+                    }
+                    dsLoader.release();
+                    System.exit(0);
+                }
+                if (argMap.containsKey("-b")) {
+                    try {
+                        XQLFileManager manager = new XQLFileManager(Args.of("sql", "file:" + argMap.get("-b")));
+                        manager.init();
+                        manager.foreachEntry((k, r) -> r.foreach((n, v) -> {
+                            if (!n.startsWith("${")) {
+                                Printer.println("Execute sql [ " + n + " ] ::: " + light.execute(v.toString()).getValues(), Color.DARK_CYAN);
+                            }
+                        }));
+                    } catch (Exception e) {
+                        printError(e);
                     }
                     dsLoader.release();
                     System.exit(0);
@@ -111,7 +130,7 @@ public class Startup {
 
                 // 进入交互模式
                 Scanner scanner = new Scanner(System.in);
-                System.out.print("\033[95msqlc> \033[0m");
+                Printer.print("sqlc> ", Color.PURPLE);
                 // 数据缓存
                 Map<String, List<DataRow>> CACHE = new LinkedHashMap<>();
                 // 输入字符串缓冲
@@ -124,8 +143,6 @@ public class Startup {
                 AtomicBoolean enableCache = new AtomicBoolean(false);
                 // 结果集缓存key自增
                 AtomicInteger idx = new AtomicInteger(0);
-                // 批量下载excel数据分页大小（默认不分页）
-                AtomicInteger pageSize = new AtomicInteger(-1);
                 // 保存文件格式验证正则
                 Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save *\\$(?<key>res[\\d]+) *> *(?<path>[\\S]+)$");
                 // 直接保存查询结果到文件正则
@@ -142,8 +159,6 @@ public class Startup {
                 Pattern GET_SIZE_FORMAT = Pattern.compile("^:size *\\$(?<key>res[\\d]+)$");
                 // 判断是否是内置指令正则
                 Pattern IS_CMD_FORMAT = Pattern.compile("^:[a-z]+");
-                // 判断分页下载大小正则
-                Pattern PAGE_SIZE_FORMAT = Pattern.compile("^:batch *(?<size>\\d+)$");
 
                 //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -165,54 +180,45 @@ public class Startup {
                                 break exit;
                             case ":help":
                                 System.out.println(Command.get("--help"));
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":status":
-                                System.out.println("\033[96mView Mode:" + viewMode.get() + "\033[0m");
-                                System.out.println("\033[96mTransaction:" + (txActive.get() ? "enabled" : "disabled") + "\033[0m");
-                                System.out.println("\033[96mCache:" + (enableCache.get() ? "enabled" : "disabled") + "\033[0m");
-                                System.out.println("\033[96mExcel Batch save size:" + (pageSize.get() == -1 ? "unset" : pageSize.get()) + "\033[0m");
-                                printPrefix(txActive, "sqlc>");
+                                Printer.println("View Mode:" + viewMode.get(), Color.CYAN);
+                                Printer.println("Transaction:" + (txActive.get() ? "enabled" : "disabled"), Color.CYAN);
+                                Printer.println("Cache:" + (enableCache.get() ? "enabled" : "disabled"), Color.CYAN);
                                 break;
                             case ":c":
                                 enableCache.set(true);
                                 System.out.println("cache enabled!");
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":C":
                                 enableCache.set(false);
+                                CACHE.clear();
+                                idx.set(0);
                                 System.out.println("cache disabled!");
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":clear":
                                 CACHE.clear();
                                 idx.set(0);
                                 System.out.println("cache cleared!");
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":keys":
                                 System.out.println(CACHE.keySet());
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":json":
                                 viewMode.set(View.JSON);
                                 System.out.println("use json view!");
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":tsv":
                                 viewMode.set(View.TSV);
                                 System.out.println("use tsv!");
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":csv":
                                 viewMode.set(View.CSV);
                                 System.out.println("use csv!");
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":excel":
                                 viewMode.set(View.EXCEL);
                                 System.out.println("use excel(grid) view!");
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":begin":
                                 if (txActive.get()) {
@@ -222,7 +228,6 @@ public class Startup {
                                     txActive.set(true);
                                     System.out.println("open transaction!");
                                 }
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":commit":
                                 if (!txActive.get()) {
@@ -232,7 +237,6 @@ public class Startup {
                                     txActive.set(false);
                                     System.out.println("commit transaction!");
                                 }
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             case ":rollback":
                                 if (!txActive.get()) {
@@ -242,7 +246,6 @@ public class Startup {
                                     txActive.set(false);
                                     System.out.println("rollback transaction!");
                                 }
-                                printPrefix(txActive, "sqlc>");
                                 break;
                             default:
                                 Matcher m_getAll = GET_ALL_FORMAT.matcher(line);
@@ -252,7 +255,6 @@ public class Startup {
                                 Matcher m_save = SAVE_FILE_FORMAT.matcher(line);
                                 Matcher m_size = GET_SIZE_FORMAT.matcher(line);
                                 Matcher m_query_save = SAVE_QUERY_FORMAT.matcher(line);
-                                Matcher m_page_size = PAGE_SIZE_FORMAT.matcher(line);
 
                                 if (m_save.matches()) {
                                     String key = m_save.group("key");
@@ -263,31 +265,38 @@ public class Startup {
                                         View mode = viewMode.get();
                                         if (mode == View.TSV || mode == View.CSV) {
                                             String suffix = mode == View.TSV ? ".tsv" : ".csv";
-                                            DSVWriter writer = mode == View.TSV ? TSVWriter.of(path + suffix) : new CSVWriter(new FileOutputStream(path + suffix));
-                                            System.out.println("\033[36mwaiting...\033[0m");
-                                            for (DataRow row : rows) {
-                                                writer.writeLine(row);
+                                            String d = mode == View.TSV ? "\t" : ",";
+                                            try (FileOutputStream out = new FileOutputStream(path + suffix)) {
+                                                Printer.println("waiting...", Color.DARK_CYAN);
+                                                boolean first = true;
+                                                for (DataRow row : rows) {
+                                                    if (first) {
+                                                        Lines.writeLine(out, row.getNames(), d);
+                                                        first = false;
+                                                    }
+                                                    Lines.writeLine(out, row.getValues(), d);
+                                                }
+                                            } catch (Exception e) {
+                                                printError(e);
                                             }
-                                            writer.close();
                                             System.out.println(path + suffix + " saved!");
                                         } else if (mode == View.JSON) {
-                                            System.out.println("\033[36mwaiting...\033[0m");
+                                            Printer.println("waiting...", Color.DARK_CYAN);
                                             ViewPrinter.writeJsonArray(rows, path + ".json");
                                             System.out.println(path + ".json saved!");
                                         } else if (mode == View.EXCEL) {
-                                            System.out.println("\033[36mwaiting...\033[0m");
+                                            Printer.println("waiting...", Color.DARK_CYAN);
                                             try (ExcelWriter writer = Excels.writer()) {
                                                 XSheet sheet = XSheet.of(key, rows);
                                                 writer.write(sheet).saveTo(path + ".xlsx");
                                                 System.out.println(path + ".xlsx saved!");
                                             } catch (Exception e) {
-                                                System.out.println(e.getMessage());
+                                                printError(e);
                                             }
                                         }
                                     } else {
                                         System.out.println("result:$" + key + "not exist!");
                                     }
-                                    printPrefix(txActive, "sqlc>");
                                 } else if (m_getAll.matches()) {
                                     String key = m_getAll.group("key");
                                     List<DataRow> rows = CACHE.get(key);
@@ -299,12 +308,11 @@ public class Startup {
                                             ViewPrinter.printQueryResult(row, viewMode, first);
                                         }
                                         if (viewMode.get() == View.JSON) {
-                                            System.out.print("\033[93m]\033[0m");
+                                            Printer.print("]", Color.YELLOW);
                                             System.out.println();
                                         }
                                         System.out.println(key + " loaded!");
                                     }
-                                    printPrefix(txActive, "sqlc>");
                                 } else if (m_getByIdx.matches()) {
                                     String key = m_getByIdx.group("key");
                                     int index = Integer.parseInt(m_getByIdx.group("index"));
@@ -317,13 +325,12 @@ public class Startup {
                                         } else {
                                             ViewPrinter.printQueryResult(rows.get(index - 1), viewMode, new AtomicBoolean(true));
                                             if (viewMode.get() == View.JSON) {
-                                                System.out.print("\033[93m]\033[0m");
+                                                Printer.print("]", Color.YELLOW);
                                                 System.out.println();
                                             }
                                             System.out.println("line " + index + " of " + key + " loaded!");
                                         }
                                     }
-                                    printPrefix(txActive, "sqlc>");
                                 } else if (m_getByRange.matches()) {
                                     String key = m_getByRange.group("key");
                                     int start = Integer.parseInt(m_getByRange.group("start"));
@@ -340,13 +347,12 @@ public class Startup {
                                                 ViewPrinter.printQueryResult(rows.get(i), viewMode, first);
                                             }
                                             if (viewMode.get() == View.JSON) {
-                                                System.out.print("\033[93m]\033[0m");
+                                                Printer.print("]", Color.YELLOW);
                                                 System.out.println();
                                             }
                                             System.out.println("line " + start + " to " + end + " of " + key + " loaded!");
                                         }
                                     }
-                                    printPrefix(txActive, "sqlc>");
                                 } else if (m_rm.matches()) {
                                     String key = m_rm.group("key");
                                     if (!CACHE.containsKey(key)) {
@@ -357,7 +363,6 @@ public class Startup {
                                         rows.clear();
                                         System.out.println(key + " removed!");
                                     }
-                                    printPrefix(txActive, "sqlc>");
                                 } else if (m_size.matches()) {
                                     String key = m_size.group("key");
                                     if (!CACHE.containsKey(key)) {
@@ -365,7 +370,6 @@ public class Startup {
                                     } else {
                                         System.out.println(CACHE.get(key).size());
                                     }
-                                    printPrefix(txActive, "sqlc>");
                                 } else if (m_query_save.matches()) {
                                     // 查询直接导出记录
                                     String sql = m_query_save.group("sql");
@@ -378,23 +382,17 @@ public class Startup {
                                         } else if (mode == View.JSON) {
                                             writeJSON(s, path);
                                         } else if (mode == View.EXCEL) {
-                                            writeExcel(s, path, pageSize.get());
+                                            writeExcel(s, path);
                                         }
                                     } catch (Exception e) {
-                                        System.out.println(e.getMessage());
+                                        printError(e);
                                     }
-                                    printPrefix(txActive, "sqlc>");
-                                } else if (m_page_size.matches()) {
-                                    int size = Integer.parseInt(m_page_size.group("size"));
-                                    pageSize.set(size);
-                                    System.out.println("size: " + size + " !");
-                                    printPrefix(txActive, "sqlc>");
                                 } else {
                                     System.out.println("command not found or format invalid, command :help to get some help!");
-                                    printPrefix(txActive, "sqlc>");
                                 }
                                 break;
                         }
+                        printPrefix(txActive, "sqlc>");
                         //此分支为执行sql
                     } else {
                         inputStr.append(line);
@@ -420,26 +418,26 @@ public class Startup {
                                         key = "res" + idx.getAndIncrement();
                                         CACHE.put(key, queryResult);
                                     }
-
-                                    Stream<DataRow> rowStream = light.query(sql);
-                                    AtomicBoolean first = new AtomicBoolean(true);
-                                    rowStream.forEach(row -> {
-                                        ViewPrinter.printQueryResult(row, viewMode, first);
-                                        if (cacheEnabled) {
-                                            queryResult.add(row);
+                                    try (Stream<DataRow> rowStream = light.query(sql)) {
+                                        AtomicBoolean first = new AtomicBoolean(true);
+                                        rowStream.forEach(row -> {
+                                            ViewPrinter.printQueryResult(row, viewMode, first);
+                                            if (cacheEnabled) {
+                                                queryResult.add(row);
+                                            }
+                                        });
+                                        if (viewMode.get() == View.JSON) {
+                                            Printer.print("]", Color.YELLOW);
+                                            System.out.println();
                                         }
-                                    });
-                                    if (viewMode.get() == View.JSON) {
-                                        System.out.print("\033[93m]\033[0m");
-                                        System.out.println();
-                                    }
-                                    if (cacheEnabled) {
-                                        System.out.println(key + ": added to cache!");
-                                    }
-                                    // 如果事务还在活动，则不关闭单前查询流对象，统一由用户输入指令提交或回滚
-                                    // 如果当前没有事务，则查询完毕后就直接关闭
-                                    if (!txActive.get()) {
-                                        rowStream.close();
+                                        if (cacheEnabled) {
+                                            System.out.println(key + ": added to cache!");
+                                        }
+                                        if (txActive.get()) {
+                                            Printer.println("WARN: transaction is active now, go on...", Color.YELLOW);
+                                        }
+                                    } catch (Exception e) {
+                                        printError(e);
                                     }
                                     break;
                                 case FUNCTION:
@@ -477,34 +475,59 @@ public class Startup {
 
     public static void printPrefix(AtomicBoolean isTxActive, String mode) {
         String txActiveFlag = isTxActive.get() ? "[*]" : "";
-        System.out.printf("\033[95m%s%s \033[0m", txActiveFlag, mode);
+        Printer.printf("%s%s ", Color.PURPLE, txActiveFlag, mode);
     }
 
-    public static void writeDSV(Stream<DataRow> s, AtomicReference<View> mode, String path, String suffix) throws Exception {
-        DSVWriter writer = mode.get() == View.TSV ? TSVWriter.of(path + suffix) : new CSVWriter(new FileOutputStream(path + suffix));
-        System.out.println("\033[36mwaiting...\033[0m");
-        AtomicLong i = new AtomicLong(1);
-        s.forEach(row -> {
-            try {
-                writer.writeLine(row);
-                long offset = i.getAndIncrement();
-                if (offset % 10000 == 0) {
-                    System.out.printf("\033[36m[%s] %s rows has written.\033[0m", LocalDateTime.now(), offset);
-                    System.out.println();
+    public static void writeDSV(Stream<DataRow> s, AtomicReference<View> mode, String path, String suffix) {
+        String fileName = path + suffix;
+        AtomicReference<FileOutputStream> outputStreamAtomicReference = new AtomicReference<>(null);
+        try {
+            outputStreamAtomicReference.set(new FileOutputStream(fileName));
+            FileOutputStream out = outputStreamAtomicReference.get();
+            String d = mode.get() == View.TSV ? "\t" : ",";
+            Printer.println("waiting...", Color.DARK_CYAN);
+            AtomicLong i = new AtomicLong(1);
+            AtomicBoolean first = new AtomicBoolean(true);
+            s.forEach(row -> {
+                try {
+                    if (first.get()) {
+                        Lines.writeLine(out, row.getNames(), d);
+                        first.set(false);
+                    }
+                    Lines.writeLine(out, row.getValues(), d);
+                    long offset = i.getAndIncrement();
+                    if (offset % 10000 == 0) {
+                        Printer.printf("[%s] %s rows has written.", Color.DARK_CYAN, LocalDateTime.now(), offset);
+                        System.out.println();
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
                 }
-            } catch (IOException e) {
-                log.error(e.getMessage());
+            });
+            Printer.printf("[%s] %s rows completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
+            System.out.println();
+            System.out.println(fileName + " saved!");
+        } catch (Exception e) {
+            try {
+                FileOutputStream out = outputStreamAtomicReference.get();
+                if (out != null) {
+                    out.close();
+                    Files.deleteIfExists(Paths.get(fileName));
+                }
+            } catch (IOException ex) {
+                e.addSuppressed(ex);
             }
-        });
-        writer.close();
-        System.out.printf("\033[36m[%s] %s rows completed.\033[0m", LocalDateTime.now(), i.get());
-        System.out.println();
-        System.out.println(path + suffix + " saved!");
+            printError(e);
+        }
     }
 
-    public static void writeJSON(Stream<DataRow> s, String path) throws IOException {
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(path + ".json"))) {
-            System.out.println("\033[36mwaiting...\033[0m");
+    public static void writeJSON(Stream<DataRow> s, String path) {
+        Path filePath = Paths.get(path + ".json");
+        AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
+        try {
+            bufferedWriterAtomicReference.set(Files.newBufferedWriter(filePath));
+            BufferedWriter writer = bufferedWriterAtomicReference.get();
+            Printer.println("waiting...", Color.DARK_CYAN);
             AtomicBoolean first = new AtomicBoolean(true);
             AtomicLong i = new AtomicLong(1);
             s.forEach(row -> {
@@ -518,52 +541,75 @@ public class Startup {
                     }
                     long offset = i.getAndIncrement();
                     if (offset % 10000 == 0) {
-                        System.out.printf("\033[36m[%s] %s object has written.\033[0m", LocalDateTime.now(), offset);
+                        Printer.printf("[%s] %s object has written.", Color.DARK_CYAN, LocalDateTime.now(), offset);
                         System.out.println();
                     }
-                } catch (JsonProcessingException e) {
-                    log.error("json parse error:{}", e.getMessage());
                 } catch (IOException e) {
-                    log.error(e.getMessage());
+                    throw new RuntimeException(e);
                 }
             });
             writer.write("]");
-            System.out.printf("\033[36m[%s] %s object completed.\033[0m", LocalDateTime.now(), i.get());
+            Printer.printf("[%s] %s object completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
             System.out.println();
             System.out.println(path + ".json saved!");
-        }
-    }
-
-    public static void writeExcel(List<DataRow> rows, String path) {
-        try (ExcelWriter writer = Excels.writer()) {
-            XSheet sheet = XSheet.of("Sheet1", rows);
-            writer.write(sheet).saveTo(path + ".xlsx");
-            System.out.println(path + ".xlsx saved!");
+            writer.close();
         } catch (Exception e) {
-            log.error(e.getMessage());
+            BufferedWriter writer = bufferedWriterAtomicReference.get();
+            if (writer != null) {
+                try {
+                    writer.close();
+                    Files.deleteIfExists(filePath);
+                } catch (IOException ex) {
+                    e.addSuppressed(ex);
+                }
+            }
+            printError(e);
         }
     }
 
-    public static void writeExcel(Stream<DataRow> s, String path, int size) {
-        System.out.println("\033[36mwaiting...\033[0m");
-        if (size == -1) {
-            writeExcel(s.collect(Collectors.toList()), path);
-        } else {
-            AtomicLong i = new AtomicLong(1);
-            AtomicInteger z = new AtomicInteger(1);
-            List<DataRow> pagedResource = new ArrayList<>();
-            s.forEach(row -> {
-                pagedResource.add(row);
-                long offset = i.getAndIncrement();
-                if (offset % size == 0) {
-                    writeExcel(pagedResource, path + z.getAndIncrement());
-                    pagedResource.clear();
+    public static void writeExcel(Stream<DataRow> rowStream, String path) {
+        String filePath = path + ".xlsx";
+        BigExcelLineWriter writer = new BigExcelLineWriter(true);
+        try {
+            Sheet sheet = writer.createSheet("Sheet1");
+            AtomicBoolean first = new AtomicBoolean(true);
+            rowStream.forEach(row -> {
+                if (first.get()) {
+                    writer.writeRow(sheet, row.getNames().toArray());
+                    first.set(false);
+                }
+                writer.writeRow(sheet, row.getValues());
+            });
+            writer.saveTo(filePath);
+            System.out.println(filePath + " saved!");
+            writer.close();
+        } catch (Exception e) {
+            try {
+                writer.close();
+                Files.deleteIfExists(Paths.get(filePath));
+            } catch (Exception ex) {
+                e.addSuppressed(ex);
+            }
+            printError(e);
+        }
+    }
+
+    public static void printError(Throwable e) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+             PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(out)), true)) {
+            writer.println(new Object() {
+                @Override
+                public String toString() {
+                    StringWriter stringWriter = new StringWriter();
+                    PrintWriter writer = new PrintWriter(stringWriter);
+                    e.printStackTrace(writer);
+                    StringBuffer buffer = stringWriter.getBuffer();
+                    return buffer.toString();
                 }
             });
-            if (!pagedResource.isEmpty()) {
-                writeExcel(pagedResource, path + z.getAndIncrement());
-                pagedResource.clear();
-            }
+            Printer.println(out.toString(), Color.RED);
+        } catch (IOException ioException) {
+            Printer.println(ioException.toString(), Color.RED);
         }
     }
 }
