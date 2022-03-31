@@ -57,6 +57,9 @@ public class ViewPrinter {
             String typesLine = data.getNames().stream()
                     .map(n -> {
                         String v = data.getType(n);
+                        if (v == null) {
+                            return "unKnow";
+                        }
                         int idx = v.lastIndexOf(".");
                         if (idx == -1) {
                             return v;
