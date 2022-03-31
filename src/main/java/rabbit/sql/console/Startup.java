@@ -37,7 +37,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class Startup {
+    private static final Logger log = LoggerFactory.getLogger("SQLC");
+
     public static void main(String[] args) throws Exception {
+        log.info("Runtime version: {} VM: {}", System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
         if (args.length == 0) {
             System.out.println("--help to get some help.");
             System.exit(0);
@@ -104,8 +107,12 @@ public class Startup {
                             printError(e);
                         }
                     } else if (sqlType == SqlType.OTHER) {
-                        DataRow res = light.execute(sql);
-                        Printer.println("execute " + res.getString("type") + ":" + res.getInt("result"), Color.DARK_CYAN);
+                        try {
+                            DataRow res = light.execute(sql);
+                            Printer.println("execute " + res.getString("type") + ":" + res.getInt("result"), Color.DARK_CYAN);
+                        } catch (Exception e) {
+                            printError(e);
+                        }
                     } else {
                         System.out.println("function not support now!");
                     }
@@ -444,8 +451,12 @@ public class Startup {
                                     System.out.println("function not support now!");
                                     break;
                                 case OTHER:
-                                    DataRow res = light.execute(sql);
-                                    System.out.println("execute " + res.getString("type") + ":" + res.getInt("result"));
+                                    try {
+                                        DataRow res = light.execute(sql);
+                                        System.out.println("execute " + res.getString("type") + ":" + res.getInt("result"));
+                                    } catch (Exception e) {
+                                        printError(e);
+                                    }
                                     break;
                                 default:
                                     break;

@@ -81,7 +81,7 @@ public class DataSourceLoader {
             dataSource = new HikariDataSource(config);
             baki = BakiDao.of(dataSource);
         }
-        log.info("Login: {}", getDbInfo());
+        log.info("DataBase: {}", getDbInfo());
         return baki;
     }
 

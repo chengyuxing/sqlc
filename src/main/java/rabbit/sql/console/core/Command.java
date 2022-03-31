@@ -50,7 +50,7 @@ public class Command {
                 "\t:save ${[query]}>[path]\t\t--save the query result to local file.(faster than cached result, no cache and it doesn't print the result.)\n" +
                 "\t:help\t\t\t\t--get some help.", Color.CYAN));
         commands.put("-h", commands.get("--help"));
-        commands.put("-v", "1.0.3");
+        commands.put("-v", "1.0.4");
     }
 
     public static String get(String key) {

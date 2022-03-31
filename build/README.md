@@ -11,7 +11,10 @@
 ## 关于批量执行SQL（-b）
 - sql文件内多条sql以分号(;)分隔；
 - sql名和sql必须成对，如果没有使用过rabbit-sql的`XQLFileManager`，格式为：`/*[扩展注释的sql名（包含中括号）]*/`占一行，下一行为sql并以分号结尾；
-
+## 例子
+- `./sqlc.sh -ujdbc:postgresql://127.0.0.1:5432/postgres -nchengyuxing -p`
+- `./sqlc.sh -ujdbc:postgresql://127.0.0.1:5432/postgres -nchengyuxing -p -e"select * from test.region where id < 10" -fjson`
+- `./sqlc.sh -ujdbc:postgresql://127.0.0.1:5432/postgres -nchengyuxing -p -x/Users/chengyuxing/Downloads/a.sql`
 ## 帮助文档
 
 - 命令模式 `sqlc.sh -h` 或 `sqlc.sh --help`
