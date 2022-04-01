@@ -21,8 +21,8 @@ public class Command {
                 "\t-u[url]\t\t\t\t--jdbc url, e.g.: -ujdbc:postgresql://...\n" +
                 "\t-n[username]\t\t\t--database username.\n" +
                 "\t-p[password]\t\t\t--database password.\n" +
-                "\t-e\"[/path|sql]\"\t\t\t--execute sql e.g. -e\"select * from user\" or -e/usr/local/a.sql\n" +
-                "\t-b\"/[sqlFile]\"\t\t\t--batch execute sql which in sql file e.g. -b\"/usr/local/a.sql\"\n" +
+                "\t-e\"[/path|sql]\"\t\t\t--execute just *one* sql. e.g. -e\"select * from user\" or -e/usr/local/one.sql\n" +
+                "\t-b\"/[sqlFile]\"\t\t\t--batch execute sql which in sql file e.g. -b\"/usr/local/some.sql\"\n" +
                 "\t-f[tsv|csv|json|excel]\t\t--format of query result which will be executed.(default tsv)\n" +
                 "\t-s/[path]\t\t\t--full file path of query result which will be saved(with -e or -x).\n" +
                 "\t-v\t\t\t\t--version\n" +
@@ -38,7 +38,7 @@ public class Command {
                 "\t:rollback\t\t\t--rollback transaction.\n" +
                 "\t:[tsv|csv|json|excel]\t\t--as query format and exported file format. (default tsv)\n" +
                 "\t:keys\t\t\t\t--list all keys of cache.\n" +
-                "\t:get $key[<lineNum][:endNum]\t--query cache by key.\n" +
+                "\t:get $key[<lineNum][:endNum]\t--query cache by key, 1 is first index.\n" +
                 "\t:rm $key\t\t\t--remove the cache by key.\n" +
                 "\t:size $key\t\t\t--query cache size by key.\n" +
                 "\t:load /[path]\t\t--load local sql file and execute, path must be absolute(starts with '/')\n" +

@@ -68,6 +68,8 @@ public class Startup {
                         sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
                     }
                     SqlType sqlType = SqlUtil.getType(sql);
+                    Printer.print(">>>: ", Color.SILVER);
+                    System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql));
                     if (sqlType == SqlType.QUERY) {
                         try (Stream<DataRow> s = light.query(sql)) {
                             if (viewMode.get() == View.TSV || viewMode.get() == View.CSV) {
@@ -106,12 +108,14 @@ public class Startup {
                     } else if (sqlType == SqlType.OTHER) {
                         try {
                             DataRow res = light.execute(sql);
-                            Printer.println("execute " + res.getString("type") + ":" + res.getInt("result"), Color.DARK_CYAN);
+                            Printer.println("execute " + res.getString("type") + ": " + res.getInt("result"), Color.CYAN);
                         } catch (Exception e) {
                             printError(e);
                         }
+                    } else if (sqlType == SqlType.FUNCTION) {
+                        System.out.println("function not support now");
                     } else {
-                        System.out.println("function not support now!");
+                        System.out.println("unKnow sql type, will not be execute!");
                     }
                     dsLoader.release();
                     System.exit(0);
@@ -125,7 +129,8 @@ public class Startup {
                                     .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
                                     .forEach(sql -> {
                                         try {
-                                            Printer.println("Execute: " + sql, Color.DARK_GREEN);
+                                            Printer.print(">>>: ", Color.SILVER);
+                                            System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql));
                                             DataRow row = light.execute(sql);
                                             Object res = row.get(0);
                                             Stream<DataRow> stream;
@@ -432,7 +437,8 @@ public class Startup {
                                                         .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
                                                         .forEach(sql -> {
                                                             try {
-                                                                Printer.println("Execute: " + sql, Color.DARK_GREEN);
+                                                                Printer.print(">>>: ", Color.SILVER);
+                                                                System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql));
                                                                 DataRow row = light.execute(sql);
                                                                 Object res = row.get(0);
                                                                 Stream<DataRow> stream;
