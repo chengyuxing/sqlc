@@ -40,7 +40,6 @@ public class Startup {
     private static final Logger log = LoggerFactory.getLogger("SQLC");
 
     public static void main(String[] args) throws Exception {
-        log.info("Runtime version: {} VM: {}", System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
         if (args.length == 0) {
             System.out.println("--help to get some help.");
             System.exit(0);
@@ -134,7 +133,8 @@ public class Startup {
                     dsLoader.release();
                     System.exit(0);
                 }
-
+                log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
+                log.info("Type in sql script to execute query,ddl,dml..., Or try :help");
                 // 进入交互模式
                 Scanner scanner = new Scanner(System.in);
                 Printer.print("sqlc> ", Color.PURPLE);
@@ -183,6 +183,7 @@ public class Startup {
                             case ":q":
                                 break exit;
                             case ":help":
+                            case ":h":
                                 System.out.println(Command.get("--help"));
                                 break;
                             case ":status":

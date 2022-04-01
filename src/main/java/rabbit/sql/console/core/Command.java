@@ -2,6 +2,7 @@ package rabbit.sql.console.core;
 
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
+import rabbit.sql.console.Version;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -48,9 +49,9 @@ public class Command {
                 "\t:size $[key]\t\t\t--query cache size by key.\n" +
                 "\t:save $[key]>[path]\t\t--if cache enabled, save the selected cache to local file.\n" +
                 "\t:save ${[query]}>[path]\t\t--save the query result to local file.(faster than cached result, no cache and it doesn't print the result.)\n" +
-                "\t:help\t\t\t\t--get some help.", Color.CYAN));
+                "\t:h[elp]\t\t\t\t--get some help.", Color.CYAN));
         commands.put("-h", commands.get("--help"));
-        commands.put("-v", "1.0.4");
+        commands.put("-v", Version.RELEASE);
     }
 
     public static String get(String key) {
