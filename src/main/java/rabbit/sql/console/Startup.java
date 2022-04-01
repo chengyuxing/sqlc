@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Startup {
@@ -65,7 +66,53 @@ public class Startup {
                 if (argMap.containsKey("-e")) {
                     String sql = argMap.get("-e");
                     if (sql.startsWith("/")) {
+                        if (!Files.exists(Paths.get(sql))) {
+                            Printer.println("sql file [" + argMap.get("-b") + "] not exists.", Color.RED);
+                            System.exit(0);
+                        }
                         sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
+                    }
+                    if (sql.contains(";;")) {
+                        List<String> sqls = Stream.of(sql.split(";;"))
+                                .filter(s -> !s.trim().equals("") && !s.matches("^[;\r\t\n]$"))
+                                .collect(Collectors.toList());
+                        // 如果有多段sql脚本，则批量执行并打印结果，但不能配合 -s 输出文件
+                        if (sqls.size() > 1) {
+                            if (argMap.containsKey("-s")) {
+                                Printer.println("multi block sql script will not work with -s, only print executed result.", Color.YELLOW);
+                            }
+                            AtomicInteger success = new AtomicInteger(0);
+                            AtomicInteger fail = new AtomicInteger(0);
+                            sqls.forEach(sbql -> {
+                                try {
+                                    Printer.print(">>>: ", Color.SILVER);
+                                    System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sbql));
+                                    DataRow row = light.execute(sbql);
+                                    Object res = row.get(0);
+                                    Stream<DataRow> stream;
+                                    if (res instanceof DataRow) {
+                                        stream = Stream.of((DataRow) res);
+                                    } else if (res instanceof List) {
+                                        stream = ((List<DataRow>) res).stream();
+                                    } else {
+                                        stream = Stream.of(row);
+                                    }
+                                    AtomicBoolean first = new AtomicBoolean(true);
+                                    stream.forEach(rr -> ViewPrinter.printQueryResult(rr, viewMode, first));
+                                    if (viewMode.get() == View.JSON) {
+                                        Printer.print("]", Color.YELLOW);
+                                        System.out.println();
+                                    }
+                                    success.incrementAndGet();
+                                } catch (Exception e) {
+                                    printError(e);
+                                    fail.incrementAndGet();
+                                }
+                            });
+                            Printer.println("Execute finished, success: " + success + ", fail: " + fail, Color.SILVER);
+                            dsLoader.release();
+                            System.exit(0);
+                        }
                     }
                     SqlType sqlType = SqlUtil.getType(sql);
                     Printer.print(">>>: ", Color.SILVER);
@@ -125,7 +172,7 @@ public class Startup {
                         if (Files.exists(Paths.get(argMap.get("-b")))) {
                             AtomicInteger success = new AtomicInteger(0);
                             AtomicInteger fail = new AtomicInteger(0);
-                            Stream.of(String.join("\n", Files.readAllLines(Paths.get(argMap.get("-b")))).split(";[ \t]*[\r\n]"))
+                            Stream.of(String.join("\n", Files.readAllLines(Paths.get(argMap.get("-b")))).split(";;"))
                                     .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
                                     .forEach(sql -> {
                                         try {
@@ -433,7 +480,7 @@ public class Startup {
                                             try {
                                                 AtomicInteger success = new AtomicInteger(0);
                                                 AtomicInteger fail = new AtomicInteger(0);
-                                                Stream.of(String.join("\n", Files.readAllLines(Paths.get(path))).split(";[ \t]*[\r\n]"))
+                                                Stream.of(String.join("\n", Files.readAllLines(Paths.get(path))).split(";;"))
                                                         .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
                                                         .forEach(sql -> {
                                                             try {
@@ -495,7 +542,7 @@ public class Startup {
                         //此分支为执行sql
                     } else {
                         inputStr.append(line);
-                        // 如果sql没有以分号结尾，进入连续输入模式
+                        // 如果sql没有以分号结尾，则进入连续输入模式
                         if (!line.endsWith(";")) {
                             if (inputStr.length() == 0) {
                                 printPrefix(txActive, "sqlc>");
@@ -506,52 +553,54 @@ public class Startup {
                         } else {
                             // 否则直接执行sql
                             String sql = inputStr.toString();
-                            SqlType type = SqlUtil.getType(sql);
-                            switch (type) {
-                                case QUERY:
-                                    // 查询缓存结果
-                                    List<DataRow> queryResult = new ArrayList<>();
-                                    String key = "";
-                                    boolean cacheEnabled = enableCache.get();
-                                    if (cacheEnabled) {
-                                        key = "res" + idx.getAndIncrement();
-                                        CACHE.put(key, queryResult);
-                                    }
-                                    try (Stream<DataRow> rowStream = light.query(sql)) {
-                                        AtomicBoolean first = new AtomicBoolean(true);
-                                        rowStream.forEach(row -> {
-                                            ViewPrinter.printQueryResult(row, viewMode, first);
-                                            if (cacheEnabled) {
-                                                queryResult.add(row);
-                                            }
-                                        });
-                                        if (viewMode.get() == View.JSON) {
-                                            Printer.print("]", Color.YELLOW);
-                                            System.out.println();
-                                        }
+                            if (!com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sql).equals("")) {
+                                SqlType type = SqlUtil.getType(sql);
+                                switch (type) {
+                                    case QUERY:
+                                        // 查询缓存结果
+                                        List<DataRow> queryResult = new ArrayList<>();
+                                        String key = "";
+                                        boolean cacheEnabled = enableCache.get();
                                         if (cacheEnabled) {
-                                            System.out.println(key + ": added to cache!");
+                                            key = "res" + idx.getAndIncrement();
+                                            CACHE.put(key, queryResult);
                                         }
-                                        if (txActive.get()) {
-                                            Printer.println("WARN: transaction is active now, go on...", Color.YELLOW);
+                                        try (Stream<DataRow> rowStream = light.query(sql)) {
+                                            AtomicBoolean first = new AtomicBoolean(true);
+                                            rowStream.forEach(row -> {
+                                                ViewPrinter.printQueryResult(row, viewMode, first);
+                                                if (cacheEnabled) {
+                                                    queryResult.add(row);
+                                                }
+                                            });
+                                            if (viewMode.get() == View.JSON) {
+                                                Printer.print("]", Color.YELLOW);
+                                                System.out.println();
+                                            }
+                                            if (cacheEnabled) {
+                                                System.out.println(key + ": added to cache!");
+                                            }
+                                            if (txActive.get()) {
+                                                Printer.println("WARN: transaction is active now, go on...", Color.YELLOW);
+                                            }
+                                        } catch (Exception e) {
+                                            printError(e);
                                         }
-                                    } catch (Exception e) {
-                                        printError(e);
-                                    }
-                                    break;
-                                case FUNCTION:
-                                    System.out.println("function not support now!");
-                                    break;
-                                case OTHER:
-                                    try {
-                                        DataRow res = light.execute(sql);
-                                        System.out.println("execute " + res.getString("type") + ":" + res.getInt("result"));
-                                    } catch (Exception e) {
-                                        printError(e);
-                                    }
-                                    break;
-                                default:
-                                    break;
+                                        break;
+                                    case FUNCTION:
+                                        System.out.println("function not support now!");
+                                        break;
+                                    case OTHER:
+                                        try {
+                                            DataRow res = light.execute(sql);
+                                            System.out.println("execute " + res.getString("type") + ":" + res.getInt("result"));
+                                        } catch (Exception e) {
+                                            printError(e);
+                                        }
+                                        break;
+                                    default:
+                                        break;
+                                }
                             }
                             printPrefix(txActive, "sqlc>");
                             inputStr.setLength(0);
