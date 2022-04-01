@@ -164,8 +164,6 @@ public class Startup {
                 Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm *\\$(?<key>res[\\d]+)$");
                 // 查询缓存大小正则
                 Pattern GET_SIZE_FORMAT = Pattern.compile("^:size *\\$(?<key>res[\\d]+)$");
-                // 判断是否是内置指令正则
-                Pattern IS_CMD_FORMAT = Pattern.compile("^:[a-z]+");
 
                 //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -180,8 +178,7 @@ public class Startup {
                 exit:
                 while (true) {
                     String line = scanner.nextLine().trim();
-                    Matcher m_cmd = IS_CMD_FORMAT.matcher(line);
-                    if (m_cmd.find()) {
+                    if (line.length() > 1 && line.startsWith(":")) {
                         switch (line) {
                             case ":q":
                                 break exit;
