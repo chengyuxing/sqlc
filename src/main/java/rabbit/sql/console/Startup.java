@@ -85,8 +85,7 @@ public class Startup {
                             AtomicInteger fail = new AtomicInteger(0);
                             sqls.forEach(sbql -> {
                                 try {
-                                    Printer.print(">>>: ", Color.SILVER);
-                                    System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sbql));
+                                    printHighlightSql(sbql);
                                     DataRow row = light.execute(sbql);
                                     Object res = row.get(0);
                                     Stream<DataRow> stream;
@@ -115,8 +114,7 @@ public class Startup {
                         }
                     }
                     SqlType sqlType = SqlUtil.getType(sql);
-                    Printer.print(">>>: ", Color.SILVER);
-                    System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql));
+                    printHighlightSql(sql);
                     if (sqlType == SqlType.QUERY) {
                         try (Stream<DataRow> s = light.query(sql)) {
                             if (viewMode.get() == View.TSV || viewMode.get() == View.CSV) {
@@ -442,8 +440,7 @@ public class Startup {
                                                         .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
                                                         .forEach(sql -> {
                                                             try {
-                                                                Printer.print(">>>: ", Color.SILVER);
-                                                                System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql));
+                                                                printHighlightSql(sql);
                                                                 DataRow row = light.execute(sql);
                                                                 Object res = row.get(0);
                                                                 Stream<DataRow> stream;
@@ -513,6 +510,7 @@ public class Startup {
                             String sql = inputStr.toString();
                             if (!com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sql).equals("")) {
                                 SqlType type = SqlUtil.getType(sql);
+                                printHighlightSql(sql);
                                 switch (type) {
                                     case QUERY:
                                         // 查询缓存结果
@@ -702,6 +700,11 @@ public class Startup {
             }
             printError(e);
         }
+    }
+
+    public static void printHighlightSql(String sql) {
+        Printer.print(">>>: ", Color.SILVER);
+        System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql));
     }
 
     public static void printError(Throwable e) {
