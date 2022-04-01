@@ -510,7 +510,6 @@ public class Startup {
                             String sql = inputStr.toString();
                             if (!com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sql).equals("")) {
                                 SqlType type = SqlUtil.getType(sql);
-                                printHighlightSql(sql);
                                 switch (type) {
                                     case QUERY:
                                         // 查询缓存结果
@@ -614,7 +613,7 @@ public class Startup {
             });
             Printer.printf("[%s] %s rows completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
             System.out.println();
-            System.out.println(fileName + " saved!");
+            Printer.println(fileName + " saved!",Color.SILVER);
         } catch (Exception e) {
             try {
                 FileOutputStream out = outputStreamAtomicReference.get();
@@ -659,7 +658,7 @@ public class Startup {
             writer.write("]");
             Printer.printf("[%s] %s object completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
             System.out.println();
-            System.out.println(path + ".json saved!");
+            Printer.println(path + ".json saved!", Color.SILVER);
             writer.close();
         } catch (Exception e) {
             BufferedWriter writer = bufferedWriterAtomicReference.get();
@@ -689,7 +688,7 @@ public class Startup {
                 writer.writeRow(sheet, row.getValues());
             });
             writer.saveTo(filePath);
-            System.out.println(filePath + " saved!");
+            Printer.println(filePath + " saved!", Color.SILVER);
             writer.close();
         } catch (Exception e) {
             try {
