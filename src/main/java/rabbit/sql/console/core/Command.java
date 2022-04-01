@@ -21,8 +21,7 @@ public class Command {
                 "\t-u[url]\t\t\t\t--jdbc url, e.g.: -ujdbc:postgresql://...\n" +
                 "\t-n[username]\t\t\t--database username.\n" +
                 "\t-p[password]\t\t\t--database password.\n" +
-                "\t-e\"[/path|sql]\"\t\t\t--execute just *one* sql. e.g. -e\"select * from user\" or -e/usr/local/one.sql\n" +
-                "\t-b\"/[sqlFile]\"\t\t\t--batch execute sql which in sql file e.g. -b\"/usr/local/some.sql\"\n" +
+                "\t-e\"[sql|/path]\"\t\t\t--execute one or more sql script(or in sql file) delimited by ';;'(double semicolon) e.g. -e\"select * from user;;create function...\" or -e/usr/local/one.sql\n" +
                 "\t-f[tsv|csv|json|excel]\t\t--format of query result which will be executed.(default tsv)\n" +
                 "\t-s/[path]\t\t\t--full file path of query result which will be saved(with -e or -x).\n" +
                 "\t-v\t\t\t\t--version\n" +

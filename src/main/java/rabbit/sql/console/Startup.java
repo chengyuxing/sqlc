@@ -167,49 +167,7 @@ public class Startup {
                     dsLoader.release();
                     System.exit(0);
                 }
-                if (argMap.containsKey("-b")) {
-                    try {
-                        if (Files.exists(Paths.get(argMap.get("-b")))) {
-                            AtomicInteger success = new AtomicInteger(0);
-                            AtomicInteger fail = new AtomicInteger(0);
-                            Stream.of(String.join("\n", Files.readAllLines(Paths.get(argMap.get("-b")))).split(";;"))
-                                    .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
-                                    .forEach(sql -> {
-                                        try {
-                                            Printer.print(">>>: ", Color.SILVER);
-                                            System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql));
-                                            DataRow row = light.execute(sql);
-                                            Object res = row.get(0);
-                                            Stream<DataRow> stream;
-                                            if (res instanceof DataRow) {
-                                                stream = Stream.of((DataRow) res);
-                                            } else if (res instanceof List) {
-                                                stream = ((List<DataRow>) res).stream();
-                                            } else {
-                                                stream = Stream.of(row);
-                                            }
-                                            AtomicBoolean first = new AtomicBoolean(true);
-                                            stream.forEach(rr -> ViewPrinter.printQueryResult(rr, viewMode, first));
-                                            if (viewMode.get() == View.JSON) {
-                                                Printer.print("]", Color.YELLOW);
-                                                System.out.println();
-                                            }
-                                            success.incrementAndGet();
-                                        } catch (Exception e) {
-                                            printError(e);
-                                            fail.incrementAndGet();
-                                        }
-                                    });
-                            Printer.println("Execute finished, success: " + success + ", fail: " + fail, Color.SILVER);
-                        } else {
-                            Printer.println("sql file [" + argMap.get("-b") + "] not exists.", Color.RED);
-                        }
-                    } catch (Exception e) {
-                        printError(e);
-                    }
-                    dsLoader.release();
-                    System.exit(0);
-                }
+
                 log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
                 log.info("Type in sql script to execute query,ddl,dml..., Or try :help");
                 // 进入交互模式
