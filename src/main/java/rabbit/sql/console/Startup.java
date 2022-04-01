@@ -8,9 +8,7 @@ import com.github.chengyuxing.excel.Excels;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
 import com.github.chengyuxing.excel.io.ExcelWriter;
 import com.github.chengyuxing.excel.type.XSheet;
-import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
-import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.transaction.Tx;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.slf4j.Logger;
@@ -39,6 +37,7 @@ import java.util.stream.Stream;
 public class Startup {
     private static final Logger log = LoggerFactory.getLogger("SQLC");
 
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out.println("--help to get some help.");
@@ -54,6 +53,15 @@ public class Startup {
             Baki light = dsLoader.getBaki();
 
             if (light != null) {
+                // 输出的结果视图与结果保存类型
+                final AtomicReference<View> viewMode = new AtomicReference<>(View.TSV);
+                if (argMap.containsKey("-f")) {
+                    String format = argMap.get("-f");
+                    viewMode.set(format.equals("csv") ?
+                            View.CSV : format.equals("json") ?
+                            View.JSON : format.equals("excel") ?
+                            View.EXCEL : View.TSV);
+                }
                 if (argMap.containsKey("-e") || argMap.containsKey("-x")) {
                     String sql;
                     if (argMap.containsKey("-e")) {
@@ -64,42 +72,34 @@ public class Startup {
                     SqlType sqlType = SqlUtil.getType(sql);
                     if (sqlType == SqlType.QUERY) {
                         try (Stream<DataRow> s = light.query(sql)) {
-                            AtomicReference<View> mode = new AtomicReference<>(View.TSV);
-                            if (argMap.containsKey("-f")) {
-                                String format = argMap.get("-f");
-                                mode.set(format.equals("csv") ?
-                                        View.CSV : format.equals("json") ?
-                                        View.JSON : format.equals("excel") ?
-                                        View.EXCEL : View.TSV);
-                            }
-                            if (mode.get() == View.TSV || mode.get() == View.CSV) {
+                            if (viewMode.get() == View.TSV || viewMode.get() == View.CSV) {
                                 if (argMap.containsKey("-s")) {
                                     String path = argMap.get("-s");
-                                    String suffix = mode.get() == View.TSV ? ".tsv" : ".csv";
-                                    writeDSV(s, mode, path, suffix);
+                                    String suffix = viewMode.get() == View.TSV ? ".tsv" : ".csv";
+                                    writeDSV(s, viewMode, path, suffix);
                                 } else {
                                     AtomicBoolean first = new AtomicBoolean(true);
-                                    s.forEach(row -> ViewPrinter.printQueryResult(row, mode, first));
+                                    s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
                                 }
-                            } else if (mode.get() == View.JSON) {
+                            } else if (viewMode.get() == View.JSON) {
                                 if (argMap.containsKey("-s")) {
                                     String path = argMap.get("-s");
                                     writeJSON(s, path);
                                 } else {
                                     AtomicBoolean first = new AtomicBoolean(true);
-                                    s.forEach(row -> ViewPrinter.printQueryResult(row, mode, first));
-                                    if (mode.get() == View.JSON) {
+                                    s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
+                                    if (viewMode.get() == View.JSON) {
                                         Printer.print("]", Color.YELLOW);
                                         System.out.println();
                                     }
                                 }
-                            } else if (mode.get() == View.EXCEL) {
+                            } else if (viewMode.get() == View.EXCEL) {
                                 if (argMap.containsKey("-s")) {
                                     String path = argMap.get("-s");
                                     writeExcel(s, path);
                                 } else {
                                     AtomicBoolean first = new AtomicBoolean(true);
-                                    s.forEach(row -> ViewPrinter.printQueryResult(row, mode, first));
+                                    s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
                                 }
                             }
                         } catch (Exception e) {
@@ -120,13 +120,40 @@ public class Startup {
                 }
                 if (argMap.containsKey("-b")) {
                     try {
-                        XQLFileManager manager = new XQLFileManager(Args.of("sql", "file:" + argMap.get("-b")));
-                        manager.init();
-                        manager.foreachEntry((k, r) -> r.foreach((n, v) -> {
-                            if (!n.startsWith("${")) {
-                                Printer.println("Execute sql [ " + n + " ] ::: " + light.execute(v.toString()).getValues(), Color.DARK_CYAN);
-                            }
-                        }));
+                        if (Files.exists(Paths.get(argMap.get("-b")))) {
+                            AtomicInteger success = new AtomicInteger(0);
+                            AtomicInteger fail = new AtomicInteger(0);
+                            Stream.of(String.join("\n", Files.readAllLines(Paths.get(argMap.get("-b")))).split(";[ \t]*[\r\n]"))
+                                    .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
+                                    .forEach(sql -> {
+                                        try {
+                                            Printer.println("Execute: " + sql, Color.DARK_GREEN);
+                                            DataRow row = light.execute(sql);
+                                            Object res = row.get(0);
+                                            Stream<DataRow> stream;
+                                            if (res instanceof DataRow) {
+                                                stream = Stream.of((DataRow) res);
+                                            } else if (res instanceof List) {
+                                                stream = ((List<DataRow>) res).stream();
+                                            } else {
+                                                stream = Stream.of(row);
+                                            }
+                                            AtomicBoolean first = new AtomicBoolean(true);
+                                            stream.forEach(rr -> ViewPrinter.printQueryResult(rr, viewMode, first));
+                                            if (viewMode.get() == View.JSON) {
+                                                Printer.print("]", Color.YELLOW);
+                                                System.out.println();
+                                            }
+                                            success.incrementAndGet();
+                                        } catch (Exception e) {
+                                            printError(e);
+                                            fail.incrementAndGet();
+                                        }
+                                    });
+                            Printer.println("Execute finished, success: " + success + ", fail: " + fail, Color.SILVER);
+                        } else {
+                            Printer.println("sql file [" + argMap.get("-b") + "] not exists.", Color.RED);
+                        }
                     } catch (Exception e) {
                         printError(e);
                     }
@@ -144,26 +171,26 @@ public class Startup {
                 StringBuilder inputStr = new StringBuilder();
                 // 事务是否活动标志
                 AtomicBoolean txActive = new AtomicBoolean(false);
-                // 输出的结果视图
-                AtomicReference<View> viewMode = new AtomicReference<>(View.TSV);
                 // 是否开启缓存
                 AtomicBoolean enableCache = new AtomicBoolean(false);
                 // 结果集缓存key自增
                 AtomicInteger idx = new AtomicInteger(0);
                 // 保存文件格式验证正则
-                Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save *\\$(?<key>res[\\d]+) *> *(?<path>[\\S]+)$");
+                Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save +\\$(?<key>res[\\d]+) *> *(?<path>[\\S]+)$");
                 // 直接保存查询结果到文件正则
-                Pattern SAVE_QUERY_FORMAT = Pattern.compile("^:save *\\$\\{(?<sql>[\\s\\S]+)} *> *(?<path>[\\S]+)$");
+                Pattern SAVE_QUERY_FORMAT = Pattern.compile("^:save +\\$\\{(?<sql>[\\s\\S]+)} *> *(?<path>[\\S]+)$");
                 // 获取结果集区间正则
-                Pattern GET_RES_RANGE_FORMAT = Pattern.compile("^:get *\\$(?<key>res[\\d]+) *< *(?<start>\\d+) *: *(?<end>\\d+)$");
+                Pattern GET_RES_RANGE_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+) *< *(?<start>\\d+) *: *(?<end>\\d+)$");
                 // 获取指定索引的结果正则
-                Pattern GET_RES_IDX_FORMAT = Pattern.compile("^:get *\\$(?<key>res[\\d]+) *< *(?<index>\\d+)$");
+                Pattern GET_RES_IDX_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+) *< *(?<index>\\d+)$");
                 // 获取全部结果正则
-                Pattern GET_ALL_FORMAT = Pattern.compile("^:get *\\$(?<key>res[\\d]+)$");
+                Pattern GET_ALL_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+)$");
                 // 删除缓存正则
-                Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm *\\$(?<key>res[\\d]+)$");
+                Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm +\\$(?<key>res[\\d]+)$");
                 // 查询缓存大小正则
-                Pattern GET_SIZE_FORMAT = Pattern.compile("^:size *\\$(?<key>res[\\d]+)$");
+                Pattern GET_SIZE_FORMAT = Pattern.compile("^:size +\\$(?<key>res[\\d]+)$");
+                // 载入sql文件正则
+                Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load +(?<path>[\\S]+)$");
 
                 //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -172,7 +199,7 @@ public class Startup {
                     }
                     dsLoader.release();
                     scanner.close();
-                    System.out.println("Bye bye :(");
+                    System.out.println("Love you，Bye bye :(");
                 }));
 
                 exit:
@@ -263,6 +290,7 @@ public class Startup {
                                 Matcher m_save = SAVE_FILE_FORMAT.matcher(line);
                                 Matcher m_size = GET_SIZE_FORMAT.matcher(line);
                                 Matcher m_query_save = SAVE_QUERY_FORMAT.matcher(line);
+                                Matcher m_load_sql = LOAD_SQL_FORMAT.matcher(line);
 
                                 if (m_save.matches()) {
                                     String key = m_save.group("key");
@@ -394,6 +422,65 @@ public class Startup {
                                         }
                                     } catch (Exception e) {
                                         printError(e);
+                                    }
+                                } else if (m_load_sql.matches()) {
+                                    String path = m_load_sql.group("path").trim();
+                                    if (path.length() > 0) {
+                                        if (Files.exists(Paths.get(path))) {
+                                            try {
+                                                AtomicInteger success = new AtomicInteger(0);
+                                                AtomicInteger fail = new AtomicInteger(0);
+                                                Stream.of(String.join("\n", Files.readAllLines(Paths.get(path))).split(";[ \t]*[\r\n]"))
+                                                        .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
+                                                        .forEach(sql -> {
+                                                            try {
+                                                                Printer.println("Execute: " + sql, Color.DARK_GREEN);
+                                                                DataRow row = light.execute(sql);
+                                                                Object res = row.get(0);
+                                                                Stream<DataRow> stream;
+                                                                if (res instanceof DataRow) {
+                                                                    stream = Stream.of((DataRow) res);
+                                                                } else if (res instanceof List) {
+                                                                    stream = ((List<DataRow>) res).stream();
+                                                                } else {
+                                                                    stream = Stream.of(row);
+                                                                }
+
+                                                                List<DataRow> queryResult = new ArrayList<>();
+                                                                String key = "";
+                                                                boolean cacheEnabled = enableCache.get();
+                                                                if (cacheEnabled) {
+                                                                    key = "res" + idx.getAndIncrement();
+                                                                    CACHE.put(key, queryResult);
+                                                                }
+                                                                AtomicBoolean first = new AtomicBoolean(true);
+                                                                stream.forEach(rr -> {
+                                                                    ViewPrinter.printQueryResult(rr, viewMode, first);
+                                                                    queryResult.add(rr);
+                                                                });
+                                                                if (viewMode.get() == View.JSON) {
+                                                                    Printer.print("]", Color.YELLOW);
+                                                                    System.out.println();
+                                                                }
+                                                                if (cacheEnabled) {
+                                                                    System.out.println(key + ": added to cache!");
+                                                                }
+                                                                if (txActive.get()) {
+                                                                    Printer.println("WARN: transaction is active now, go on...", Color.YELLOW);
+                                                                }
+                                                            } catch (Exception e) {
+                                                                printError(e);
+                                                            }
+                                                        });
+                                                Printer.println("Execute finished, success: " + success + ", fail: " + fail, Color.SILVER);
+                                            } catch (Exception e) {
+                                                printError(e);
+                                            }
+                                        } else {
+                                            Printer.println("sql file [ " + path + " ] not exists.", Color.RED);
+                                        }
+                                    } else {
+                                        Printer.println("please input the file path.", Color.YELLOW);
                                     }
                                 } else {
                                     System.out.println("command not found or format invalid, command :help to get some help!");

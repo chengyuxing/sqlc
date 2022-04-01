@@ -37,18 +37,12 @@ public class Command {
                 "\t:begin\t\t\t\t--begin transaction, and the prefix[*] means transaction is active now!\n" +
                 "\t:commit\t\t\t\t--commit transaction.\n" +
                 "\t:rollback\t\t\t--rollback transaction.\n" +
-                "\t:tsv\t\t\t\t--use TSV(Tab-separated) as query format. (default)\n" +
-                "\t:csv\t\t\t\t--use CSV(Comma-separated) as query format.\n" +
-                "\t:json\t\t\t\t--use JSON as query format.\n" +
-                "\t:excel\t\t\t\t--use excel(grid) as query format.\n" +
+                "\t:[tsv|csv|json|excel]\t\t--as query format and exported file format. (default tsv)\n" +
                 "\t:keys\t\t\t\t--list all keys of cache.\n" +
-                "\t:get $[key]\t\t\t--query all items of cache by key.\n" +
-                "\t:get $[key]<[index]\t\t--query indexed item of cache by key.\n" +
-                "\t:get $[key]<[start]:[end]\t--query ranged items of cache by key.\n" +
-                "\t:rm $[key]\t\t\t--remove the cache by key.\n" +
-                "\t:size $[key]\t\t\t--query cache size by key.\n" +
-                "\t:save $[key]>[path]\t\t--if cache enabled, save the selected cache to local file.\n" +
-                "\t:save ${[query]}>[path]\t\t--save the query result to local file.(faster than cached result, no cache and it doesn't print the result.)\n" +
+                "\t:get $key[<lineNum][:endNum]\t--query cache by key.\n" +
+                "\t:rm $key\t\t\t--remove the cache by key.\n" +
+                "\t:size $key\t\t\t--query cache size by key.\n" +
+                "\t:save $key|${query}>path\t--save the cache or query result to local file.(faster than cached result, no cache and it doesn't print the result.)\n" +
                 "\t:h[elp]\t\t\t\t--get some help.", Color.CYAN));
         commands.put("-h", commands.get("--help"));
         commands.put("-v", Version.RELEASE);
