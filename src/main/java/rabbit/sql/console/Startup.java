@@ -182,7 +182,7 @@ public class Startup {
                         switch (line) {
                             case ":q":
                                 if (txActive.get()) {
-                                    Printer.println("Warning: Transaction is active now, please :commit or :rollback before quit!", Color.YELLOW);
+                                    Printer.println("Warning: Transaction is active now, please :commit or :rollback before quit, Control c, server shutdown or kill command will be rollback transaction!", Color.YELLOW);
                                     break;
                                 } else {
                                     break exit;
