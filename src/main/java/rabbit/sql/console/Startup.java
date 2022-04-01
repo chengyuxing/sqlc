@@ -181,7 +181,12 @@ public class Startup {
                     if (line.length() > 1 && line.startsWith(":")) {
                         switch (line) {
                             case ":q":
-                                break exit;
+                                if (txActive.get()) {
+                                    Printer.println("Warning: Transaction is active now, please :commit or :rollback before quit!", Color.YELLOW);
+                                    break;
+                                } else {
+                                    break exit;
+                                }
                             case ":help":
                             case ":h":
                                 System.out.println(Command.get("--help"));
