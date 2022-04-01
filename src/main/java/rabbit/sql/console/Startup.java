@@ -62,12 +62,10 @@ public class Startup {
                             View.JSON : format.equals("excel") ?
                             View.EXCEL : View.TSV);
                 }
-                if (argMap.containsKey("-e") || argMap.containsKey("-x")) {
-                    String sql;
-                    if (argMap.containsKey("-e")) {
-                        sql = argMap.get("-e");
-                    } else {
-                        sql = String.join("\n", Files.readAllLines(Paths.get(argMap.get("-x"))));
+                if (argMap.containsKey("-e")) {
+                    String sql = argMap.get("-e");
+                    if (sql.startsWith("/")) {
+                        sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
                     }
                     SqlType sqlType = SqlUtil.getType(sql);
                     if (sqlType == SqlType.QUERY) {

@@ -21,11 +21,10 @@ public class Command {
                 "\t-u[url]\t\t\t\t--jdbc url, e.g.: -ujdbc:postgresql://...\n" +
                 "\t-n[username]\t\t\t--database username.\n" +
                 "\t-p[password]\t\t\t--database password.\n" +
-                "\t-e\"[sql]\"\t\t\t--execute one sql(query or ddl/dml) e.g. -e\"select * from user\"\n" +
-                "\t-x\"[sqlFile]\"\t\t\t--execute one sql which in sql file e.g. -x\"/usr/local/a.sql\"\n" +
-                "\t-b\"[sqlFile]\"\t\t\t--batch execute sql which in sql file e.g. -b\"/usr/local/a.sql\"\n" +
+                "\t-e\"[/path|sql]\"\t\t\t--execute sql e.g. -e\"select * from user\" or -e/usr/local/a.sql\n" +
+                "\t-b\"/[sqlFile]\"\t\t\t--batch execute sql which in sql file e.g. -b\"/usr/local/a.sql\"\n" +
                 "\t-f[tsv|csv|json|excel]\t\t--format of query result which will be executed.(default tsv)\n" +
-                "\t-s[path]\t\t\t--full file path of query result which will be saved(with -e or -x).\n" +
+                "\t-s/[path]\t\t\t--full file path of query result which will be saved(with -e or -x).\n" +
                 "\t-v\t\t\t\t--version\n" +
                 "\t-h\t\t\t\t--help\n" +
                 "Interactive Mode:\n" +
@@ -42,7 +41,8 @@ public class Command {
                 "\t:get $key[<lineNum][:endNum]\t--query cache by key.\n" +
                 "\t:rm $key\t\t\t--remove the cache by key.\n" +
                 "\t:size $key\t\t\t--query cache size by key.\n" +
-                "\t:save $key|${query}>path\t--save the cache or query result to local file.(faster than cached result, no cache and it doesn't print the result.)\n" +
+                "\t:load /[path]\t\t--load local sql file and execute, path must be absolute(starts with '/')\n" +
+                "\t:save $key|${query}>/[path]\t--save the cache or query result to local file.(faster than cached result, no cache and it doesn't print the result.)\n" +
                 "\t:h[elp]\t\t\t\t--get some help.", Color.CYAN));
         commands.put("-h", commands.get("--help"));
         commands.put("-v", Version.RELEASE);
