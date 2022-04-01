@@ -230,7 +230,7 @@ public class Startup {
                                 } else {
                                     Tx.begin();
                                     txActive.set(true);
-                                    System.out.println("open transaction!");
+                                    System.out.println("open transaction: [*]sqlc> means transaction is active now!");
                                 }
                                 break;
                             case ":commit":
@@ -239,7 +239,6 @@ public class Startup {
                                 } else {
                                     Tx.commit();
                                     txActive.set(false);
-                                    System.out.println("commit transaction!");
                                 }
                                 break;
                             case ":rollback":
@@ -248,7 +247,6 @@ public class Startup {
                                 } else {
                                     Tx.rollback();
                                     txActive.set(false);
-                                    System.out.println("rollback transaction!");
                                 }
                                 break;
                             default:
