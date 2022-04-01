@@ -72,95 +72,99 @@ public class Startup {
                         }
                         sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
                     }
-                    if (sql.contains(";;")) {
-                        List<String> sqls = Stream.of(sql.split(";;"))
-                                .filter(s -> !s.trim().equals("") && !s.matches("^[;\r\t\n]$"))
-                                .collect(Collectors.toList());
-                        // 如果有多段sql脚本，则批量执行并打印结果，但不能配合 -s 输出文件
-                        if (sqls.size() > 1) {
-                            if (argMap.containsKey("-s")) {
-                                Printer.println("multi block sql script will not work with -s, only print executed result.", Color.YELLOW);
+                    if (!sql.trim().equals("")) {
+                        if (sql.contains(";;")) {
+                            List<String> sqls = Stream.of(sql.split(";;"))
+                                    .filter(s -> !s.trim().equals("") && !s.matches("^[;\r\t\n]$"))
+                                    .collect(Collectors.toList());
+                            // 如果有多段sql脚本，则批量执行并打印结果，但不能配合 -s 输出文件
+                            if (sqls.size() > 1) {
+                                if (argMap.containsKey("-s")) {
+                                    Printer.println("multi block sql script will not work with -s, only print executed result.", Color.YELLOW);
+                                }
+                                AtomicInteger success = new AtomicInteger(0);
+                                AtomicInteger fail = new AtomicInteger(0);
+                                sqls.forEach(sbql -> {
+                                    try {
+                                        printHighlightSql(sbql);
+                                        DataRow row = light.execute(sbql);
+                                        Object res = row.get(0);
+                                        Stream<DataRow> stream;
+                                        if (res instanceof DataRow) {
+                                            stream = Stream.of((DataRow) res);
+                                        } else if (res instanceof List) {
+                                            stream = ((List<DataRow>) res).stream();
+                                        } else {
+                                            stream = Stream.of(row);
+                                        }
+                                        AtomicBoolean first = new AtomicBoolean(true);
+                                        stream.forEach(rr -> ViewPrinter.printQueryResult(rr, viewMode, first));
+                                        if (viewMode.get() == View.JSON) {
+                                            Printer.print("]", Color.YELLOW);
+                                            System.out.println();
+                                        }
+                                        success.incrementAndGet();
+                                    } catch (Exception e) {
+                                        printError(e);
+                                        fail.incrementAndGet();
+                                    }
+                                });
+                                Printer.println("Execute finished, success: " + success + ", fail: " + fail, Color.SILVER);
+                                dsLoader.release();
+                                System.exit(0);
                             }
-                            AtomicInteger success = new AtomicInteger(0);
-                            AtomicInteger fail = new AtomicInteger(0);
-                            sqls.forEach(sbql -> {
-                                try {
-                                    printHighlightSql(sbql);
-                                    DataRow row = light.execute(sbql);
-                                    Object res = row.get(0);
-                                    Stream<DataRow> stream;
-                                    if (res instanceof DataRow) {
-                                        stream = Stream.of((DataRow) res);
-                                    } else if (res instanceof List) {
-                                        stream = ((List<DataRow>) res).stream();
+                        }
+                        SqlType sqlType = SqlUtil.getType(sql);
+                        printHighlightSql(sql);
+                        if (sqlType == SqlType.QUERY) {
+                            try (Stream<DataRow> s = light.query(sql)) {
+                                if (viewMode.get() == View.TSV || viewMode.get() == View.CSV) {
+                                    if (argMap.containsKey("-s")) {
+                                        String path = argMap.get("-s");
+                                        String suffix = viewMode.get() == View.TSV ? ".tsv" : ".csv";
+                                        writeDSV(s, viewMode, path, suffix);
                                     } else {
-                                        stream = Stream.of(row);
+                                        AtomicBoolean first = new AtomicBoolean(true);
+                                        s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
                                     }
-                                    AtomicBoolean first = new AtomicBoolean(true);
-                                    stream.forEach(rr -> ViewPrinter.printQueryResult(rr, viewMode, first));
-                                    if (viewMode.get() == View.JSON) {
-                                        Printer.print("]", Color.YELLOW);
-                                        System.out.println();
+                                } else if (viewMode.get() == View.JSON) {
+                                    if (argMap.containsKey("-s")) {
+                                        String path = argMap.get("-s");
+                                        writeJSON(s, path);
+                                    } else {
+                                        AtomicBoolean first = new AtomicBoolean(true);
+                                        s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
+                                        if (viewMode.get() == View.JSON) {
+                                            Printer.print("]", Color.YELLOW);
+                                            System.out.println();
+                                        }
                                     }
-                                    success.incrementAndGet();
-                                } catch (Exception e) {
-                                    printError(e);
-                                    fail.incrementAndGet();
-                                }
-                            });
-                            Printer.println("Execute finished, success: " + success + ", fail: " + fail, Color.SILVER);
-                            dsLoader.release();
-                            System.exit(0);
-                        }
-                    }
-                    SqlType sqlType = SqlUtil.getType(sql);
-                    printHighlightSql(sql);
-                    if (sqlType == SqlType.QUERY) {
-                        try (Stream<DataRow> s = light.query(sql)) {
-                            if (viewMode.get() == View.TSV || viewMode.get() == View.CSV) {
-                                if (argMap.containsKey("-s")) {
-                                    String path = argMap.get("-s");
-                                    String suffix = viewMode.get() == View.TSV ? ".tsv" : ".csv";
-                                    writeDSV(s, viewMode, path, suffix);
-                                } else {
-                                    AtomicBoolean first = new AtomicBoolean(true);
-                                    s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
-                                }
-                            } else if (viewMode.get() == View.JSON) {
-                                if (argMap.containsKey("-s")) {
-                                    String path = argMap.get("-s");
-                                    writeJSON(s, path);
-                                } else {
-                                    AtomicBoolean first = new AtomicBoolean(true);
-                                    s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
-                                    if (viewMode.get() == View.JSON) {
-                                        Printer.print("]", Color.YELLOW);
-                                        System.out.println();
+                                } else if (viewMode.get() == View.EXCEL) {
+                                    if (argMap.containsKey("-s")) {
+                                        String path = argMap.get("-s");
+                                        writeExcel(s, path);
+                                    } else {
+                                        AtomicBoolean first = new AtomicBoolean(true);
+                                        s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
                                     }
                                 }
-                            } else if (viewMode.get() == View.EXCEL) {
-                                if (argMap.containsKey("-s")) {
-                                    String path = argMap.get("-s");
-                                    writeExcel(s, path);
-                                } else {
-                                    AtomicBoolean first = new AtomicBoolean(true);
-                                    s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
-                                }
+                            } catch (Exception e) {
+                                printError(e);
                             }
-                        } catch (Exception e) {
-                            printError(e);
+                        } else if (sqlType == SqlType.OTHER) {
+                            try {
+                                DataRow res = light.execute(sql);
+                                Printer.println("execute " + res.getString("type") + ": " + res.getInt("result"), Color.CYAN);
+                            } catch (Exception e) {
+                                printError(e);
+                            }
+                        } else if (sqlType == SqlType.FUNCTION) {
+                            System.out.println("function not support now");
+                        } else {
+                            System.out.println("unKnow sql type, will not be execute!");
                         }
-                    } else if (sqlType == SqlType.OTHER) {
-                        try {
-                            DataRow res = light.execute(sql);
-                            Printer.println("execute " + res.getString("type") + ": " + res.getInt("result"), Color.CYAN);
-                        } catch (Exception e) {
-                            printError(e);
-                        }
-                    } else if (sqlType == SqlType.FUNCTION) {
-                        System.out.println("function not support now");
                     } else {
-                        System.out.println("unKnow sql type, will not be execute!");
+                        Printer.println("no sql to execute, please check the -e format, is whitespace between -e and it's arg?", Color.YELLOW);
                     }
                     dsLoader.release();
                     System.exit(0);
@@ -613,7 +617,7 @@ public class Startup {
             });
             Printer.printf("[%s] %s rows completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
             System.out.println();
-            Printer.println(fileName + " saved!",Color.SILVER);
+            Printer.println(fileName + " saved!", Color.SILVER);
         } catch (Exception e) {
             try {
                 FileOutputStream out = outputStreamAtomicReference.get();
@@ -702,8 +706,8 @@ public class Startup {
     }
 
     public static void printHighlightSql(String sql) {
-        Printer.print(">>>: ", Color.SILVER);
-        System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql));
+        Printer.print(">>> ", Color.SILVER);
+        System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql.trim()));
     }
 
     public static void printError(Throwable e) {
