@@ -28,7 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -78,7 +77,7 @@ public class Startup {
                         }
                         executeBatch(light, sql, sqlDelimiter);
                         System.exit(0);
-                    } else if (sql.startsWith("/") || sql.startsWith("./")) {
+                    } else if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
                         if (!Files.exists(Paths.get(sql))) {
                             Printer.println("sql file [" + sql + "] not exists.", Color.RED);
                             System.exit(0);
@@ -204,7 +203,7 @@ public class Startup {
                 // 保存文件格式验证正则
                 Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save +\\$(?<key>res[\\d]+) *> *(?<path>[\\S]+)$");
                 // 直接保存查询结果到文件正则
-                Pattern SAVE_QUERY_FORMAT = Pattern.compile("^:save +\\$\\{(?<sql>[\\s\\S]+)} *> *(?<path>[\\S]+)$");
+                Pattern SAVE_QUERY_FORMAT = Pattern.compile("^:save +\\$\\{\\s*(?<sql>[\\s\\S]+\\S)\\s*} *> *(?<path>[\\S]+)$");
                 // 获取结果集区间正则
                 Pattern GET_RES_RANGE_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+) *< *(?<start>\\d+) *: *(?<end>\\d+)$");
                 // 获取指定索引的结果正则
@@ -365,7 +364,7 @@ public class Startup {
                                             }
                                         }
                                     } else {
-                                        System.out.println("result:$" + key + "not exist!");
+                                        System.out.println("cache of " + key + " not exist!");
                                     }
                                 } else if (m_getAll.matches()) {
                                     String key = m_getAll.group("key");
@@ -442,21 +441,34 @@ public class Startup {
                                     }
                                 } else if (m_query_save.matches()) {
                                     // 查询直接导出记录
-                                    String sql = m_query_save.group("sql");
-                                    String path = m_query_save.group("path");
-                                    try (Stream<DataRow> s = light.query(sql)) {
-                                        if (path.endsWith(".sql")) {
-                                            writeInsertSqlFile(s, path);
-                                        } else {
-                                            View mode = viewMode.get();
-                                            if (mode == View.TSV || mode == View.CSV) {
-                                                String suffix = mode == View.TSV ? ".tsv" : ".csv";
-                                                writeDSV(s, viewMode, path, suffix);
-                                            } else if (mode == View.JSON) {
-                                                writeJSON(s, path);
-                                            } else if (mode == View.EXCEL) {
-                                                writeExcel(s, path);
+                                    try {
+                                        String sql = m_query_save.group("sql");
+                                        // 以路径开头，则认为是要读取sql查询呢脚本文件
+                                        if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
+                                            try {
+                                                sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
+                                                printHighlightSql(sql);
+                                            } catch (Exception e) {
+                                                throw new IOException(e);
                                             }
+                                        }
+                                        String path = m_query_save.group("path");
+                                        try (Stream<DataRow> s = light.query(sql)) {
+                                            if (path.endsWith(".sql")) {
+                                                writeInsertSqlFile(s, path);
+                                            } else {
+                                                View mode = viewMode.get();
+                                                if (mode == View.TSV || mode == View.CSV) {
+                                                    String suffix = mode == View.TSV ? ".tsv" : ".csv";
+                                                    writeDSV(s, viewMode, path, suffix);
+                                                } else if (mode == View.JSON) {
+                                                    writeJSON(s, path);
+                                                } else if (mode == View.EXCEL) {
+                                                    writeExcel(s, path);
+                                                }
+                                            }
+                                        } catch (Exception e) {
+                                            throw new RuntimeException(e);
                                         }
                                     } catch (Exception e) {
                                         printError(e);
@@ -746,7 +758,7 @@ public class Startup {
     public static void writeInsertSqlFile(Stream<DataRow> stream, String outputPath) {
         // e.g. /usr/local/qbpt_deve.pinyin_ch.sql
         String tableName = outputPath.substring(outputPath.lastIndexOf(File.separator) + 1, outputPath.lastIndexOf("."));
-        Printer.println("NOTICE: output file name will as the insert sql script target table name!!!", Color.YELLOW);
+        Printer.println("NOTICE: Ignore view mode(-f and :[tsv|csv|json|excel]), output file name will as the insert sql script target table name!!!", Color.YELLOW);
         Printer.println("e.g. " + outputPath + " --> insert into " + tableName + "(...) values(...);;", Color.YELLOW);
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         try {
@@ -756,7 +768,7 @@ public class Startup {
             AtomicInteger rows = new AtomicInteger(0);
             stream.forEach(d -> {
                 try {
-                    String insert = com.github.chengyuxing.sql.utils.SqlUtil.generateInsert(tableName, d.toMap(), d.getNames());
+                    String insert = com.github.chengyuxing.sql.utils.SqlUtil.generateInsert(tableName, d.toMap(), d.getNames()).replace("\n", "") + ";;\n";
                     writer.write(insert);
                     int i = rows.incrementAndGet();
                     if (i % 10000 == 0) {
@@ -785,12 +797,11 @@ public class Startup {
         }
     }
 
-    public static void executeBatch(Baki baki, String path, AtomicReference<String> delimiterR) throws InterruptedException {
+    public static void executeBatch(Baki baki, String path, AtomicReference<String> delimiterR) {
         String delimiter = delimiterR.get();
         String bPath = path.substring(1);
         if (Files.exists(Paths.get(bPath))) {
             Printer.println("Prepare to batch execute, chunk size is 1000, waiting...", Color.CYAN);
-            TimeUnit.SECONDS.sleep(3);
             FastList<String> chunk = new FastList<>(String.class);
             AtomicInteger chunkNum = new AtomicInteger(0);
             try (Stream<String> lineStream = Files.lines(Paths.get(bPath))) {

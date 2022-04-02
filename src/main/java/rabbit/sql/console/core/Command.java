@@ -25,7 +25,7 @@ public class Command {
                         "\t-e\"[sql|[@]path]\"\t\t--execute one or more sql script(or in sql file) e.g. -e\"select * from user;;create function...\" or -e/usr/local/one.sql, warn: if path starts with '@', batch execute ddl or dml statement for each line faster('delimited by \\n') \n" +
                         "\t-d\"[delimiter]\"\t\t\t--use for delimit multi and single line sql block, default ';;'(double semicolon)\n" +
                         "\t-f[tsv|csv|json|excel]\t\t--format of query result which will be executed.(default tsv)\n" +
-                        "\t-s/[path]\t\t\t--full file path of query result which will be saved(with -e) to file(if ends with '.sql',will generate insert sql script and file name will as table name) of format(-f).\n" +
+                        "\t-s[path]\t\t\t--full file path of query result which will be saved(with -e) to file(if ends with '.sql', will generate insert sql script and file name will as table name) of format(-f).\n" +
                         "\t-v\t\t\t\t--version\n" +
                         "\t-h\t\t\t\t--help\n" +
                         "Interactive Mode:\n" +
@@ -39,12 +39,12 @@ public class Command {
                         "\t:rollback\t\t\t--rollback transaction.\n" +
                         "\t:[tsv|csv|json|excel]\t\t--as query format and exported file format. (default tsv)\n" +
                         "\t:keys\t\t\t\t--list all keys of cache.\n" +
-                        "\t:get $key[<lineNum][:endNum]\t--query cache by key, 1 is first index.\n" +
-                        "\t:rm $key\t\t\t--remove the cache by key.\n" +
-                        "\t:size $key\t\t\t--query cache size by key.\n" +
+                        "\t:get $[key][<lineNum][:endNum]\t--query cache by key, 1 is first index.\n" +
+                        "\t:rm $[key]\t\t\t--remove the cache by key.\n" +
+                        "\t:size $[key]\t\t\t--query cache size by key.\n" +
                         "\t:d [delimiter]\t\t\t--use for delimit multi and single line sql block, default ';;'(double semicolon).\n" +
                         "\t:load [[@]path]\t\t\t--load local sql file and execute, if path starts with '@', batch execute ddl or dml statement for each line faster('delimited by \\n'), otherwise delimited by ';;'(double semicolon).\n" +
-                        "\t:save $key|${query}>[path]\t--save the cache or query result to local file(if ends with '.sql',will generate insert sql script and file name will as table name).(faster than cached result, no cache and it doesn't print the result.)\n" +
+                        "\t:save $[key|{query}|{oneQueryScriptFile}]>[path]\t--save the cache or query result to local file(if ends with '.sql', will generate insert sql script and file name will as table name).(faster than cached result, no cache and it doesn't print the result.)\n" +
                         "\t:h[elp]\t\t\t\t--get some help.", Color.CYAN));
         commands.put("-h", commands.get("--help"));
         commands.put("-v", Version.RELEASE);
