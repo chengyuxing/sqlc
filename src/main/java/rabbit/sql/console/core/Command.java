@@ -44,7 +44,8 @@ public class Command {
                         "\t:size $[key]\t\t\t--query cache size by key.\n" +
                         "\t:d [delimiter]\t\t\t--use for delimit multi and single line sql block, default ';;'(double semicolon).\n" +
                         "\t:load [[@]path]\t\t\t--load local sql file and execute, if path starts with '@', batch execute ddl or dml statement for each line faster('delimited by \\n'), otherwise delimited by ';;'(double semicolon).\n" +
-                        "\t:save $[key|{query}|{oneQueryScriptFile}]>[path]\t--save the cache or query result to local file(if ends with '.sql', will generate insert sql script and file name will as table name).(faster than cached result, no cache and it doesn't print the result.)\n" +
+                        "\t:save $[key|{query}|{oneQueryScriptFile}]>[path]\n" +
+                        "\t\t\t\t\t--save the cache or query result to local file(if ends with '.sql', will generate insert sql script and file name will as table name).(faster than cached result, no cache and it doesn't print the result.)\n" +
                         "\t:h[elp]\t\t\t\t--get some help.", Color.CYAN));
         commands.put("-h", commands.get("--help"));
         commands.put("-v", Version.RELEASE);
