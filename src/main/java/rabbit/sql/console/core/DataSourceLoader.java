@@ -132,9 +132,7 @@ public class DataSourceLoader {
                 "-n",   //name
                 "-f",   //format
                 "-s",   //savePath
-                "-e",   //executed sql
-                "-b",   //批量单文件内的多条sql，使用;号分隔
-                "-x"    //执行单文件内的一条sql
+                "-e"   //sql string or sql file
         );
         return Stream.of(args)
                 .filter(arg -> arg.length() >= 2)

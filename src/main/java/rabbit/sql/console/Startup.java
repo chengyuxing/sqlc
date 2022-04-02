@@ -44,7 +44,6 @@ public class Startup {
             System.out.println("--help to get some help.");
             System.exit(0);
         }
-
         Map<String, String> argMap = DataSourceLoader.resolverArgs(args);
         if (argMap.containsKey("-u")) {
             DataSourceLoader.loadDrivers("drivers");
@@ -67,7 +66,7 @@ public class Startup {
                     String sql = argMap.get("-e");
                     if (sql.startsWith("/")) {
                         if (!Files.exists(Paths.get(sql))) {
-                            Printer.println("sql file [" + argMap.get("-b") + "] not exists.", Color.RED);
+                            Printer.println("sql file [" + sql + "] not exists.", Color.RED);
                             System.exit(0);
                         }
                         sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
@@ -209,7 +208,7 @@ public class Startup {
                     }
                     dsLoader.release();
                     scanner.close();
-                    System.out.println("Love you，Bye bye :(");
+                    System.out.println("Bye bye :(");
                 }));
 
                 exit:
@@ -478,7 +477,9 @@ public class Startup {
                                                                 if (txActive.get()) {
                                                                     Printer.println("WARN: transaction is active now, go on...", Color.YELLOW);
                                                                 }
+                                                                success.incrementAndGet();
                                                             } catch (Exception e) {
+                                                                fail.incrementAndGet();
                                                                 printError(e);
                                                             }
                                                         });
