@@ -20,7 +20,7 @@
 
 一般情况则执行预编译操作批量执行（建议小数据量）
 
-- `-e"select * from mytable;;select now();;create or replace function..." -d;;`
+- `-e"select * from mytable;;select now();;create or replace function..." -d";;"`
 - `-e/usr/local/a.sql`
 - `:load /usr/local/a.sql`
 
