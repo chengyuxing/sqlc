@@ -553,7 +553,7 @@ public class Startup {
                                     case OTHER:
                                         try {
                                             DataRow res = light.execute(sql);
-                                            System.out.println("execute " + res.getString("type") + ":" + res.getInt("result"));
+                                            Printer.println("execute " + res.getString("type") + ":" + res.getInt("result"), Color.CYAN);
                                         } catch (Exception e) {
                                             printError(e);
                                         }
