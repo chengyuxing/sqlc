@@ -680,6 +680,7 @@ public class Startup {
     }
 
     public static void writeExcel(Stream<DataRow> rowStream, String path) {
+        Printer.println("waiting...", Color.DARK_CYAN);
         String filePath = path + ".xlsx";
         BigExcelLineWriter writer = new BigExcelLineWriter(true);
         try {
