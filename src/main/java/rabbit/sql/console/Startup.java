@@ -74,7 +74,7 @@ public class Startup {
                     String sql = argMap.get("-e");
                     if (sql.startsWith("@")) {
                         if (argMap.containsKey("-s")) {
-                            Printer.println("WARN: multi block sql script will not work with -s, only print executed result.", Color.YELLOW);
+                            Printer.println("WARN: batch execute(@) will not work with -s, only print executed result.", Color.YELLOW);
                         }
                         executeBatch(light, sql, sqlDelimiter);
                         System.exit(0);
@@ -131,7 +131,9 @@ public class Startup {
                         printHighlightSql(sql);
                         if (sqlType == SqlType.QUERY) {
                             try (Stream<DataRow> s = light.query(sql)) {
-                                if (viewMode.get() == View.TSV || viewMode.get() == View.CSV) {
+                                if (argMap.containsKey("-s") && argMap.get("-s").endsWith(".sql")) {
+                                    writeInsertSqlFile(s, argMap.get("-s"));
+                                } else if (viewMode.get() == View.TSV || viewMode.get() == View.CSV) {
                                     if (argMap.containsKey("-s")) {
                                         String path = argMap.get("-s");
                                         String suffix = viewMode.get() == View.TSV ? ".tsv" : ".csv";
@@ -184,6 +186,7 @@ public class Startup {
                 }
 
                 log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
+                log.info("Go to \33[4mhttps://github.com/chengyuxing/sqlc\33[0m get more information about this.");
                 log.info("Type in sql script to execute query,ddl,dml..., Or try :help");
                 // 进入交互模式
                 Scanner scanner = new Scanner(System.in);
@@ -325,36 +328,40 @@ public class Startup {
                                     if (CACHE.containsKey(key)) {
                                         List<DataRow> rows = CACHE.get(key);
                                         String path = m_save.group("path").trim();
-                                        View mode = viewMode.get();
-                                        if (mode == View.TSV || mode == View.CSV) {
-                                            String suffix = mode == View.TSV ? ".tsv" : ".csv";
-                                            String d = mode == View.TSV ? "\t" : ",";
-                                            try (FileOutputStream out = new FileOutputStream(path + suffix)) {
-                                                Printer.println("waiting...", Color.DARK_CYAN);
-                                                boolean first = true;
-                                                for (DataRow row : rows) {
-                                                    if (first) {
-                                                        Lines.writeLine(out, row.getNames(), d);
-                                                        first = false;
+                                        if (path.endsWith(".sql")) {
+                                            writeInsertSqlFile(rows.stream(), path);
+                                        } else {
+                                            View mode = viewMode.get();
+                                            if (mode == View.TSV || mode == View.CSV) {
+                                                String suffix = mode == View.TSV ? ".tsv" : ".csv";
+                                                String d = mode == View.TSV ? "\t" : ",";
+                                                try (FileOutputStream out = new FileOutputStream(path + suffix)) {
+                                                    Printer.println("waiting...", Color.DARK_CYAN);
+                                                    boolean first = true;
+                                                    for (DataRow row : rows) {
+                                                        if (first) {
+                                                            Lines.writeLine(out, row.getNames(), d);
+                                                            first = false;
+                                                        }
+                                                        Lines.writeLine(out, row.getValues(), d);
                                                     }
-                                                    Lines.writeLine(out, row.getValues(), d);
+                                                } catch (Exception e) {
+                                                    printError(e);
                                                 }
-                                            } catch (Exception e) {
-                                                printError(e);
-                                            }
-                                            System.out.println(path + suffix + " saved!");
-                                        } else if (mode == View.JSON) {
-                                            Printer.println("waiting...", Color.DARK_CYAN);
-                                            ViewPrinter.writeJsonArray(rows, path + ".json");
-                                            System.out.println(path + ".json saved!");
-                                        } else if (mode == View.EXCEL) {
-                                            Printer.println("waiting...", Color.DARK_CYAN);
-                                            try (ExcelWriter writer = Excels.writer()) {
-                                                XSheet sheet = XSheet.of(key, rows);
-                                                writer.write(sheet).saveTo(path + ".xlsx");
-                                                System.out.println(path + ".xlsx saved!");
-                                            } catch (Exception e) {
-                                                printError(e);
+                                                System.out.println(path + suffix + " saved!");
+                                            } else if (mode == View.JSON) {
+                                                Printer.println("waiting...", Color.DARK_CYAN);
+                                                ViewPrinter.writeJsonArray(rows, path + ".json");
+                                                System.out.println(path + ".json saved!");
+                                            } else if (mode == View.EXCEL) {
+                                                Printer.println("waiting...", Color.DARK_CYAN);
+                                                try (ExcelWriter writer = Excels.writer()) {
+                                                    XSheet sheet = XSheet.of(key, rows);
+                                                    writer.write(sheet).saveTo(path + ".xlsx");
+                                                    System.out.println(path + ".xlsx saved!");
+                                                } catch (Exception e) {
+                                                    printError(e);
+                                                }
                                             }
                                         }
                                     } else {
@@ -438,14 +445,18 @@ public class Startup {
                                     String sql = m_query_save.group("sql");
                                     String path = m_query_save.group("path");
                                     try (Stream<DataRow> s = light.query(sql)) {
-                                        View mode = viewMode.get();
-                                        if (mode == View.TSV || mode == View.CSV) {
-                                            String suffix = mode == View.TSV ? ".tsv" : ".csv";
-                                            writeDSV(s, viewMode, path, suffix);
-                                        } else if (mode == View.JSON) {
-                                            writeJSON(s, path);
-                                        } else if (mode == View.EXCEL) {
-                                            writeExcel(s, path);
+                                        if (path.endsWith(".sql")) {
+                                            writeInsertSqlFile(s, path);
+                                        } else {
+                                            View mode = viewMode.get();
+                                            if (mode == View.TSV || mode == View.CSV) {
+                                                String suffix = mode == View.TSV ? ".tsv" : ".csv";
+                                                writeDSV(s, viewMode, path, suffix);
+                                            } else if (mode == View.JSON) {
+                                                writeJSON(s, path);
+                                            } else if (mode == View.EXCEL) {
+                                                writeExcel(s, path);
+                                            }
                                         }
                                     } catch (Exception e) {
                                         printError(e);
@@ -641,7 +652,7 @@ public class Startup {
                     throw new UncheckedIOException(e);
                 }
             });
-            Printer.printf("[%s] %s rows completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
+            Printer.printf("[%s] %s rows write completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
             System.out.println();
             Printer.println(fileName + " saved!", Color.SILVER);
         } catch (Exception e) {
@@ -686,7 +697,7 @@ public class Startup {
                 }
             });
             writer.write("]");
-            Printer.printf("[%s] %s object completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
+            Printer.printf("[%s] %s object write completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
             System.out.println();
             Printer.println(path + ".json saved!", Color.SILVER);
             writer.close();
@@ -727,6 +738,48 @@ public class Startup {
                 Files.deleteIfExists(Paths.get(filePath));
             } catch (Exception ex) {
                 e.addSuppressed(ex);
+            }
+            printError(e);
+        }
+    }
+
+    public static void writeInsertSqlFile(Stream<DataRow> stream, String outputPath) {
+        // e.g. /usr/local/qbpt_deve.pinyin_ch.sql
+        String tableName = outputPath.substring(outputPath.lastIndexOf(File.separator) + 1, outputPath.lastIndexOf("."));
+        Printer.println("NOTICE: output file name will as the insert sql script target table name!!!", Color.YELLOW);
+        Printer.println("e.g. " + outputPath + " --> insert into " + tableName + "(...) values(...);;", Color.YELLOW);
+        AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
+        try {
+            bufferedWriterAtomicReference.set(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath))));
+            BufferedWriter writer = bufferedWriterAtomicReference.get();
+            Printer.println("waiting...", Color.DARK_CYAN);
+            AtomicInteger rows = new AtomicInteger(0);
+            stream.forEach(d -> {
+                try {
+                    String insert = com.github.chengyuxing.sql.utils.SqlUtil.generateInsert(tableName, d.toMap(), d.getNames());
+                    writer.write(insert);
+                    int i = rows.incrementAndGet();
+                    if (i % 10000 == 0) {
+                        Printer.printf("[%s] %s rows has written.", Color.DARK_CYAN, LocalDateTime.now(), i);
+                        System.out.println();
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+            Printer.printf("[%s] %s rows write completed.", Color.DARK_CYAN, LocalDateTime.now(), rows.get());
+            System.out.println();
+            Printer.println(outputPath + " saved!", Color.SILVER);
+            writer.close();
+        } catch (IOException e) {
+            try {
+                BufferedWriter writer = bufferedWriterAtomicReference.get();
+                if (writer != null) {
+                    writer.close();
+                    Files.deleteIfExists(Paths.get(outputPath));
+                }
+            } catch (IOException ioException) {
+                e.addSuppressed(ioException);
             }
             printError(e);
         }
