@@ -132,7 +132,8 @@ public class DataSourceLoader {
                 "-n",   //name
                 "-f",   //format
                 "-s",   //savePath
-                "-e"   //sql string or sql file
+                "-e",   //sql string or sql file
+                "-d"    //multi sql block delimiter
         );
         return Stream.of(args)
                 .filter(arg -> arg.length() >= 2)

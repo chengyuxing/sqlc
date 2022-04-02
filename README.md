@@ -13,9 +13,17 @@
 
 ## 关于批量执行SQL
 
-sql文件内多条sql以双分号(`;;`)分隔，因为在一些情况下例如创建函数，多段sql之间也有`;`号，所以为保证正确性，此处以`;;`进行分隔。
+s默认的多行sql块以双分号(`;;`)分隔，参数`-d`和`:d`可自定义
 
-- `-e"select * from mytable;;select now();;create or replace function..."`
+如果文件路径以`@`开头，则文件使用按行流式读取，内部则调用jdbc的`executeBatch`
+方法进行批量执行ddl和dml语句，一般用于导入数据等大型文本文件执行大量sql；
+
+- `-e@/usr/local/a.sql`
+- `:load @/usr/local/a.sql`
+
+一般情况则执行预编译操作批量执行（建议小数据量）
+
+- `-e"select * from mytable;;select now();;create or replace function..." -d;;`
 - `-e/usr/local/a.sql`
 - `:load /usr/local/a.sql`
 

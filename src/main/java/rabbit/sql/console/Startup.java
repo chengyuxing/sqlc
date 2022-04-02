@@ -247,7 +247,7 @@ public class Startup {
                                 Printer.println("View Mode: " + viewMode.get(), Color.CYAN);
                                 Printer.println("Transaction: " + (txActive.get() ? "enabled" : "disabled"), Color.CYAN);
                                 Printer.println("Cache: " + (enableCache.get() ? "enabled" : "disabled"), Color.CYAN);
-                                Printer.println("Multi Sql Delimiter: " + (sqlDelimiter), Color.CYAN);
+                                Printer.println("Multi Sql Delimiter: '" + (sqlDelimiter) + "'", Color.CYAN);
                                 break;
                             case ":c":
                                 enableCache.set(true);
@@ -516,7 +516,7 @@ public class Startup {
                                 } else if (m_sql_delimiter.matches()) {
                                     String d = m_sql_delimiter.group("key");
                                     sqlDelimiter.set(d.trim());
-                                    System.out.println("set multi sql block delimited by '" + d.trim() + "', use line break(\\n) delimiter.");
+                                    System.out.println("set multi sql block delimited by '" + d.trim() + "', use line break(\\n) delimiter if set blank.");
 
                                 } else {
                                     System.out.println("command not found or format invalid, command :help to get some help!");
@@ -743,7 +743,7 @@ public class Startup {
             try (Stream<String> lineStream = Files.lines(Paths.get(bPath))) {
                 StringBuilder sb = new StringBuilder();
                 lineStream.map(String::trim)
-                        .filter(sql -> !sql.equals("") && StringUtil.startsWithsIgnoreCase(sql, "--", "#", "/*"))
+                        .filter(sql -> !sql.equals("") && !StringUtil.startsWithsIgnoreCase(sql, "--", "#", "/*"))
                         .forEach(sql -> {
                             if (delimiter.equals("")) {
                                 chunk.add(sql);
