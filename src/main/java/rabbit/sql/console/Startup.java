@@ -4,12 +4,14 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
 import com.github.chengyuxing.common.io.Lines;
+import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.excel.Excels;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
 import com.github.chengyuxing.excel.io.ExcelWriter;
 import com.github.chengyuxing.excel.type.XSheet;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.transaction.Tx;
+import com.zaxxer.hikari.util.FastList;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -53,6 +56,11 @@ public class Startup {
             Baki light = dsLoader.getBaki();
 
             if (light != null) {
+                // 多行sql分隔符
+                final AtomicReference<String> sqlDelimiter = new AtomicReference<>(";;");
+                if (argMap.containsKey("-d")) {
+                    sqlDelimiter.set(argMap.get("-d"));
+                }
                 // 输出的结果视图与结果保存类型
                 final AtomicReference<View> viewMode = new AtomicReference<>(View.TSV);
                 if (argMap.containsKey("-f")) {
@@ -64,7 +72,13 @@ public class Startup {
                 }
                 if (argMap.containsKey("-e")) {
                     String sql = argMap.get("-e");
-                    if (sql.startsWith("/")) {
+                    if (sql.startsWith("@")) {
+                        if (argMap.containsKey("-s")) {
+                            Printer.println("WARN: multi block sql script will not work with -s, only print executed result.", Color.YELLOW);
+                        }
+                        executeBatch(light, sql, sqlDelimiter);
+                        System.exit(0);
+                    } else if (sql.startsWith("/") || sql.startsWith("./")) {
                         if (!Files.exists(Paths.get(sql))) {
                             Printer.println("sql file [" + sql + "] not exists.", Color.RED);
                             System.exit(0);
@@ -72,14 +86,14 @@ public class Startup {
                         sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
                     }
                     if (!sql.trim().equals("")) {
-                        if (sql.contains(";;")) {
-                            List<String> sqls = Stream.of(sql.split(";;"))
+                        if (sql.contains(sqlDelimiter.get())) {
+                            List<String> sqls = Stream.of(sql.split(sqlDelimiter.get()))
                                     .filter(s -> !s.trim().equals("") && !s.matches("^[;\r\t\n]$"))
                                     .collect(Collectors.toList());
                             // 如果有多段sql脚本，则批量执行并打印结果，但不能配合 -s 输出文件
                             if (sqls.size() > 1) {
                                 if (argMap.containsKey("-s")) {
-                                    Printer.println("multi block sql script will not work with -s, only print executed result.", Color.YELLOW);
+                                    Printer.println("WARN: multi block sql script will not work with -s, only print executed result.", Color.YELLOW);
                                 }
                                 AtomicInteger success = new AtomicInteger(0);
                                 AtomicInteger fail = new AtomicInteger(0);
@@ -200,6 +214,8 @@ public class Startup {
                 Pattern GET_SIZE_FORMAT = Pattern.compile("^:size +\\$(?<key>res[\\d]+)$");
                 // 载入sql文件正则
                 Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load +(?<path>[\\S]+)$");
+                // 设置多行sql分隔符正则
+                Pattern SQL_DELIMITER_FORMAT = Pattern.compile("^:d +(?<key>[\\S\\s]+)$");
 
                 //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -228,9 +244,10 @@ public class Startup {
                                 System.out.println(Command.get("--help"));
                                 break;
                             case ":status":
-                                Printer.println("View Mode:" + viewMode.get(), Color.CYAN);
-                                Printer.println("Transaction:" + (txActive.get() ? "enabled" : "disabled"), Color.CYAN);
-                                Printer.println("Cache:" + (enableCache.get() ? "enabled" : "disabled"), Color.CYAN);
+                                Printer.println("View Mode: " + viewMode.get(), Color.CYAN);
+                                Printer.println("Transaction: " + (txActive.get() ? "enabled" : "disabled"), Color.CYAN);
+                                Printer.println("Cache: " + (enableCache.get() ? "enabled" : "disabled"), Color.CYAN);
+                                Printer.println("Multi Sql Delimiter: " + (sqlDelimiter), Color.CYAN);
                                 break;
                             case ":c":
                                 enableCache.set(true);
@@ -300,6 +317,7 @@ public class Startup {
                                 Matcher m_size = GET_SIZE_FORMAT.matcher(line);
                                 Matcher m_query_save = SAVE_QUERY_FORMAT.matcher(line);
                                 Matcher m_load_sql = LOAD_SQL_FORMAT.matcher(line);
+                                Matcher m_sql_delimiter = SQL_DELIMITER_FORMAT.matcher(line);
 
                                 if (m_save.matches()) {
                                     String key = m_save.group("key");
@@ -435,11 +453,13 @@ public class Startup {
                                 } else if (m_load_sql.matches()) {
                                     String path = m_load_sql.group("path").trim();
                                     if (path.length() > 0) {
-                                        if (Files.exists(Paths.get(path))) {
+                                        if (path.startsWith("@")) {
+                                            executeBatch(light, path, sqlDelimiter);
+                                        } else if (Files.exists(Paths.get(path))) {
                                             try {
                                                 AtomicInteger success = new AtomicInteger(0);
                                                 AtomicInteger fail = new AtomicInteger(0);
-                                                Stream.of(String.join("\n", Files.readAllLines(Paths.get(path))).split(";;"))
+                                                Stream.of(String.join("\n", Files.readAllLines(Paths.get(path))).split(sqlDelimiter.get()))
                                                         .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
                                                         .forEach(sql -> {
                                                             try {
@@ -493,6 +513,11 @@ public class Startup {
                                     } else {
                                         Printer.println("please input the file path.", Color.YELLOW);
                                     }
+                                } else if (m_sql_delimiter.matches()) {
+                                    String d = m_sql_delimiter.group("key");
+                                    sqlDelimiter.set(d.trim());
+                                    System.out.println("set multi sql block delimited by '" + d.trim() + "', use line break(\\n) delimiter.");
+
                                 } else {
                                     System.out.println("command not found or format invalid, command :help to get some help!");
                                 }
@@ -704,6 +729,61 @@ public class Startup {
                 e.addSuppressed(ex);
             }
             printError(e);
+        }
+    }
+
+    public static void executeBatch(Baki baki, String path, AtomicReference<String> delimiterR) throws InterruptedException {
+        String delimiter = delimiterR.get();
+        String bPath = path.substring(1);
+        if (Files.exists(Paths.get(bPath))) {
+            Printer.println("Prepare to batch execute, chunk size is 1000, waiting...", Color.CYAN);
+            TimeUnit.SECONDS.sleep(3);
+            FastList<String> chunk = new FastList<>(String.class);
+            AtomicInteger chunkNum = new AtomicInteger(0);
+            try (Stream<String> lineStream = Files.lines(Paths.get(bPath))) {
+                StringBuilder sb = new StringBuilder();
+                lineStream.map(String::trim)
+                        .filter(sql -> !sql.equals("") && StringUtil.startsWithsIgnoreCase(sql, "--", "#", "/*"))
+                        .forEach(sql -> {
+                            if (delimiter.equals("")) {
+                                chunk.add(sql);
+                            } else {
+                                sb.append(sql).append("\n");
+                                if (sql.endsWith(delimiter)) {
+                                    chunk.add(sb.substring(0, sb.length() - delimiter.length() - 1));
+                                    sb.setLength(0);
+                                }
+                            }
+                            if (chunk.size() == 1000) {
+                                Printer.println("waiting...", Color.CYAN);
+                                baki.batchExecute(chunk);
+                                Printer.println("chunk" + chunkNum.getAndIncrement() + " executed!", Color.SILVER);
+                                for (int i = 0; i < 3; i++) {
+                                    printHighlightSql(chunk.get(i));
+                                }
+                                Printer.println("more(" + (chunk.size() - 3) + ")......", Color.SILVER);
+                                chunk.clear();
+                            }
+                        });
+                if (sb.length() > 0) {
+                    chunk.add(sb.toString());
+                    sb.setLength(0);
+                }
+                if (!chunk.isEmpty()) {
+                    Printer.println("waiting...", Color.CYAN);
+                    baki.batchExecute(chunk);
+                    Printer.println("chunk" + chunkNum.getAndIncrement() + " executed!", Color.SILVER);
+                    for (int i = 0, j = Math.min(chunk.size(), 3); i < j; i++) {
+                        printHighlightSql(chunk.get(i));
+                    }
+                    Printer.println("more(" + (chunk.size() - 3) + ")......", Color.SILVER);
+                    chunk.clear();
+                }
+            } catch (Exception e) {
+                printError(e);
+            }
+        } else {
+            Printer.println("sql file [ " + path + " ] not exists.", Color.RED);
         }
     }
 
