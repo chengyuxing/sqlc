@@ -64,16 +64,28 @@ public class Startup {
                             View.JSON : format.equals("excel") ?
                             View.EXCEL : View.TSV);
                 }
+                // 查询sql重定向输出文件正则
+                final Pattern QUERY_R_FILE = Pattern.compile("(?<sql>[\\s\\S]+\\S)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
+
                 if (argMap.containsKey("-e")) {
-                    String sql = argMap.get("-e");
+                    String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(argMap.get("-e"));
                     if (sql.startsWith("@")) {
+                        if (sql.matches(QUERY_R_FILE.pattern())) {
+                            printWarning("only single query support redirect operation!");
+                            System.exit(0);
+                        }
                         if (argMap.containsKey("-s")) {
                             printWarning("WARN: batch execute(@) will not work with -s, only print executed result.");
                         }
                         executeBatch(baki, sql, sqlDelimiter);
                         System.exit(0);
                     }
-
+                    String sourceSql = sql;
+                    // 这里sql名可能还是 /usr/input.sql > /usr/local/output，处理一下
+                    Matcher mCheck = QUERY_R_FILE.matcher(sql);
+                    if (mCheck.find()) {
+                        sql = mCheck.group("sql");
+                    }
                     if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
                         if (!Files.exists(Paths.get(sql))) {
                             printDanger("sql file [" + sql + "] not exists.");
@@ -88,6 +100,10 @@ public class Startup {
                                     .collect(Collectors.toList());
                             // 如果有多段sql脚本，则批量执行并打印结果，但不能配合 -s 输出文件
                             if (sqls.size() > 1) {
+                                if (sql.matches(QUERY_R_FILE.pattern())) {
+                                    printWarning("only single query support redirect operation!");
+                                    System.exit(0);
+                                }
                                 if (argMap.containsKey("-s")) {
                                     printWarning("WARN: multi block sql script will not work with -s, only print executed result.");
                                 }
@@ -109,17 +125,27 @@ public class Startup {
                             }
                         }
                         SqlType sqlType = SqlUtil.getType(sql);
+                        sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sql);
                         printHighlightSql(sql);
                         if (sqlType == SqlType.QUERY) {
-                            try (Stream<DataRow> s = baki.query(sql)) {
-                                if (argMap.containsKey("-s")) {
-                                    String path = argMap.get("-s");
-                                    writeFile(s, viewMode, path);
-                                } else {
-                                    printQueryResult(s, viewMode);
+                            Matcher m = QUERY_R_FILE.matcher(sourceSql);
+                            if (m.find()) {
+                                String output = m.group("path");
+                                try (Stream<DataRow> rowStream = baki.query(sql)) {
+                                    printNotice("redirect query to file...");
+                                    writeFile(rowStream, viewMode, output);
                                 }
-                            } catch (Exception e) {
-                                printError(e);
+                            } else {
+                                try (Stream<DataRow> s = baki.query(sql)) {
+                                    if (argMap.containsKey("-s")) {
+                                        String path = argMap.get("-s");
+                                        writeFile(s, viewMode, path);
+                                    } else {
+                                        printQueryResult(s, viewMode);
+                                    }
+                                } catch (Exception e) {
+                                    printError(e);
+                                }
                             }
                         } else if (sqlType == SqlType.OTHER) {
                             try {
@@ -162,8 +188,6 @@ public class Startup {
                 Pattern GET_FORMAT = Pattern.compile("^:get\\s+\\$(?<key>res[\\s\\S]+)$");
                 // 删除缓存正则
                 Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm\\s+\\$(?<key>res[\\d]+)$");
-                // 查询sql重定向输出文件正则
-                Pattern QUERY_R_FILE = Pattern.compile("(?<sql>[\\s\\S]+)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
                 // 载入sql文件正则
                 Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load\\s+(?<path>[\\S]+)$");
                 // 设置多行sql分隔符正则
@@ -430,6 +454,8 @@ public class Startup {
                                             try (Stream<DataRow> rowStream = baki.query(sql)) {
                                                 printNotice("redirect query to file...");
                                                 writeFile(rowStream, viewMode, output);
+                                            } catch (Exception e) {
+                                                printError(e);
                                             }
                                         } else {
                                             try (Stream<DataRow> rowStream = baki.query(sql)) {
@@ -459,8 +485,7 @@ public class Startup {
                                             if (sql.matches(QUERY_R_FILE.pattern())) {
                                                 printWarning("only query support redirect operation!");
                                             } else {
-                                                DataRow res = baki.execute(sql);
-                                                printInfo("execute " + res.getString("type") + ":" + res.getInt("result"));
+                                                printQueryResult(executedRow2Stream(baki, sql), viewMode);
                                             }
                                         } catch (Exception e) {
                                             printError(e);
