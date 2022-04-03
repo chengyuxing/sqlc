@@ -167,8 +167,6 @@ public class Startup {
                 Pattern GET_ALL_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+)$");
                 // 删除缓存正则
                 Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm +\\$(?<key>res[\\d]+)$");
-                // 查询缓存大小正则
-                Pattern GET_SIZE_FORMAT = Pattern.compile("^:size +\\$(?<key>res[\\d]+)$");
                 // 载入sql文件正则
                 Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load +(?<path>[\\S]+)$");
                 // 设置多行sql分隔符正则
@@ -343,17 +341,6 @@ public class Startup {
                                         CACHE.remove(key);
                                         rows.clear();
                                         printNotice(key + " removed!");
-                                    }
-                                    break;
-                                }
-
-                                Matcher m_size = GET_SIZE_FORMAT.matcher(line);
-                                if (m_size.matches()) {
-                                    String key = m_size.group("key");
-                                    if (!CACHE.containsKey(key)) {
-                                        printDanger("no cached named " + key);
-                                    } else {
-                                        printInfo(CACHE.get(key).size() + "");
                                     }
                                     break;
                                 }
