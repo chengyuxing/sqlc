@@ -716,7 +716,7 @@ public class Startup {
         String delimiter = delimiterR.get();
         String bPath = path.substring(1);
         if (Files.exists(Paths.get(bPath))) {
-            printPrimary("Prepare to batch execute, chunk size is 1000, waiting...");
+            printPrimary("Prepare to batch execute, default chunk size is 1000, waiting...");
             FastList<String> chunk = new FastList<>(String.class);
             AtomicInteger chunkNum = new AtomicInteger(0);
             try (Stream<String> lineStream = Files.lines(Paths.get(bPath))) {
@@ -850,7 +850,7 @@ public class Startup {
     }
 
     public static void printHighlightSql(String sql) {
-        printNotice(">>> ");
+        Printer.print(">>> ", Color.SILVER);
         System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql.trim()));
     }
 
