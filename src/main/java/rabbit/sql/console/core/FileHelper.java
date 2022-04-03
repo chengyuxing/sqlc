@@ -61,7 +61,7 @@ public final class FileHelper {
                         first.set(false);
                     }
                     Lines.writeLine(out, row.getValues(), d);
-                    long offset = i.getAndIncrement();
+                    long offset = i.incrementAndGet();
                     if (offset % 10000 == 0) {
                         printPrimary(offset + " rows has written.");
                     }
@@ -107,7 +107,7 @@ public final class FileHelper {
                     } else {
                         writer.write(", " + PrintHelper.getJson(row));
                     }
-                    long offset = i.getAndIncrement();
+                    long offset = i.incrementAndGet();
                     if (offset % 10000 == 0) {
                         printPrimary(offset + " object has written.");
                     }

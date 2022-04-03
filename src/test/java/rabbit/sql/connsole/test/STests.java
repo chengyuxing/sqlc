@@ -3,6 +3,7 @@ package rabbit.sql.connsole.test;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,11 +26,12 @@ public class STests {
     }
     @Test
     public void test3() throws Exception{
-        Pattern p = Pattern.compile("\\$(?<key>res\\d+)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
-        Matcher m = p.matcher("$res2 > /usr/local/aaa.txt");
+        Pattern p = Pattern.compile("\\$(?<key>res\\d+)(\\[(?<range>[\\d:]+)])*\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
+        Matcher m = p.matcher("$res2[89-90] > /usr/local/aaa.txt");
         if (m.find()) {
             System.out.println(m.group("key"));
             System.out.println(m.group("path"));
+            System.out.println(Arrays.toString(m.group("range").split(":",3)));
         }
     }
 }

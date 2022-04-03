@@ -156,21 +156,17 @@ public class Startup {
                 // 结果集缓存key自增
                 AtomicInteger idx = new AtomicInteger(0);
                 // 保存文件格式验证正则
-                Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save +\\$(?<key>res[\\d]+)\\s*>\\s*(?<path>[\\S]+)$");
+                Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save\\s+\\$(?<key>res[\\d]+)\\s*>\\s*(?<path>[\\S]+)$");
                 // 直接保存查询结果到文件正则
-                Pattern SAVE_QUERY_FORMAT = Pattern.compile("^:save +\\$\\{\\s*(?<sql>[\\s\\S]+\\S)\\s*}\\s*>\\s*(?<path>[\\S]+)$");
-                // 获取结果集区间正则
-                Pattern GET_RES_RANGE_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+)\\s*<\\s*(?<start>\\d+)\\s*:\\s*(?<end>\\d+)$");
-                // 获取指定索引的结果正则
-                Pattern GET_RES_IDX_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+)\\s*<\\s*(?<index>\\d+)$");
+                Pattern SAVE_QUERY_FORMAT = Pattern.compile("^:save\\s+\\$\\{\\s*(?<sql>[\\s\\S]+\\S)\\s*}\\s*>\\s*(?<path>[\\S]+)$");
                 // 获取全部结果正则
-                Pattern GET_ALL_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+)$");
+                Pattern GET_FORMAT = Pattern.compile("^:get\\s+\\$(?<key>res[\\s\\S]+)$");
                 // 删除缓存正则
-                Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm +\\$(?<key>res[\\d]+)$");
+                Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm\\s+\\$(?<key>res[\\d]+)$");
                 // 载入sql文件正则
-                Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load +(?<path>[\\S]+)$");
+                Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load\\s+(?<path>[\\S]+)$");
                 // 设置多行sql分隔符正则
-                Pattern SQL_DELIMITER_FORMAT = Pattern.compile("^:d +(?<key>[\\S\\s]+)$");
+                Pattern SQL_DELIMITER_FORMAT = Pattern.compile("^:d\\s+(?<key>[\\S\\s]+)$");
 
                 //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -281,51 +277,36 @@ public class Startup {
                                     break;
                                 }
 
-                                Matcher m_getAll = GET_ALL_FORMAT.matcher(line);
-                                if (m_getAll.matches()) {
-                                    String key = m_getAll.group("key");
-                                    List<DataRow> rows = CACHE.get(key);
-                                    if (rows == null || rows.isEmpty()) {
-                                        printWarning("0 rows cached!");
+                                Matcher m_get = GET_FORMAT.matcher(line);
+                                if (m_get.matches()) {
+                                    if (!enableCache.get()) {
+                                        printWarning("cache is disabled, :c to enable.");
                                     } else {
-                                        printQueryResult(rows.stream(), viewMode);
-                                        printNotice(key + " loaded!");
-                                    }
-                                    break;
-                                }
-
-                                Matcher m_getByIdx = GET_RES_IDX_FORMAT.matcher(line);
-                                if (m_getByIdx.matches()) {
-                                    String key = m_getByIdx.group("key");
-                                    int index = Integer.parseInt(m_getByIdx.group("index"));
-                                    List<DataRow> rows = CACHE.get(key);
-                                    if (rows == null || rows.isEmpty()) {
-                                        printWarning("0 rows cached!");
-                                    } else {
-                                        if (index < 0 || index > rows.size() - 1) {
-                                            printDanger("index " + index + " of " + key + " out of range.");
+                                        String keyFormat = m_get.group("key");
+                                        // '>' 代表将结果重定向输出到文件
+                                        if (keyFormat.contains(">")) {
+                                            Pattern CACHE_OP_FORMAT = Pattern.compile("(?<key>res\\d+)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
+                                            Matcher m = CACHE_OP_FORMAT.matcher(keyFormat);
+                                            if (m.find()) {
+                                                String key = m.group("key");
+                                                String outputPath = m.group("path");
+                                                List<DataRow> cache = CACHE.get(key);
+                                                if (cache == null || cache.isEmpty()) {
+                                                    printWarning("0 rows cached!");
+                                                } else {
+                                                    printNotice("redirect cache data to file...");
+                                                    writeFile(cache.stream(), viewMode, outputPath);
+                                                }
+                                            } else {
+                                                printWarning("e.g. $res0 > /usr/local/you_file_name");
+                                            }
                                         } else {
-                                            printQueryResult(Stream.of(rows.get(index)), viewMode);
-                                            printNotice("line " + index + " of " + key + " loaded!");
-                                        }
-                                    }
-                                    break;
-                                }
-
-                                Matcher m_getByRange = GET_RES_RANGE_FORMAT.matcher(line);
-                                if (m_getByRange.matches()) {
-                                    String key = m_getByRange.group("key");
-                                    int start = Integer.parseInt(m_getByRange.group("start"));
-                                    int end = Integer.parseInt(m_getByRange.group("end"));
-                                    List<DataRow> rows = CACHE.get(key);
-                                    if (rows == null || rows.isEmpty()) {
-                                        printWarning("0 rows cached!");
-                                    } else {
-                                        if (start < 0 || start > end || end > rows.size() - 1) {
-                                            printDanger("invalid range!");
-                                        } else {
-                                            printQueryResult(rows.subList(start, end).stream(), viewMode);
-                                            printNotice("line " + start + " to " + end + " of " + key + " loaded!");
+                                            List<DataRow> cache = CACHE.get(keyFormat);
+                                            if (cache == null || cache.isEmpty()) {
+                                                printWarning("0 rows cached!");
+                                            } else {
+                                                printQueryResult(cache.stream(), viewMode);
+                                            }
                                         }
                                     }
                                     break;
@@ -426,36 +407,7 @@ public class Startup {
                     } else {
                         // 查询遍历，这里需要sql缓存不存在的情况下，因为$可能是sql的关键字，例如PostgreSQL的 create function ... $$...$$
                         if (inputStr.length() == 0 && line.startsWith("$res")) {
-                            if (!enableCache.get()) {
-                                printWarning("cache is disabled, :c to enable.");
-                            } else {
-                                String keyFormat = line.substring(1);
-                                // '>' 代表将结果重定向输出到文件
-                                if (keyFormat.contains(">")) {
-                                    Pattern CACHE_OP_FORMAT = Pattern.compile("(?<key>res\\d+)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
-                                    Matcher m = CACHE_OP_FORMAT.matcher(keyFormat);
-                                    if (m.find()) {
-                                        String key = m.group("key");
-                                        String outputPath = m.group("path");
-                                        List<DataRow> cache = CACHE.get(key);
-                                        if (cache == null || cache.isEmpty()) {
-                                            printWarning("0 rows cached!");
-                                        } else {
-                                            printNotice("redirect cache data to file...");
-                                            writeFile(cache.stream(), viewMode, outputPath);
-                                        }
-                                    } else {
-                                        printWarning("e.g. $res0 > /usr/local/you_file_name");
-                                    }
-                                } else {
-                                    List<DataRow> cache = CACHE.get(keyFormat);
-                                    if (cache == null || cache.isEmpty()) {
-                                        printWarning("0 rows cached!");
-                                    } else {
-                                        printQueryResult(cache.stream(), viewMode);
-                                    }
-                                }
-                            }
+
                             printPrefix(txActive, "sqlc>");
                         } else {
                             //此分支为累加sql语句执行sql
