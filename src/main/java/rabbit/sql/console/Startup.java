@@ -311,16 +311,7 @@ public class Startup {
                                 }
                                 break;
                             default:
-                                Matcher m_getAll = GET_ALL_FORMAT.matcher(line);
-                                Matcher m_getByIdx = GET_RES_IDX_FORMAT.matcher(line);
-                                Matcher m_getByRange = GET_RES_RANGE_FORMAT.matcher(line);
-                                Matcher m_rm = RM_CACHE_FORMAT.matcher(line);
                                 Matcher m_save = SAVE_FILE_FORMAT.matcher(line);
-                                Matcher m_size = GET_SIZE_FORMAT.matcher(line);
-                                Matcher m_query_save = SAVE_QUERY_FORMAT.matcher(line);
-                                Matcher m_load_sql = LOAD_SQL_FORMAT.matcher(line);
-                                Matcher m_sql_delimiter = SQL_DELIMITER_FORMAT.matcher(line);
-
                                 if (m_save.matches()) {
                                     String key = m_save.group("key");
                                     // 如果存在缓存
@@ -366,7 +357,11 @@ public class Startup {
                                     } else {
                                         System.out.println("cache of " + key + " not exist!");
                                     }
-                                } else if (m_getAll.matches()) {
+                                    break;
+                                }
+
+                                Matcher m_getAll = GET_ALL_FORMAT.matcher(line);
+                                if (m_getAll.matches()) {
                                     String key = m_getAll.group("key");
                                     List<DataRow> rows = CACHE.get(key);
                                     if (rows == null || rows.isEmpty()) {
@@ -382,7 +377,11 @@ public class Startup {
                                         }
                                         System.out.println(key + " loaded!");
                                     }
-                                } else if (m_getByIdx.matches()) {
+                                    break;
+                                }
+
+                                Matcher m_getByIdx = GET_RES_IDX_FORMAT.matcher(line);
+                                if (m_getByIdx.matches()) {
                                     String key = m_getByIdx.group("key");
                                     int index = Integer.parseInt(m_getByIdx.group("index"));
                                     List<DataRow> rows = CACHE.get(key);
@@ -400,7 +399,11 @@ public class Startup {
                                             System.out.println("line " + index + " of " + key + " loaded!");
                                         }
                                     }
-                                } else if (m_getByRange.matches()) {
+                                    break;
+                                }
+
+                                Matcher m_getByRange = GET_RES_RANGE_FORMAT.matcher(line);
+                                if (m_getByRange.matches()) {
                                     String key = m_getByRange.group("key");
                                     int start = Integer.parseInt(m_getByRange.group("start"));
                                     int end = Integer.parseInt(m_getByRange.group("end"));
@@ -422,7 +425,11 @@ public class Startup {
                                             System.out.println("line " + start + " to " + end + " of " + key + " loaded!");
                                         }
                                     }
-                                } else if (m_rm.matches()) {
+                                    break;
+                                }
+
+                                Matcher m_rm = RM_CACHE_FORMAT.matcher(line);
+                                if (m_rm.matches()) {
                                     String key = m_rm.group("key");
                                     if (!CACHE.containsKey(key)) {
                                         System.out.println("no cached named " + key);
@@ -432,14 +439,22 @@ public class Startup {
                                         rows.clear();
                                         System.out.println(key + " removed!");
                                     }
-                                } else if (m_size.matches()) {
+                                    break;
+                                }
+
+                                Matcher m_size = GET_SIZE_FORMAT.matcher(line);
+                                if (m_size.matches()) {
                                     String key = m_size.group("key");
                                     if (!CACHE.containsKey(key)) {
                                         System.out.println("no cached named " + key);
                                     } else {
                                         System.out.println(CACHE.get(key).size());
                                     }
-                                } else if (m_query_save.matches()) {
+                                    break;
+                                }
+
+                                Matcher m_query_save = SAVE_QUERY_FORMAT.matcher(line);
+                                if (m_query_save.matches()) {
                                     // 查询直接导出记录
                                     try {
                                         String sql = m_query_save.group("sql");
@@ -473,7 +488,11 @@ public class Startup {
                                     } catch (Exception e) {
                                         printError(e);
                                     }
-                                } else if (m_load_sql.matches()) {
+                                    break;
+                                }
+
+                                Matcher m_load_sql = LOAD_SQL_FORMAT.matcher(line);
+                                if (m_load_sql.matches()) {
                                     String path = m_load_sql.group("path").trim();
                                     if (path.length() > 0) {
                                         if (path.startsWith("@")) {
@@ -536,14 +555,17 @@ public class Startup {
                                     } else {
                                         Printer.println("please input the file path.", Color.YELLOW);
                                     }
-                                } else if (m_sql_delimiter.matches()) {
+                                    break;
+                                }
+
+                                Matcher m_sql_delimiter = SQL_DELIMITER_FORMAT.matcher(line);
+                                if (m_sql_delimiter.matches()) {
                                     String d = m_sql_delimiter.group("key");
                                     sqlDelimiter.set(d.trim());
                                     System.out.println("set multi sql block delimited by '" + d.trim() + "', use line break(\\n) delimiter if set blank.");
-
-                                } else {
-                                    System.out.println("command not found or format invalid, command :help to get some help!");
+                                    break;
                                 }
+                                System.out.println("command not found or format invalid, command :help to get some help!");
                                 break;
                         }
                         printPrefix(txActive, "sqlc>");
