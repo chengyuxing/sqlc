@@ -52,9 +52,9 @@ public class Startup {
             DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"),
                     Optional.ofNullable(argMap.get("-n")).orElse(""),
                     Optional.ofNullable(argMap.get("-p")).orElse(""));
-            Baki light = dsLoader.getBaki();
+            Baki baki = dsLoader.getBaki();
 
-            if (light != null) {
+            if (baki != null) {
                 // 多行sql分隔符
                 final AtomicReference<String> sqlDelimiter = new AtomicReference<>(";;");
                 if (argMap.containsKey("-d")) {
@@ -75,7 +75,7 @@ public class Startup {
                         if (argMap.containsKey("-s")) {
                             Printer.println("WARN: batch execute(@) will not work with -s, only print executed result.", Color.YELLOW);
                         }
-                        executeBatch(light, sql, sqlDelimiter);
+                        executeBatch(baki, sql, sqlDelimiter);
                         System.exit(0);
                     } else if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
                         if (!Files.exists(Paths.get(sql))) {
@@ -98,8 +98,8 @@ public class Startup {
                                 AtomicInteger fail = new AtomicInteger(0);
                                 sqls.forEach(sbql -> {
                                     try {
-                                        printHighlightSql(sbql);
-                                        DataRow row = light.execute(sbql);
+                                        printHighbakiSql(sbql);
+                                        DataRow row = baki.execute(sbql);
                                         Object res = row.get(0);
                                         Stream<DataRow> stream;
                                         if (res instanceof DataRow) {
@@ -127,9 +127,9 @@ public class Startup {
                             }
                         }
                         SqlType sqlType = SqlUtil.getType(sql);
-                        printHighlightSql(sql);
+                        printHighbakiSql(sql);
                         if (sqlType == SqlType.QUERY) {
-                            try (Stream<DataRow> s = light.query(sql)) {
+                            try (Stream<DataRow> s = baki.query(sql)) {
                                 if (argMap.containsKey("-s") && argMap.get("-s").endsWith(".sql")) {
                                     writeInsertSqlFile(s, argMap.get("-s"));
                                 } else if (viewMode.get() == View.TSV || viewMode.get() == View.CSV) {
@@ -167,7 +167,7 @@ public class Startup {
                             }
                         } else if (sqlType == SqlType.OTHER) {
                             try {
-                                DataRow res = light.execute(sql);
+                                DataRow res = baki.execute(sql);
                                 Printer.println("execute " + res.getString("type") + ": " + res.getInt("result"), Color.CYAN);
                             } catch (Exception e) {
                                 printError(e);
@@ -462,13 +462,13 @@ public class Startup {
                                         if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
                                             try {
                                                 sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
-                                                printHighlightSql(sql);
+                                                printHighbakiSql(sql);
                                             } catch (Exception e) {
                                                 throw new IOException(e);
                                             }
                                         }
                                         String path = m_query_save.group("path");
-                                        try (Stream<DataRow> s = light.query(sql)) {
+                                        try (Stream<DataRow> s = baki.query(sql)) {
                                             if (path.endsWith(".sql")) {
                                                 writeInsertSqlFile(s, path);
                                             } else {
@@ -496,7 +496,7 @@ public class Startup {
                                     String path = m_load_sql.group("path").trim();
                                     if (path.length() > 0) {
                                         if (path.startsWith("@")) {
-                                            executeBatch(light, path, sqlDelimiter);
+                                            executeBatch(baki, path, sqlDelimiter);
                                         } else if (Files.exists(Paths.get(path))) {
                                             try {
                                                 AtomicInteger success = new AtomicInteger(0);
@@ -505,8 +505,8 @@ public class Startup {
                                                         .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
                                                         .forEach(sql -> {
                                                             try {
-                                                                printHighlightSql(sql);
-                                                                DataRow row = light.execute(sql);
+                                                                printHighbakiSql(sql);
+                                                                DataRow row = baki.execute(sql);
                                                                 Object res = row.get(0);
                                                                 Stream<DataRow> stream;
                                                                 if (res instanceof DataRow) {
@@ -595,7 +595,7 @@ public class Startup {
                                             key = "res" + idx.getAndIncrement();
                                             CACHE.put(key, queryResult);
                                         }
-                                        try (Stream<DataRow> rowStream = light.query(sql)) {
+                                        try (Stream<DataRow> rowStream = baki.query(sql)) {
                                             AtomicBoolean first = new AtomicBoolean(true);
                                             rowStream.forEach(row -> {
                                                 ViewPrinter.printQueryResult(row, viewMode, first);
@@ -622,7 +622,7 @@ public class Startup {
                                         break;
                                     case OTHER:
                                         try {
-                                            DataRow res = light.execute(sql);
+                                            DataRow res = baki.execute(sql);
                                             Printer.println("execute " + res.getString("type") + ":" + res.getInt("result"), Color.CYAN);
                                         } catch (Exception e) {
                                             printError(e);
@@ -845,7 +845,7 @@ public class Startup {
                                 baki.batchExecute(chunk);
                                 Printer.println("chunk" + chunkNum.getAndIncrement() + " executed!", Color.SILVER);
                                 for (int i = 0; i < 3; i++) {
-                                    printHighlightSql(chunk.get(i));
+                                    printHighbakiSql(chunk.get(i));
                                 }
                                 Printer.println("more(" + (chunk.size() - 3) + ")......", Color.SILVER);
                                 chunk.clear();
@@ -860,7 +860,7 @@ public class Startup {
                     baki.batchExecute(chunk);
                     Printer.println("chunk" + chunkNum.getAndIncrement() + " executed!", Color.SILVER);
                     for (int i = 0, j = Math.min(chunk.size(), 3); i < j; i++) {
-                        printHighlightSql(chunk.get(i));
+                        printHighbakiSql(chunk.get(i));
                     }
                     Printer.println("more(" + (chunk.size() - 3) + ")......", Color.SILVER);
                     chunk.clear();
@@ -873,7 +873,7 @@ public class Startup {
         }
     }
 
-    public static void printHighlightSql(String sql) {
+    public static void printHighbakiSql(String sql) {
         Printer.print(">>> ", Color.SILVER);
         System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql.trim()));
     }
