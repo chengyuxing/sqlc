@@ -71,7 +71,7 @@ public class Startup {
                     String sql = argMap.get("-e");
                     if (sql.startsWith("@")) {
                         if (argMap.containsKey("-s")) {
-                            Printer.println("WARN: batch execute(@) will not work with -s, only print executed result.", Color.YELLOW);
+                            printWarning("WARN: batch execute(@) will not work with -s, only print executed result.");
                         }
                         executeBatch(baki, sql, sqlDelimiter);
                         System.exit(0);
@@ -79,7 +79,7 @@ public class Startup {
 
                     if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
                         if (!Files.exists(Paths.get(sql))) {
-                            Printer.println("sql file [" + sql + "] not exists.", Color.RED);
+                            printDanger("sql file [" + sql + "] not exists.");
                             System.exit(0);
                         }
                         sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
@@ -92,7 +92,7 @@ public class Startup {
                             // 如果有多段sql脚本，则批量执行并打印结果，但不能配合 -s 输出文件
                             if (sqls.size() > 1) {
                                 if (argMap.containsKey("-s")) {
-                                    Printer.println("WARN: multi block sql script will not work with -s, only print executed result.", Color.YELLOW);
+                                    printWarning("WARN: multi block sql script will not work with -s, only print executed result.");
                                 }
                                 AtomicInteger success = new AtomicInteger(0);
                                 AtomicInteger fail = new AtomicInteger(0);
@@ -106,7 +106,7 @@ public class Startup {
                                         fail.incrementAndGet();
                                     }
                                 });
-                                Printer.println("Execute finished, success: " + success + ", fail: " + fail, Color.SILVER);
+                                printNotice("Execute finished, success: " + success + ", fail: " + fail);
                                 dsLoader.release();
                                 System.exit(0);
                             }
@@ -131,12 +131,12 @@ public class Startup {
                                 printError(e);
                             }
                         } else if (sqlType == SqlType.FUNCTION) {
-                            System.out.println("function not support now");
+                            printWarning("function not support now");
                         } else {
-                            System.out.println("unKnow sql type, will not be execute!");
+                            printWarning("unKnow sql type, will not be execute!");
                         }
                     } else {
-                        Printer.println("no sql to execute, please check the -e format, is whitespace between -e and it's arg?", Color.YELLOW);
+                        printWarning("no sql to execute, please check the -e format, is whitespace between -e and it's arg?");
                     }
                     dsLoader.release();
                     System.exit(0);
@@ -145,9 +145,8 @@ public class Startup {
                 log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
                 log.info("Go to \33[4mhttps://github.com/chengyuxing/sqlc\33[0m get more information about this.");
                 log.info("Type in sql script to execute query,ddl,dml..., Or try :help");
+
                 // 进入交互模式
-                Scanner scanner = new Scanner(System.in);
-                Printer.print("sqlc> ", Color.PURPLE);
                 // 数据缓存
                 Map<String, List<DataRow>> CACHE = new LinkedHashMap<>();
                 // 输入字符串缓冲
@@ -177,6 +176,9 @@ public class Startup {
                 // 设置多行sql分隔符正则
                 Pattern SQL_DELIMITER_FORMAT = Pattern.compile("^:d +(?<key>[\\S\\s]+)$");
 
+                Scanner scanner = new Scanner(System.in);
+                printPrefix(txActive, "sqlc> ");
+
                 //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     if (txActive.get()) {
@@ -194,7 +196,7 @@ public class Startup {
                         switch (line) {
                             case ":q":
                                 if (txActive.get()) {
-                                    Printer.println("Warning: Transaction is active now, please :commit or :rollback before quit, Control c, server shutdown or kill command will be rollback transaction!", Color.YELLOW);
+                                    printWarning("Warning: Transaction is active now, please :commit or :rollback before quit, Control c, server shutdown or kill command will be rollback transaction!");
                                     break;
                                 } else {
                                     break exit;
@@ -204,57 +206,57 @@ public class Startup {
                                 System.out.println(Command.get("--help"));
                                 break;
                             case ":status":
-                                Printer.println("View Mode: " + viewMode.get(), Color.CYAN);
-                                Printer.println("Transaction: " + (txActive.get() ? "enabled" : "disabled"), Color.CYAN);
-                                Printer.println("Cache: " + (enableCache.get() ? "enabled" : "disabled"), Color.CYAN);
-                                Printer.println("Multi Sql Delimiter: '" + (sqlDelimiter) + "'", Color.CYAN);
+                                printInfo("View Mode: " + viewMode.get());
+                                printInfo("Transaction: " + (txActive.get() ? "enabled" : "disabled"));
+                                printInfo("Cache: " + (enableCache.get() ? "enabled" : "disabled"));
+                                printInfo("Multi Sql Delimiter: '" + (sqlDelimiter) + "'");
                                 break;
                             case ":c":
                                 enableCache.set(true);
-                                System.out.println("cache enabled!");
+                                printNotice("cache enabled!");
                                 break;
                             case ":C":
                                 enableCache.set(false);
                                 CACHE.clear();
                                 idx.set(0);
-                                System.out.println("cache disabled!");
+                                printNotice("cache disabled!");
                                 break;
                             case ":clear":
                                 CACHE.clear();
                                 idx.set(0);
-                                System.out.println("cache cleared!");
+                                printNotice("cache cleared!");
                                 break;
                             case ":keys":
-                                System.out.println(CACHE.keySet());
+                                printNotice(CACHE.keySet().toString());
                                 break;
                             case ":json":
                                 viewMode.set(View.JSON);
-                                System.out.println("use json view!");
+                                printNotice("use json view!");
                                 break;
                             case ":tsv":
                                 viewMode.set(View.TSV);
-                                System.out.println("use tsv!");
+                                printNotice("use tsv!");
                                 break;
                             case ":csv":
                                 viewMode.set(View.CSV);
-                                System.out.println("use csv!");
+                                printNotice("use csv!");
                                 break;
                             case ":excel":
                                 viewMode.set(View.EXCEL);
-                                System.out.println("use excel(grid) view!");
+                                printNotice("use excel(grid) view!");
                                 break;
                             case ":begin":
                                 if (txActive.get()) {
-                                    System.out.println("transaction is active now!");
+                                    printNotice("transaction is active now!");
                                 } else {
                                     Tx.begin();
                                     txActive.set(true);
-                                    System.out.println("open transaction: [*]sqlc> means transaction is active now!");
+                                    printInfo("open transaction: [*]sqlc> means transaction is active now!");
                                 }
                                 break;
                             case ":commit":
                                 if (!txActive.get()) {
-                                    System.out.println("transaction is not active now!");
+                                    printNotice("transaction is not active now!");
                                 } else {
                                     Tx.commit();
                                     txActive.set(false);
@@ -262,7 +264,7 @@ public class Startup {
                                 break;
                             case ":rollback":
                                 if (!txActive.get()) {
-                                    System.out.println("transaction is not active now!");
+                                    printNotice("transaction is not active now!");
                                 } else {
                                     Tx.rollback();
                                     txActive.set(false);
@@ -278,7 +280,7 @@ public class Startup {
                                         String path = m_save.group("path");
                                         writeFile(rows, viewMode, path);
                                     } else {
-                                        Printer.println("cache of " + key + " not exist!", Color.RED);
+                                        printDanger("cache of " + key + " not exist!");
                                     }
                                     break;
                                 }
@@ -288,10 +290,10 @@ public class Startup {
                                     String key = m_getAll.group("key");
                                     List<DataRow> rows = CACHE.get(key);
                                     if (rows == null || rows.isEmpty()) {
-                                        Printer.println("0 rows cached!", Color.YELLOW);
+                                        printWarning("0 rows cached!");
                                     } else {
                                         printQueryResult(rows.stream(), viewMode);
-                                        Printer.println(key + " loaded!", Color.CYAN);
+                                        printInfo(key + " loaded!");
                                     }
                                     break;
                                 }
@@ -302,13 +304,13 @@ public class Startup {
                                     int index = Integer.parseInt(m_getByIdx.group("index"));
                                     List<DataRow> rows = CACHE.get(key);
                                     if (rows == null || rows.isEmpty()) {
-                                        Printer.println("0 rows cached!", Color.YELLOW);
+                                        printWarning("0 rows cached!");
                                     } else {
                                         if (index < 0 || index > rows.size() - 1) {
-                                            Printer.println("index " + index + " of " + key + " out of range.", Color.RED);
+                                            printDanger("index " + index + " of " + key + " out of range.");
                                         } else {
-                                            printQueryResult(Stream.of(rows.get(index - 1)), viewMode);
-                                            Printer.println("line " + index + " of " + key + " loaded!", Color.CYAN);
+                                            printQueryResult(Stream.of(rows.get(index)), viewMode);
+                                            printInfo("line " + index + " of " + key + " loaded!");
                                         }
                                     }
                                     break;
@@ -321,13 +323,13 @@ public class Startup {
                                     int end = Integer.parseInt(m_getByRange.group("end"));
                                     List<DataRow> rows = CACHE.get(key);
                                     if (rows == null || rows.isEmpty()) {
-                                        System.out.println("0 rows cached!");
+                                        printWarning("0 rows cached!");
                                     } else {
-                                        if (start < 1 || start > end || end > rows.size()) {
-                                            System.out.println("invalid range!");
+                                        if (start < 0 || start > end || end > rows.size() - 1) {
+                                            printDanger("invalid range!");
                                         } else {
                                             printQueryResult(rows.subList(start, end).stream(), viewMode);
-                                            System.out.println("line " + start + " to " + end + " of " + key + " loaded!");
+                                            printInfo("line " + start + " to " + end + " of " + key + " loaded!");
                                         }
                                     }
                                     break;
@@ -337,12 +339,12 @@ public class Startup {
                                 if (m_rm.matches()) {
                                     String key = m_rm.group("key");
                                     if (!CACHE.containsKey(key)) {
-                                        System.out.println("no cached named " + key);
+                                        printDanger("no cached named " + key);
                                     } else {
                                         List<DataRow> rows = CACHE.get(key);
                                         CACHE.remove(key);
                                         rows.clear();
-                                        System.out.println(key + " removed!");
+                                        printNotice(key + " removed!");
                                     }
                                     break;
                                 }
@@ -351,9 +353,9 @@ public class Startup {
                                 if (m_size.matches()) {
                                     String key = m_size.group("key");
                                     if (!CACHE.containsKey(key)) {
-                                        System.out.println("no cached named " + key);
+                                        printDanger("no cached named " + key);
                                     } else {
-                                        System.out.println(CACHE.get(key).size());
+                                        printInfo(CACHE.get(key).size() + "");
                                     }
                                     break;
                                 }
@@ -374,18 +376,7 @@ public class Startup {
                                         }
                                         String path = m_query_save.group("path");
                                         try (Stream<DataRow> s = baki.query(sql)) {
-                                            if (path.endsWith(".sql")) {
-                                                writeInsertSqlFile(s, path);
-                                            } else {
-                                                View mode = viewMode.get();
-                                                if (mode == View.TSV || mode == View.CSV) {
-                                                    writeDSV(s, viewMode, path);
-                                                } else if (mode == View.JSON) {
-                                                    writeJSON(s, path);
-                                                } else if (mode == View.EXCEL) {
-                                                    writeExcel(s, path);
-                                                }
-                                            }
+                                            writeFile(s, viewMode, path);
                                         } catch (Exception e) {
                                             throw new RuntimeException(e);
                                         }
@@ -398,7 +389,7 @@ public class Startup {
                                 Matcher m_load_sql = LOAD_SQL_FORMAT.matcher(line);
                                 if (m_load_sql.matches()) {
                                     if (enableCache.get()) {
-                                        Printer.println("WARN: cache will not work with :load...", Color.YELLOW);
+                                        printWarning("WARN: cache will not work with :load...");
                                     }
                                     String path = m_load_sql.group("path").trim();
                                     if (path.length() > 0) {
@@ -415,7 +406,7 @@ public class Startup {
                                                                 printHighlightSql(sql);
                                                                 printQueryResult(executedRow2Stream(baki, sql), viewMode);
                                                                 if (txActive.get()) {
-                                                                    Printer.println("WARN: transaction is active now, go on...", Color.YELLOW);
+                                                                    printWarning("WARN: transaction is active now, go on...");
                                                                 }
                                                                 success.incrementAndGet();
                                                             } catch (Exception e) {
@@ -423,15 +414,15 @@ public class Startup {
                                                                 printError(e);
                                                             }
                                                         });
-                                                Printer.println("Execute finished, success: " + success + ", fail: " + fail, Color.SILVER);
+                                                printNotice("Execute finished, success: " + success + ", fail: " + fail);
                                             } catch (Exception e) {
                                                 printError(e);
                                             }
                                         } else {
-                                            Printer.println("sql file [ " + path + " ] not exists.", Color.RED);
+                                            printDanger("sql file [ " + path + " ] not exists.");
                                         }
                                     } else {
-                                        Printer.println("please input the file path.", Color.YELLOW);
+                                        printDanger("please input the file path.");
                                     }
                                     break;
                                 }
@@ -440,10 +431,10 @@ public class Startup {
                                 if (m_sql_delimiter.matches()) {
                                     String d = m_sql_delimiter.group("key");
                                     sqlDelimiter.set(d.trim());
-                                    System.out.println("set multi sql block delimited by '" + d.trim() + "', use line break(\\n) delimiter if set blank.");
+                                    printNotice("set multi sql block delimited by '" + d.trim() + "', auto line break(\\n) delimiter if set blank.");
                                     break;
                                 }
-                                System.out.println("command not found or format invalid, command :help to get some help!");
+                                printWarning("command not found or format invalid, command :help to get some help!");
                                 break;
                         }
                         printPrefix(txActive, "sqlc>");
@@ -480,22 +471,22 @@ public class Startup {
                                                 printQueryResult(rowStream, viewMode);
                                             }
                                             if (cacheEnabled) {
-                                                System.out.println(key + ": added to cache!");
+                                                printNotice(key + ": added to cache!");
                                             }
                                             if (txActive.get()) {
-                                                Printer.println("WARN: transaction is active now, go on...", Color.YELLOW);
+                                                printWarning("WARN: transaction is active now, go on...");
                                             }
                                         } catch (Exception e) {
                                             printError(e);
                                         }
                                         break;
                                     case FUNCTION:
-                                        System.out.println("function not support now!");
+                                        printWarning("function not support now!");
                                         break;
                                     case OTHER:
                                         try {
                                             DataRow res = baki.execute(sql);
-                                            Printer.println("execute " + res.getString("type") + ":" + res.getInt("result"), Color.CYAN);
+                                            printInfo("execute " + res.getString("type") + ":" + res.getInt("result"));
                                         } catch (Exception e) {
                                             printError(e);
                                         }
@@ -562,7 +553,7 @@ public class Startup {
             outputStreamAtomicReference.set(new FileOutputStream(fileName));
             FileOutputStream out = outputStreamAtomicReference.get();
             String d = mode.get() == View.TSV ? "\t" : ",";
-            Printer.println("waiting...", Color.DARK_CYAN);
+            printPrimary("waiting...");
             AtomicLong i = new AtomicLong(1);
             AtomicBoolean first = new AtomicBoolean(true);
             s.forEach(row -> {
@@ -583,7 +574,7 @@ public class Startup {
             });
             Printer.printf("[%s] %s rows write completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
             System.out.println();
-            Printer.println(fileName + " saved!", Color.SILVER);
+            printNotice(fileName + " saved!");
         } catch (Exception e) {
             try {
                 FileOutputStream out = outputStreamAtomicReference.get();
@@ -608,7 +599,7 @@ public class Startup {
         try {
             bufferedWriterAtomicReference.set(Files.newBufferedWriter(filePath));
             BufferedWriter writer = bufferedWriterAtomicReference.get();
-            Printer.println("waiting...", Color.DARK_CYAN);
+            printPrimary("waiting...");
             AtomicBoolean first = new AtomicBoolean(true);
             AtomicLong i = new AtomicLong(1);
             s.forEach(row -> {
@@ -632,7 +623,7 @@ public class Startup {
             writer.write("]");
             Printer.printf("[%s] %s object write completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
             System.out.println();
-            Printer.println(fileName + " saved!", Color.SILVER);
+            printNotice(fileName + " saved!");
             writer.close();
         } catch (Exception e) {
             BufferedWriter writer = bufferedWriterAtomicReference.get();
@@ -649,7 +640,7 @@ public class Startup {
     }
 
     public static void writeExcel(Stream<DataRow> rowStream, String path) {
-        Printer.println("waiting...", Color.DARK_CYAN);
+        printPrimary("waiting...");
         String filePath = path;
         if (!filePath.endsWith(".xlsx")) {
             filePath += ".xlsx";
@@ -666,7 +657,7 @@ public class Startup {
                 writer.writeRow(sheet, row.getValues());
             });
             writer.saveTo(filePath);
-            Printer.println(filePath + " saved!", Color.SILVER);
+            printNotice(filePath + " saved!");
             writer.close();
         } catch (Exception e) {
             try {
@@ -682,13 +673,13 @@ public class Startup {
     public static void writeInsertSqlFile(Stream<DataRow> stream, String outputPath) {
         // e.g. /usr/local/qbpt_deve.pinyin_ch.sql
         String tableName = outputPath.substring(outputPath.lastIndexOf(File.separator) + 1, outputPath.lastIndexOf("."));
-        Printer.println("NOTICE: Ignore view mode(-f and :[tsv|csv|json|excel]), output file name will as the insert sql script target table name!!!", Color.YELLOW);
-        Printer.println("e.g. " + outputPath + " --> insert into " + tableName + "(...) values(...);;", Color.YELLOW);
+        printWarning("Ignore view mode(-f and :[tsv|csv|json|excel]), output file name will as the insert sql script target table name!!!");
+        printWarning("e.g. " + outputPath + " --> insert into " + tableName + "(...) values(...);;");
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         try {
             bufferedWriterAtomicReference.set(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath))));
             BufferedWriter writer = bufferedWriterAtomicReference.get();
-            Printer.println("waiting...", Color.DARK_CYAN);
+            printPrimary("waiting...");
             AtomicInteger rows = new AtomicInteger(0);
             stream.forEach(d -> {
                 try {
@@ -705,7 +696,7 @@ public class Startup {
             });
             Printer.printf("[%s] %s rows write completed.", Color.DARK_CYAN, LocalDateTime.now(), rows.get());
             System.out.println();
-            Printer.println(outputPath + " saved!", Color.SILVER);
+            printNotice(outputPath + " saved!");
             writer.close();
         } catch (IOException e) {
             try {
@@ -725,7 +716,7 @@ public class Startup {
         String delimiter = delimiterR.get();
         String bPath = path.substring(1);
         if (Files.exists(Paths.get(bPath))) {
-            Printer.println("Prepare to batch execute, chunk size is 1000, waiting...", Color.CYAN);
+            printPrimary("Prepare to batch execute, chunk size is 1000, waiting...");
             FastList<String> chunk = new FastList<>(String.class);
             AtomicInteger chunkNum = new AtomicInteger(0);
             try (Stream<String> lineStream = Files.lines(Paths.get(bPath))) {
@@ -743,13 +734,13 @@ public class Startup {
                                 }
                             }
                             if (chunk.size() == 1000) {
-                                Printer.println("waiting...", Color.CYAN);
+                                printPrimary("waiting...");
                                 baki.batchExecute(chunk);
-                                Printer.println("chunk" + chunkNum.getAndIncrement() + " executed!", Color.SILVER);
+                                printNotice("chunk" + chunkNum.getAndIncrement() + " executed!");
                                 for (int i = 0; i < 3; i++) {
                                     printHighlightSql(chunk.get(i));
                                 }
-                                Printer.println("more(" + (chunk.size() - 3) + ")......", Color.SILVER);
+                                printNotice("more(" + (chunk.size() - 3) + ")......");
                                 chunk.clear();
                             }
                         });
@@ -758,20 +749,20 @@ public class Startup {
                     sb.setLength(0);
                 }
                 if (!chunk.isEmpty()) {
-                    Printer.println("waiting...", Color.CYAN);
+                    printPrimary("waiting...");
                     baki.batchExecute(chunk);
-                    Printer.println("chunk" + chunkNum.getAndIncrement() + " executed!", Color.SILVER);
+                    printNotice("chunk" + chunkNum.getAndIncrement() + " executed!");
                     for (int i = 0, j = Math.min(chunk.size(), 3); i < j; i++) {
                         printHighlightSql(chunk.get(i));
                     }
-                    Printer.println("more(" + (chunk.size() - 3) + ")......", Color.SILVER);
+                    printNotice("more(" + (chunk.size() - 3) + ")......");
                     chunk.clear();
                 }
             } catch (Exception e) {
                 printError(e);
             }
         } else {
-            Printer.println("sql file [ " + path + " ] not exists.", Color.RED);
+            printDanger("sql file [ " + path + " ] not exists.");
         }
     }
 
@@ -814,7 +805,7 @@ public class Startup {
                         });
                     }
                     if (viewMode.get() == View.JSON) {
-                        Printer.print("]", Color.YELLOW);
+                        printWarning("]");
                         System.out.println();
                     }
                     break;
@@ -859,7 +850,7 @@ public class Startup {
     }
 
     public static void printHighlightSql(String sql) {
-        Printer.print(">>> ", Color.SILVER);
+        printNotice(">>> ");
         System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql.trim()));
     }
 
@@ -876,9 +867,29 @@ public class Startup {
                     return buffer.toString();
                 }
             });
-            Printer.println(out.toString(), Color.RED);
+            printDanger(out.toString());
         } catch (IOException ioException) {
-            Printer.println(ioException.toString(), Color.RED);
+            printDanger(ioException.toString());
         }
+    }
+
+    public static void printDanger(String msg) {
+        Printer.println(msg, Color.RED);
+    }
+
+    public static void printWarning(String msg) {
+        Printer.println(msg, Color.YELLOW);
+    }
+
+    public static void printInfo(String msg) {
+        Printer.println(msg, Color.CYAN);
+    }
+
+    public static void printNotice(String msg) {
+        Printer.println(msg, Color.SILVER);
+    }
+
+    public static void printPrimary(String msg) {
+        Printer.println(msg, Color.DARK_CYAN);
     }
 }
