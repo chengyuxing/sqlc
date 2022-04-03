@@ -39,7 +39,7 @@ public class Command {
                         "\t:rollback\t\t\t--rollback transaction.\n" +
                         "\t:[tsv|csv|json|excel]\t\t--as query format and exported file format. (default tsv)\n" +
                         "\t:keys\t\t\t\t--list all keys of cache.\n" +
-                        "\t:get $[key][<lineNum][:endNum]\t--query cache by key, 1 is first index.\n" +
+                        "\t:get $[key][<lineNum][:endNum]\t--query cache by key, 0 is first index.\n" +
                         "\t:rm $[key]\t\t\t--remove the cache by key.\n" +
                         "\t:size $[key]\t\t\t--query cache size by key.\n" +
                         "\t:d [delimiter]\t\t\t--use for delimit multi and single line sql block, default ';;'(double semicolon).\n" +

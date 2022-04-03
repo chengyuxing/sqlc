@@ -5,14 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
-import rabbit.sql.console.types.View;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class ViewPrinter {
@@ -79,26 +78,5 @@ public class ViewPrinter {
             return v.toString();
         }).collect(Collectors.joining(d, "[", "]"));
         Printer.println(valuesLine, Color.CYAN);
-    }
-
-    public static void printQueryResult(DataRow row, AtomicReference<View> viewMode, AtomicBoolean first) {
-        switch (viewMode.get()) {
-            case JSON:
-                try {
-                    ViewPrinter.printJSON(row, first);
-                } catch (JsonProcessingException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case CSV:
-                ViewPrinter.printDSV(row, ", ", first);
-                break;
-            case EXCEL:
-                ViewPrinter.printDSV(row, " | ", first);
-                break;
-            default:
-                ViewPrinter.printDSV(row, "\t", first);
-                break;
-        }
     }
 }

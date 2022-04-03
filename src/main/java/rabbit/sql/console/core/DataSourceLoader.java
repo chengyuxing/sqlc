@@ -138,6 +138,6 @@ public class DataSourceLoader {
         return Stream.of(args)
                 .filter(arg -> arg.length() >= 2)
                 .filter(arg -> argNames.contains(arg.substring(0, 2)))
-                .collect(Collectors.toMap(k -> k.substring(0, 2), v -> v.substring(2)));
+                .collect(Collectors.toMap(k -> k.substring(0, 2), v -> v.substring(2).trim()));
     }
 }

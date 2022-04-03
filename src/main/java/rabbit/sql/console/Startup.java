@@ -1,14 +1,12 @@
 package rabbit.sql.console;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
 import com.github.chengyuxing.common.io.Lines;
 import com.github.chengyuxing.common.utils.StringUtil;
-import com.github.chengyuxing.excel.Excels;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
-import com.github.chengyuxing.excel.io.ExcelWriter;
-import com.github.chengyuxing.excel.type.XSheet;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
@@ -32,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -40,7 +39,6 @@ import java.util.stream.Stream;
 public class Startup {
     private static final Logger log = LoggerFactory.getLogger("SQLC");
 
-    @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out.println("--help to get some help.");
@@ -77,7 +75,9 @@ public class Startup {
                         }
                         executeBatch(baki, sql, sqlDelimiter);
                         System.exit(0);
-                    } else if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
+                    }
+
+                    if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
                         if (!Files.exists(Paths.get(sql))) {
                             Printer.println("sql file [" + sql + "] not exists.", Color.RED);
                             System.exit(0);
@@ -98,23 +98,8 @@ public class Startup {
                                 AtomicInteger fail = new AtomicInteger(0);
                                 sqls.forEach(sbql -> {
                                     try {
-                                        printHighbakiSql(sbql);
-                                        DataRow row = baki.execute(sbql);
-                                        Object res = row.get(0);
-                                        Stream<DataRow> stream;
-                                        if (res instanceof DataRow) {
-                                            stream = Stream.of((DataRow) res);
-                                        } else if (res instanceof List) {
-                                            stream = ((List<DataRow>) res).stream();
-                                        } else {
-                                            stream = Stream.of(row);
-                                        }
-                                        AtomicBoolean first = new AtomicBoolean(true);
-                                        stream.forEach(rr -> ViewPrinter.printQueryResult(rr, viewMode, first));
-                                        if (viewMode.get() == View.JSON) {
-                                            Printer.print("]", Color.YELLOW);
-                                            System.out.println();
-                                        }
+                                        printHighlightSql(sbql);
+                                        printQueryResult(executedRow2Stream(baki, sbql), viewMode);
                                         success.incrementAndGet();
                                     } catch (Exception e) {
                                         printError(e);
@@ -127,48 +112,21 @@ public class Startup {
                             }
                         }
                         SqlType sqlType = SqlUtil.getType(sql);
-                        printHighbakiSql(sql);
+                        printHighlightSql(sql);
                         if (sqlType == SqlType.QUERY) {
                             try (Stream<DataRow> s = baki.query(sql)) {
-                                if (argMap.containsKey("-s") && argMap.get("-s").endsWith(".sql")) {
-                                    writeInsertSqlFile(s, argMap.get("-s"));
-                                } else if (viewMode.get() == View.TSV || viewMode.get() == View.CSV) {
-                                    if (argMap.containsKey("-s")) {
-                                        String path = argMap.get("-s");
-                                        String suffix = viewMode.get() == View.TSV ? ".tsv" : ".csv";
-                                        writeDSV(s, viewMode, path, suffix);
-                                    } else {
-                                        AtomicBoolean first = new AtomicBoolean(true);
-                                        s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
-                                    }
-                                } else if (viewMode.get() == View.JSON) {
-                                    if (argMap.containsKey("-s")) {
-                                        String path = argMap.get("-s");
-                                        writeJSON(s, path);
-                                    } else {
-                                        AtomicBoolean first = new AtomicBoolean(true);
-                                        s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
-                                        if (viewMode.get() == View.JSON) {
-                                            Printer.print("]", Color.YELLOW);
-                                            System.out.println();
-                                        }
-                                    }
-                                } else if (viewMode.get() == View.EXCEL) {
-                                    if (argMap.containsKey("-s")) {
-                                        String path = argMap.get("-s");
-                                        writeExcel(s, path);
-                                    } else {
-                                        AtomicBoolean first = new AtomicBoolean(true);
-                                        s.forEach(row -> ViewPrinter.printQueryResult(row, viewMode, first));
-                                    }
+                                if (argMap.containsKey("-s")) {
+                                    String path = argMap.get("-s");
+                                    writeFile(s, viewMode, path);
+                                } else {
+                                    printQueryResult(s, viewMode);
                                 }
                             } catch (Exception e) {
                                 printError(e);
                             }
                         } else if (sqlType == SqlType.OTHER) {
                             try {
-                                DataRow res = baki.execute(sql);
-                                Printer.println("execute " + res.getString("type") + ": " + res.getInt("result"), Color.CYAN);
+                                printQueryResult(executedRow2Stream(baki, sql), viewMode);
                             } catch (Exception e) {
                                 printError(e);
                             }
@@ -316,46 +274,11 @@ public class Startup {
                                     String key = m_save.group("key");
                                     // 如果存在缓存
                                     if (CACHE.containsKey(key)) {
-                                        List<DataRow> rows = CACHE.get(key);
-                                        String path = m_save.group("path").trim();
-                                        if (path.endsWith(".sql")) {
-                                            writeInsertSqlFile(rows.stream(), path);
-                                        } else {
-                                            View mode = viewMode.get();
-                                            if (mode == View.TSV || mode == View.CSV) {
-                                                String suffix = mode == View.TSV ? ".tsv" : ".csv";
-                                                String d = mode == View.TSV ? "\t" : ",";
-                                                try (FileOutputStream out = new FileOutputStream(path + suffix)) {
-                                                    Printer.println("waiting...", Color.DARK_CYAN);
-                                                    boolean first = true;
-                                                    for (DataRow row : rows) {
-                                                        if (first) {
-                                                            Lines.writeLine(out, row.getNames(), d);
-                                                            first = false;
-                                                        }
-                                                        Lines.writeLine(out, row.getValues(), d);
-                                                    }
-                                                } catch (Exception e) {
-                                                    printError(e);
-                                                }
-                                                System.out.println(path + suffix + " saved!");
-                                            } else if (mode == View.JSON) {
-                                                Printer.println("waiting...", Color.DARK_CYAN);
-                                                ViewPrinter.writeJsonArray(rows, path + ".json");
-                                                System.out.println(path + ".json saved!");
-                                            } else if (mode == View.EXCEL) {
-                                                Printer.println("waiting...", Color.DARK_CYAN);
-                                                try (ExcelWriter writer = Excels.writer()) {
-                                                    XSheet sheet = XSheet.of(key, rows);
-                                                    writer.write(sheet).saveTo(path + ".xlsx");
-                                                    System.out.println(path + ".xlsx saved!");
-                                                } catch (Exception e) {
-                                                    printError(e);
-                                                }
-                                            }
-                                        }
+                                        Stream<DataRow> rows = CACHE.get(key).stream();
+                                        String path = m_save.group("path");
+                                        writeFile(rows, viewMode, path);
                                     } else {
-                                        System.out.println("cache of " + key + " not exist!");
+                                        Printer.println("cache of " + key + " not exist!", Color.RED);
                                     }
                                     break;
                                 }
@@ -365,17 +288,10 @@ public class Startup {
                                     String key = m_getAll.group("key");
                                     List<DataRow> rows = CACHE.get(key);
                                     if (rows == null || rows.isEmpty()) {
-                                        System.out.println("0 rows cached!");
+                                        Printer.println("0 rows cached!", Color.YELLOW);
                                     } else {
-                                        AtomicBoolean first = new AtomicBoolean(true);
-                                        for (DataRow row : rows) {
-                                            ViewPrinter.printQueryResult(row, viewMode, first);
-                                        }
-                                        if (viewMode.get() == View.JSON) {
-                                            Printer.print("]", Color.YELLOW);
-                                            System.out.println();
-                                        }
-                                        System.out.println(key + " loaded!");
+                                        printQueryResult(rows.stream(), viewMode);
+                                        Printer.println(key + " loaded!", Color.CYAN);
                                     }
                                     break;
                                 }
@@ -386,17 +302,13 @@ public class Startup {
                                     int index = Integer.parseInt(m_getByIdx.group("index"));
                                     List<DataRow> rows = CACHE.get(key);
                                     if (rows == null || rows.isEmpty()) {
-                                        System.out.println("0 rows cached!");
+                                        Printer.println("0 rows cached!", Color.YELLOW);
                                     } else {
-                                        if (index < 1 || index > rows.size()) {
-                                            System.out.println("invalid index!");
+                                        if (index < 0 || index > rows.size() - 1) {
+                                            Printer.println("index " + index + " of " + key + " out of range.", Color.RED);
                                         } else {
-                                            ViewPrinter.printQueryResult(rows.get(index - 1), viewMode, new AtomicBoolean(true));
-                                            if (viewMode.get() == View.JSON) {
-                                                Printer.print("]", Color.YELLOW);
-                                                System.out.println();
-                                            }
-                                            System.out.println("line " + index + " of " + key + " loaded!");
+                                            printQueryResult(Stream.of(rows.get(index - 1)), viewMode);
+                                            Printer.println("line " + index + " of " + key + " loaded!", Color.CYAN);
                                         }
                                     }
                                     break;
@@ -411,17 +323,10 @@ public class Startup {
                                     if (rows == null || rows.isEmpty()) {
                                         System.out.println("0 rows cached!");
                                     } else {
-                                        AtomicBoolean first = new AtomicBoolean(true);
                                         if (start < 1 || start > end || end > rows.size()) {
                                             System.out.println("invalid range!");
                                         } else {
-                                            for (int i = start - 1; i <= end - 1; i++) {
-                                                ViewPrinter.printQueryResult(rows.get(i), viewMode, first);
-                                            }
-                                            if (viewMode.get() == View.JSON) {
-                                                Printer.print("]", Color.YELLOW);
-                                                System.out.println();
-                                            }
+                                            printQueryResult(rows.subList(start, end).stream(), viewMode);
                                             System.out.println("line " + start + " to " + end + " of " + key + " loaded!");
                                         }
                                     }
@@ -462,7 +367,7 @@ public class Startup {
                                         if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
                                             try {
                                                 sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
-                                                printHighbakiSql(sql);
+                                                printHighlightSql(sql);
                                             } catch (Exception e) {
                                                 throw new IOException(e);
                                             }
@@ -474,8 +379,7 @@ public class Startup {
                                             } else {
                                                 View mode = viewMode.get();
                                                 if (mode == View.TSV || mode == View.CSV) {
-                                                    String suffix = mode == View.TSV ? ".tsv" : ".csv";
-                                                    writeDSV(s, viewMode, path, suffix);
+                                                    writeDSV(s, viewMode, path);
                                                 } else if (mode == View.JSON) {
                                                     writeJSON(s, path);
                                                 } else if (mode == View.EXCEL) {
@@ -493,6 +397,9 @@ public class Startup {
 
                                 Matcher m_load_sql = LOAD_SQL_FORMAT.matcher(line);
                                 if (m_load_sql.matches()) {
+                                    if (enableCache.get()) {
+                                        Printer.println("WARN: cache will not work with :load...", Color.YELLOW);
+                                    }
                                     String path = m_load_sql.group("path").trim();
                                     if (path.length() > 0) {
                                         if (path.startsWith("@")) {
@@ -505,37 +412,8 @@ public class Startup {
                                                         .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
                                                         .forEach(sql -> {
                                                             try {
-                                                                printHighbakiSql(sql);
-                                                                DataRow row = baki.execute(sql);
-                                                                Object res = row.get(0);
-                                                                Stream<DataRow> stream;
-                                                                if (res instanceof DataRow) {
-                                                                    stream = Stream.of((DataRow) res);
-                                                                } else if (res instanceof List) {
-                                                                    stream = ((List<DataRow>) res).stream();
-                                                                } else {
-                                                                    stream = Stream.of(row);
-                                                                }
-
-                                                                List<DataRow> queryResult = new ArrayList<>();
-                                                                String key = "";
-                                                                boolean cacheEnabled = enableCache.get();
-                                                                if (cacheEnabled) {
-                                                                    key = "res" + idx.getAndIncrement();
-                                                                    CACHE.put(key, queryResult);
-                                                                }
-                                                                AtomicBoolean first = new AtomicBoolean(true);
-                                                                stream.forEach(rr -> {
-                                                                    ViewPrinter.printQueryResult(rr, viewMode, first);
-                                                                    queryResult.add(rr);
-                                                                });
-                                                                if (viewMode.get() == View.JSON) {
-                                                                    Printer.print("]", Color.YELLOW);
-                                                                    System.out.println();
-                                                                }
-                                                                if (cacheEnabled) {
-                                                                    System.out.println(key + ": added to cache!");
-                                                                }
+                                                                printHighlightSql(sql);
+                                                                printQueryResult(executedRow2Stream(baki, sql), viewMode);
                                                                 if (txActive.get()) {
                                                                     Printer.println("WARN: transaction is active now, go on...", Color.YELLOW);
                                                                 }
@@ -596,16 +474,10 @@ public class Startup {
                                             CACHE.put(key, queryResult);
                                         }
                                         try (Stream<DataRow> rowStream = baki.query(sql)) {
-                                            AtomicBoolean first = new AtomicBoolean(true);
-                                            rowStream.forEach(row -> {
-                                                ViewPrinter.printQueryResult(row, viewMode, first);
-                                                if (cacheEnabled) {
-                                                    queryResult.add(row);
-                                                }
-                                            });
-                                            if (viewMode.get() == View.JSON) {
-                                                Printer.print("]", Color.YELLOW);
-                                                System.out.println();
+                                            if (cacheEnabled) {
+                                                printQueryResult(rowStream, viewMode, queryResult::add);
+                                            } else {
+                                                printQueryResult(rowStream, viewMode);
                                             }
                                             if (cacheEnabled) {
                                                 System.out.println(key + ": added to cache!");
@@ -660,8 +532,31 @@ public class Startup {
         Printer.printf("%s%s ", Color.PURPLE, txActiveFlag, mode);
     }
 
-    public static void writeDSV(Stream<DataRow> s, AtomicReference<View> mode, String path, String suffix) {
-        String fileName = path + suffix;
+    public static void writeFile(Stream<DataRow> stream, AtomicReference<View> mode, String path) {
+        if (path.endsWith(".sql")) {
+            writeInsertSqlFile(stream, path);
+            return;
+        }
+        switch (mode.get()) {
+            case JSON:
+                writeJSON(stream, path);
+                break;
+            case TSV:
+            case CSV:
+                writeDSV(stream, mode, path);
+                break;
+            case EXCEL:
+                writeExcel(stream, path);
+                break;
+        }
+    }
+
+    public static void writeDSV(Stream<DataRow> s, AtomicReference<View> mode, String path) {
+        String fileName = path;
+        if (!StringUtil.endsWithsIgnoreCase(fileName, ".tsv", ".csv")) {
+            String suffix = mode.get() == View.TSV ? ".tsv" : ".csv";
+            fileName += suffix;
+        }
         AtomicReference<FileOutputStream> outputStreamAtomicReference = new AtomicReference<>(null);
         try {
             outputStreamAtomicReference.set(new FileOutputStream(fileName));
@@ -704,7 +599,11 @@ public class Startup {
     }
 
     public static void writeJSON(Stream<DataRow> s, String path) {
-        Path filePath = Paths.get(path + ".json");
+        String fileName = path;
+        if (!fileName.endsWith(".json")) {
+            fileName += ".json";
+        }
+        Path filePath = Paths.get(fileName);
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         try {
             bufferedWriterAtomicReference.set(Files.newBufferedWriter(filePath));
@@ -733,7 +632,7 @@ public class Startup {
             writer.write("]");
             Printer.printf("[%s] %s object write completed.", Color.DARK_CYAN, LocalDateTime.now(), i.get());
             System.out.println();
-            Printer.println(path + ".json saved!", Color.SILVER);
+            Printer.println(fileName + " saved!", Color.SILVER);
             writer.close();
         } catch (Exception e) {
             BufferedWriter writer = bufferedWriterAtomicReference.get();
@@ -751,7 +650,10 @@ public class Startup {
 
     public static void writeExcel(Stream<DataRow> rowStream, String path) {
         Printer.println("waiting...", Color.DARK_CYAN);
-        String filePath = path + ".xlsx";
+        String filePath = path;
+        if (!filePath.endsWith(".xlsx")) {
+            filePath += ".xlsx";
+        }
         BigExcelLineWriter writer = new BigExcelLineWriter(true);
         try {
             Sheet sheet = writer.createSheet("Sheet1");
@@ -845,7 +747,7 @@ public class Startup {
                                 baki.batchExecute(chunk);
                                 Printer.println("chunk" + chunkNum.getAndIncrement() + " executed!", Color.SILVER);
                                 for (int i = 0; i < 3; i++) {
-                                    printHighbakiSql(chunk.get(i));
+                                    printHighlightSql(chunk.get(i));
                                 }
                                 Printer.println("more(" + (chunk.size() - 3) + ")......", Color.SILVER);
                                 chunk.clear();
@@ -860,7 +762,7 @@ public class Startup {
                     baki.batchExecute(chunk);
                     Printer.println("chunk" + chunkNum.getAndIncrement() + " executed!", Color.SILVER);
                     for (int i = 0, j = Math.min(chunk.size(), 3); i < j; i++) {
-                        printHighbakiSql(chunk.get(i));
+                        printHighlightSql(chunk.get(i));
                     }
                     Printer.println("more(" + (chunk.size() - 3) + ")......", Color.SILVER);
                     chunk.clear();
@@ -873,7 +775,90 @@ public class Startup {
         }
     }
 
-    public static void printHighbakiSql(String sql) {
+    @SuppressWarnings("unchecked")
+    public static Stream<DataRow> executedRow2Stream(Baki baki, String sql) {
+        DataRow row = baki.execute(sql);
+        Object res = row.get(0);
+        Stream<DataRow> stream;
+        if (res instanceof DataRow) {
+            stream = Stream.of((DataRow) res);
+        } else if (res instanceof List) {
+            stream = ((List<DataRow>) res).stream();
+        } else {
+            stream = Stream.of(row);
+        }
+        return stream;
+    }
+
+    public static void printQueryResult(Stream<DataRow> s, AtomicReference<View> viewMode, Consumer<DataRow> eachRowFunc) {
+        AtomicBoolean first = new AtomicBoolean(true);
+        try {
+            switch (viewMode.get()) {
+                case JSON:
+                    if (eachRowFunc == null) {
+                        s.forEach(row -> {
+                            try {
+                                ViewPrinter.printJSON(row, first);
+                            } catch (JsonProcessingException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                    } else {
+                        s.forEach(row -> {
+                            try {
+                                ViewPrinter.printJSON(row, first);
+                                eachRowFunc.accept(row);
+                            } catch (JsonProcessingException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                    }
+                    if (viewMode.get() == View.JSON) {
+                        Printer.print("]", Color.YELLOW);
+                        System.out.println();
+                    }
+                    break;
+                case TSV:
+                    if (eachRowFunc == null) {
+                        s.forEach(row -> ViewPrinter.printDSV(row, "\t", first));
+                    } else {
+                        s.forEach(row -> {
+                            ViewPrinter.printDSV(row, "\t", first);
+                            eachRowFunc.accept(row);
+                        });
+                    }
+                    break;
+                case CSV:
+                    if (eachRowFunc == null) {
+                        s.forEach(row -> ViewPrinter.printDSV(row, ",", first));
+                    } else {
+                        s.forEach(row -> {
+                            ViewPrinter.printDSV(row, ",", first);
+                            eachRowFunc.accept(row);
+                        });
+                    }
+                    break;
+                case EXCEL:
+                    if (eachRowFunc == null) {
+                        s.forEach(row -> ViewPrinter.printDSV(row, " | ", first));
+                    } else {
+                        s.forEach(row -> {
+                            ViewPrinter.printDSV(row, " | ", first);
+                            eachRowFunc.accept(row);
+                        });
+                    }
+                    break;
+            }
+        } catch (Exception e) {
+            printError(e);
+        }
+    }
+
+    public static void printQueryResult(Stream<DataRow> s, AtomicReference<View> viewMode) {
+        printQueryResult(s, viewMode, null);
+    }
+
+    public static void printHighlightSql(String sql) {
         Printer.print(">>> ", Color.SILVER);
         System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql.trim()));
     }
