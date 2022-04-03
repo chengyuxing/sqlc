@@ -5,6 +5,7 @@ import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
+import org.apache.xmlbeans.impl.regex.Match;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rabbit.sql.console.core.Command;
@@ -155,13 +156,13 @@ public class Startup {
                 // 结果集缓存key自增
                 AtomicInteger idx = new AtomicInteger(0);
                 // 保存文件格式验证正则
-                Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save +\\$(?<key>res[\\d]+) *> *(?<path>[\\S]+)$");
+                Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save +\\$(?<key>res[\\d]+)\\s*>\\s*(?<path>[\\S]+)$");
                 // 直接保存查询结果到文件正则
-                Pattern SAVE_QUERY_FORMAT = Pattern.compile("^:save +\\$\\{\\s*(?<sql>[\\s\\S]+\\S)\\s*} *> *(?<path>[\\S]+)$");
+                Pattern SAVE_QUERY_FORMAT = Pattern.compile("^:save +\\$\\{\\s*(?<sql>[\\s\\S]+\\S)\\s*}\\s*>\\s*(?<path>[\\S]+)$");
                 // 获取结果集区间正则
-                Pattern GET_RES_RANGE_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+) *< *(?<start>\\d+) *: *(?<end>\\d+)$");
+                Pattern GET_RES_RANGE_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+)\\s*<\\s*(?<start>\\d+)\\s*:\\s*(?<end>\\d+)$");
                 // 获取指定索引的结果正则
-                Pattern GET_RES_IDX_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+) *< *(?<index>\\d+)$");
+                Pattern GET_RES_IDX_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+)\\s*<\\s*(?<index>\\d+)$");
                 // 获取全部结果正则
                 Pattern GET_ALL_FORMAT = Pattern.compile("^:get +\\$(?<key>res[\\d]+)$");
                 // 删除缓存正则
@@ -186,7 +187,10 @@ public class Startup {
                 exit:
                 while (true) {
                     String line = scanner.nextLine().trim();
-                    if (line.length() > 1 && line.startsWith(":")) {
+                    if (line.startsWith(":")) {
+                        // 如果在输入多行sql的情况下，输入:号，都会清空之前的sql并执行相应命令
+                        // 此种情况可用来取消之前输入错误的sql
+                        inputStr.setLength(0);
                         switch (line) {
                             case ":q":
                                 if (txActive.get()) {
@@ -432,65 +436,100 @@ public class Startup {
                                 break;
                         }
                         printPrefix(txActive, "sqlc>");
-                        //此分支为执行sql
                     } else {
-                        inputStr.append(line);
-                        // 如果sql没有以分号结尾，则进入连续输入模式
-                        if (!line.endsWith(";")) {
-                            if (inputStr.length() == 0) {
-                                printPrefix(txActive, "sqlc>");
+                        // 查询遍历，这里需要sql缓存不存在的情况下，因为$可能是sql的关键字，例如PostgreSQL的 create function ... $$...$$
+                        if (inputStr.length() == 0 && line.startsWith("$res")) {
+                            if (!enableCache.get()) {
+                                printWarning("cache is disabled, :c to enable.");
                             } else {
-                                inputStr.append("\n");
-                                printPrefix(txActive, ">>");
-                            }
-                        } else {
-                            // 否则直接执行sql
-                            String sql = inputStr.toString();
-                            if (!com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sql).equals("")) {
-                                SqlType type = SqlUtil.getType(sql);
-                                switch (type) {
-                                    case QUERY:
-                                        // 查询缓存结果
-                                        List<DataRow> queryResult = new ArrayList<>();
-                                        String key = "";
-                                        boolean cacheEnabled = enableCache.get();
-                                        if (cacheEnabled) {
-                                            key = "res" + idx.getAndIncrement();
-                                            CACHE.put(key, queryResult);
+                                String keyFormat = line.substring(1);
+                                // '>' 代表将结果重定向输出到文件
+                                if (keyFormat.contains(">")) {
+                                    Pattern CACHE_OP_FORMAT = Pattern.compile("(?<key>res\\d+)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
+                                    Matcher m = CACHE_OP_FORMAT.matcher(keyFormat);
+                                    if (m.find()) {
+                                        String key = m.group("key");
+                                        String outputPath = m.group("path");
+                                        List<DataRow> cache = CACHE.get(key);
+                                        if (cache == null || cache.isEmpty()) {
+                                            printWarning("0 rows cached!");
+                                        } else {
+                                            printNotice("redirect cache data to file...");
+                                            writeFile(cache.stream(), viewMode, outputPath);
                                         }
-                                        try (Stream<DataRow> rowStream = baki.query(sql)) {
-                                            if (cacheEnabled) {
-                                                printQueryResult(rowStream, viewMode, queryResult::add);
-                                            } else {
-                                                printQueryResult(rowStream, viewMode);
-                                            }
-                                            if (cacheEnabled) {
-                                                printNotice(key + ": added to cache!");
-                                            }
-                                            if (txActive.get()) {
-                                                printWarning("WARN: transaction is active now, go on...");
-                                            }
-                                        } catch (Exception e) {
-                                            printError(e);
-                                        }
-                                        break;
-                                    case FUNCTION:
-                                        printWarning("function not support now!");
-                                        break;
-                                    case OTHER:
-                                        try {
-                                            DataRow res = baki.execute(sql);
-                                            printInfo("execute " + res.getString("type") + ":" + res.getInt("result"));
-                                        } catch (Exception e) {
-                                            printError(e);
-                                        }
-                                        break;
-                                    default:
-                                        break;
+                                    } else {
+                                        printWarning("e.g. $res0 > /usr/local/you_file_name");
+                                    }
+                                } else {
+                                    List<DataRow> cache = CACHE.get(keyFormat);
+                                    if (cache == null || cache.isEmpty()) {
+                                        printWarning("0 rows cached!");
+                                    } else {
+                                        printQueryResult(cache.stream(), viewMode);
+                                    }
                                 }
                             }
                             printPrefix(txActive, "sqlc>");
-                            inputStr.setLength(0);
+                        } else {
+                            //此分支为累加sql语句执行sql
+                            inputStr.append(line);
+                            // 如果sql没有以分号结尾，则进入连续输入模式
+                            if (!line.endsWith(";")) {
+                                if (inputStr.length() == 0) {
+                                    printPrefix(txActive, "sqlc>");
+                                } else {
+                                    inputStr.append("\n");
+                                    printPrefix(txActive, ">>");
+                                }
+                            } else {
+                                // 否则直接执行sql
+                                String sql = inputStr.toString();
+                                if (!com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sql).equals("")) {
+                                    SqlType type = SqlUtil.getType(sql);
+                                    switch (type) {
+                                        case QUERY:
+                                            // 查询缓存结果
+                                            List<DataRow> queryResult = new ArrayList<>();
+                                            String key = "";
+                                            boolean cacheEnabled = enableCache.get();
+                                            if (cacheEnabled) {
+                                                key = "res" + idx.getAndIncrement();
+                                                CACHE.put(key, queryResult);
+                                            }
+                                            try (Stream<DataRow> rowStream = baki.query(sql)) {
+                                                if (cacheEnabled) {
+                                                    printQueryResult(rowStream, viewMode, queryResult::add);
+                                                } else {
+                                                    printQueryResult(rowStream, viewMode);
+                                                }
+                                                if (cacheEnabled) {
+                                                    printNotice(key + ": added to cache!");
+                                                }
+                                                if (txActive.get()) {
+                                                    printWarning("WARN: transaction is active now, go on...");
+                                                }
+                                            } catch (Exception e) {
+                                                printError(e);
+                                            }
+                                            break;
+                                        case FUNCTION:
+                                            printWarning("function not support now!");
+                                            break;
+                                        case OTHER:
+                                            try {
+                                                DataRow res = baki.execute(sql);
+                                                printInfo("execute " + res.getString("type") + ":" + res.getInt("result"));
+                                            } catch (Exception e) {
+                                                printError(e);
+                                            }
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                }
+                                printPrefix(txActive, "sqlc>");
+                                inputStr.setLength(0);
+                            }
                         }
                     }
                 }

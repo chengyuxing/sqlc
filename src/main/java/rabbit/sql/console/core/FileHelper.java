@@ -52,7 +52,7 @@ public final class FileHelper {
             FileOutputStream out = outputStreamAtomicReference.get();
             String d = mode.get() == View.TSV ? "\t" : ",";
             printPrimary("waiting...");
-            AtomicLong i = new AtomicLong(1);
+            AtomicLong i = new AtomicLong(0);
             AtomicBoolean first = new AtomicBoolean(true);
             s.forEach(row -> {
                 try {
@@ -97,7 +97,7 @@ public final class FileHelper {
             BufferedWriter writer = bufferedWriterAtomicReference.get();
             printPrimary("waiting...");
             AtomicBoolean first = new AtomicBoolean(true);
-            AtomicLong i = new AtomicLong(1);
+            AtomicLong i = new AtomicLong(0);
             s.forEach(row -> {
                 try {
                     if (first.get()) {
