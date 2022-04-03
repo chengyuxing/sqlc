@@ -287,7 +287,7 @@ public class Startup {
                                         printWarning("0 rows cached!");
                                     } else {
                                         printQueryResult(rows.stream(), viewMode);
-                                        printInfo(key + " loaded!");
+                                        printNotice(key + " loaded!");
                                     }
                                     break;
                                 }
@@ -304,7 +304,7 @@ public class Startup {
                                             printDanger("index " + index + " of " + key + " out of range.");
                                         } else {
                                             printQueryResult(Stream.of(rows.get(index)), viewMode);
-                                            printInfo("line " + index + " of " + key + " loaded!");
+                                            printNotice("line " + index + " of " + key + " loaded!");
                                         }
                                     }
                                     break;
@@ -323,7 +323,7 @@ public class Startup {
                                             printDanger("invalid range!");
                                         } else {
                                             printQueryResult(rows.subList(start, end).stream(), viewMode);
-                                            printInfo("line " + start + " to " + end + " of " + key + " loaded!");
+                                            printNotice("line " + start + " to " + end + " of " + key + " loaded!");
                                         }
                                     }
                                     break;
