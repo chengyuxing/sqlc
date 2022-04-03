@@ -46,6 +46,9 @@ public class Startup {
                     Optional.ofNullable(argMap.get("-p")).orElse(""));
             Baki baki = dsLoader.getBaki();
 
+            log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
+            log.info("Go to \33[4mhttps://github.com/chengyuxing/sqlc\33[0m get more information about this.");
+
             if (baki != null) {
                 // 多行sql分隔符
                 final AtomicReference<String> sqlDelimiter = new AtomicReference<>(";;");
@@ -136,11 +139,11 @@ public class Startup {
                     System.exit(0);
                 }
 
-                log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
-                log.info("Go to \33[4mhttps://github.com/chengyuxing/sqlc\33[0m get more information about this.");
-                log.info("Type in sql script to execute query,ddl,dml..., Or try :help");
-
                 // 进入交互模式
+                log.info("Type in sql script to execute query, ddl, dml..., Or try :help");
+                Scanner scanner = new Scanner(System.in);
+                printPrefix(new AtomicBoolean(false), "sqlc>");
+
                 // 数据缓存
                 Map<String, List<DataRow>> CACHE = new LinkedHashMap<>();
                 // 输入字符串缓冲
@@ -169,9 +172,6 @@ public class Startup {
                 Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load +(?<path>[\\S]+)$");
                 // 设置多行sql分隔符正则
                 Pattern SQL_DELIMITER_FORMAT = Pattern.compile("^:d +(?<key>[\\S\\s]+)$");
-
-                Scanner scanner = new Scanner(System.in);
-                printPrefix(txActive, "sqlc> ");
 
                 //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
