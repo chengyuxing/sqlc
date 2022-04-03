@@ -9,7 +9,7 @@ import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
 import org.junit.Test;
 import rabbit.sql.console.core.DataSourceLoader;
-import rabbit.sql.console.core.ViewPrinter;
+import rabbit.sql.console.core.PrintHelper;
 import rabbit.sql.console.util.SqlUtil;
 
 import java.util.Arrays;
@@ -123,7 +123,7 @@ public class DBTests {
         AtomicBoolean first = new AtomicBoolean(true);
         list.forEach(m -> {
             try {
-                ViewPrinter.printJSON(DataRow.fromMap(m), first);
+                PrintHelper.printJSON(DataRow.fromMap(m), first);
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }

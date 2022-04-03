@@ -2,7 +2,6 @@ package rabbit.sql.console.core;
 
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
-import rabbit.sql.console.Version;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
