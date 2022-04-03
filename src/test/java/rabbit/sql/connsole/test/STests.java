@@ -17,10 +17,12 @@ public class STests {
 
     @Test
     public void test2() throws Exception {
-        String sql = "select * from test.region limit 10 > asd/bbb.sql";
-        Pattern p = Pattern.compile("\\s*>\\s*(?<path>\\.*/\\S+)$");
+        String sql = "select * from test.region limit 7>/Users/chengyuxing/Downloads/bbbbb.sql";
+        Pattern p = Pattern.compile("(?<sql>[\\s\\S]+)\\s*>\\s*(?<path>\\.*/\\S+)$");
+        System.out.println(sql.matches(p.pattern()));
         Matcher m = p.matcher(sql);
         if (m.find()) {
+            System.out.println(m.group("sql"));
             System.out.println(m.group("path"));
         }
     }

@@ -143,14 +143,20 @@ public final class FileHelper {
         try {
             Sheet sheet = writer.createSheet("Sheet1");
             AtomicBoolean first = new AtomicBoolean(true);
+            AtomicLong i = new AtomicLong(0);
             rowStream.forEach(row -> {
                 if (first.get()) {
                     writer.writeRow(sheet, row.getNames().toArray());
                     first.set(false);
                 }
                 writer.writeRow(sheet, row.getValues());
+                long offset = i.incrementAndGet();
+                if (offset % 10000 == 0) {
+                    printPrimary(offset + " rows has written.");
+                }
             });
             writer.saveTo(filePath);
+            printPrimary(i.get() + " rows write completed.");
             printNotice(filePath + " saved!");
             writer.close();
         } catch (Exception e) {
