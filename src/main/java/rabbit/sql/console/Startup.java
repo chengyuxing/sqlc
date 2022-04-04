@@ -69,6 +69,7 @@ public class Startup {
 
                 if (argMap.containsKey("-e")) {
                     String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(argMap.get("-e"));
+                    // 批量执行直接执行完退出
                     if (sql.startsWith("@")) {
                         if (sql.matches(QUERY_R_FILE.pattern())) {
                             printWarning("only single query support redirect operation!");
@@ -182,7 +183,7 @@ public class Startup {
                 // 删除缓存正则
                 Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm\\s+\\$(?<key>res[\\d]+)$");
                 // 载入sql文件正则
-                Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load\\s+(?<path>[\\S]+)$");
+                Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load\\s+(?<path>[\\s\\S]+\\S)$");
                 // 设置多行sql分隔符正则
                 Pattern SQL_DELIMITER_FORMAT = Pattern.compile("^:d\\s+(?<key>[\\S\\s]+)$");
 
@@ -378,32 +379,58 @@ public class Startup {
                                     String path = m_load_sql.group("path").trim();
                                     if (path.length() > 0) {
                                         if (path.startsWith("@")) {
-                                            executeBatch(baki, path, sqlDelimiter);
-                                        } else if (Files.exists(Paths.get(path))) {
-                                            try {
-                                                AtomicInteger success = new AtomicInteger(0);
-                                                AtomicInteger fail = new AtomicInteger(0);
-                                                Stream.of(String.join("\n", Files.readAllLines(Paths.get(path))).split(sqlDelimiter.get()))
-                                                        .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
-                                                        .forEach(sql -> {
-                                                            try {
-                                                                printHighlightSql(sql);
-                                                                printQueryResult(executedRow2Stream(baki, sql), viewMode);
-                                                                success.incrementAndGet();
-                                                            } catch (Exception e) {
-                                                                fail.incrementAndGet();
-                                                                printError(e);
-                                                            }
-                                                        });
-                                                if (txActive.get()) {
-                                                    printWarning("NOTICE: transaction is active...");
-                                                }
-                                                printNotice("Execute finished, success: " + success + ", fail: " + fail);
-                                            } catch (Exception e) {
-                                                printError(e);
+                                            if (path.contains(">")) {
+                                                printWarning("only query support redirect operation!");
+                                            } else {
+                                                executeBatch(baki, path, sqlDelimiter);
                                             }
                                         } else {
-                                            printDanger("sql file [ " + path + " ] not exists.");
+                                            if (path.contains(">")) {
+                                                try {
+                                                    String[] input_output = path.split(">");
+                                                    String input = input_output[0].trim();
+                                                    String output = input_output[1].trim();
+                                                    String sql = String.join("\n", Files.readAllLines(Paths.get(input))).trim();
+                                                    if (sql.split(sqlDelimiter.get()).length > 1) {
+                                                        printWarning("only single query support redirect operation!");
+                                                    } else if (SqlUtil.getType(sql) == SqlType.QUERY) {
+                                                        try (Stream<DataRow> s = baki.query(sql)) {
+                                                            writeFile(s, viewMode, output);
+                                                        } catch (Exception e) {
+                                                            throw new RuntimeException(e);
+                                                        }
+                                                    } else {
+                                                        printWarning("only query support redirect operation!");
+                                                    }
+                                                } catch (Exception e) {
+                                                    printError(e);
+                                                }
+                                            } else if (Files.exists(Paths.get(path))) {
+                                                try {
+                                                    AtomicInteger success = new AtomicInteger(0);
+                                                    AtomicInteger fail = new AtomicInteger(0);
+                                                    Stream.of(String.join("\n", Files.readAllLines(Paths.get(path))).split(sqlDelimiter.get()))
+                                                            .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
+                                                            .forEach(sql -> {
+                                                                try {
+                                                                    printHighlightSql(sql);
+                                                                    printQueryResult(executedRow2Stream(baki, sql), viewMode);
+                                                                    success.incrementAndGet();
+                                                                } catch (Exception e) {
+                                                                    fail.incrementAndGet();
+                                                                    printError(e);
+                                                                }
+                                                            });
+                                                    if (txActive.get()) {
+                                                        printWarning("NOTICE: transaction is active...");
+                                                    }
+                                                    printNotice("Execute finished, success: " + success + ", fail: " + fail);
+                                                } catch (Exception e) {
+                                                    printError(e);
+                                                }
+                                            } else {
+                                                printDanger("sql file [ " + path + " ] not exists.");
+                                            }
                                         }
                                     } else {
                                         printDanger("please input the file path.");
