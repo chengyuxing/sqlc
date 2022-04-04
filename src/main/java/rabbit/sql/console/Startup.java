@@ -95,11 +95,11 @@ public class Startup {
                         try {
                             List<String> sqls = multiSqlList(sql, sqlDelimiter);
                             if (sqls.size() == 1) {
+                                sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sqls.get(0));
                                 SqlType sqlType = SqlUtil.getType(sql);
-                                sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sql);
+                                printHighlightSql(sql);
                                 // 如果是查询是重定向操作
                                 if (redirect && output != null) {
-                                    printHighlightSql(sql);
                                     if (sqlType == SqlType.QUERY) {
                                         try (Stream<DataRow> rowStream = baki.query(sql)) {
                                             printNotice("redirect query to file...");
@@ -305,7 +305,7 @@ public class Startup {
                                         printWarning("WARN: cache will not work with :load...");
                                     }
                                     String path = m_load_sql.group("path").trim();
-                                    if (path.length() > 0) {
+                                    if (!path.equals("")) {
                                         if (path.startsWith("@")) {
                                             if (path.contains(">")) {
                                                 printWarning("batch(@) execute not support redirect operation!");
@@ -322,6 +322,7 @@ public class Startup {
                                                     if (sqls.size() > 1) {
                                                         printWarning("only single query support redirect operation!");
                                                     } else if (SqlUtil.getType(sqls.get(0)) == SqlType.QUERY) {
+                                                        printHighlightSql(sqls.get(0));
                                                         try (Stream<DataRow> s = baki.query(sqls.get(0))) {
                                                             writeFile(s, viewMode, output);
                                                         }
@@ -336,6 +337,7 @@ public class Startup {
                                                     List<String> sqls = multiSqlList(path, sqlDelimiter);
                                                     if (sqls.size() > 0) {
                                                         if (sqls.size() == 1) {
+                                                            printHighlightSql(sqls.get(0));
                                                             printOneSqlResultByType(baki, sqls.get(0), viewMode);
                                                         } else {
                                                             printMultiSqlResult(baki, sqls, viewMode);
@@ -500,7 +502,8 @@ public class Startup {
                     for (int i = 0, j = Math.min(chunk.size(), 3); i < j; i++) {
                         printHighlightSql(chunk.get(i));
                     }
-                    printNotice("more(" + (chunk.size() - 3) + ")......");
+                    int rest = Math.max(chunk.size() - 3, 0);
+                    printNotice("more(" + rest + ")......");
                     chunk.clear();
                 }
             } catch (Exception e) {
