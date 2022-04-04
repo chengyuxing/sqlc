@@ -24,6 +24,15 @@
 - `-e/usr/local/a.sql`
 - `:load /usr/local/a.sql`
 
+## 关于导出查询结果
+
+使用重定向符 `>` 导出查询结果，如果以`.sql`结尾，则导出`insert`语句，表名为文件名，否则根据`-f`或`:[tsv|csv|json|excel]`导出相应类型文件。
+
+- 导出缓存：`:get $res0 > /usr/local/res.sql`
+- `:load /usr/local/query.sql > /usr/local/res.sql`
+- `-e"select * from table > /usr/local/res" -fjson`
+- `-e"/usr/local/query.sql > /usr/local/res.sql"`
+
 ## 例子
 
 - `./sqlc.sh -ujdbc:postgresql://127.0.0.1:5432/postgres -nchengyuxing -p`
