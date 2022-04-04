@@ -36,9 +36,8 @@ public class DBTests {
     public void test1() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "123456");
         Baki light = loader.getBaki();
-        Stream<DataRow> s = light.query("select * from test.user");
-        s.limit(5).forEach(System.out::println);
-        s.limit(5).forEach(System.out::println);
+        Stream<DataRow> row = light.query("insert into test.sqlc1(id) values (10);");
+        System.out.println(row);
     }
 
     @Test

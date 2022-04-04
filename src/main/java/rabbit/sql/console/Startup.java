@@ -15,6 +15,7 @@ import rabbit.sql.console.types.View;
 import rabbit.sql.console.util.SqlUtil;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -69,88 +70,59 @@ public class Startup {
 
                 if (argMap.containsKey("-e")) {
                     String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(argMap.get("-e"));
-                    // 批量执行直接执行完退出
+                    // 以@开头那么批量执行直接执行完退出如果有重定向>，则不进行执行
                     if (sql.startsWith("@")) {
-                        if (sql.matches(QUERY_R_FILE.pattern())) {
-                            printWarning("only single query support redirect operation!");
-                            System.exit(0);
+                        if (sql.contains(">")) {
+                            printWarning("batch(@) execute not support redirect operation!");
+                        } else {
+                            executeBatch(baki, sql, sqlDelimiter);
                         }
-                        executeBatch(baki, sql, sqlDelimiter);
                         System.exit(0);
                     }
-
-                    String sourceSql = sql;
                     // 这里sql名可能还是 /usr/input.sql > /usr/local/output，处理一下
+                    // 这里sql名可能还是 select * from table > /usr/local/output，处理一下
+                    boolean redirect = false;
                     Matcher mCheck = QUERY_R_FILE.matcher(sql);
+                    String output = null;
                     if (mCheck.find()) {
+                        redirect = true;
+                        // 路径或sql
                         sql = mCheck.group("sql");
+                        output = mCheck.group("path");
                     }
-                    // 如果是sql是文件路径的话，将sql读取出来
-                    if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
-                        if (!Files.exists(Paths.get(sql))) {
-                            printDanger("sql file [" + sql + "] not exists.");
-                            System.exit(0);
-                        }
-                        sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
-                    }
+                    // 这里判断是 -e参数可能后面没有跟其他字符
                     if (!sql.trim().equals("")) {
-                        if (sql.contains(sqlDelimiter.get())) {
-                            List<String> sqls = Stream.of(sql.split(sqlDelimiter.get()))
-                                    .filter(s -> !s.trim().equals("") && !s.matches("^[;\r\t\n]$"))
-                                    .collect(Collectors.toList());
-                            if (sqls.size() > 1) {
-                                // 如果是多条sql并且用户输入的-e参数是查询重定向输出文件，则不让其执行
-                                if (sourceSql.matches(QUERY_R_FILE.pattern())) {
-                                    printWarning("only single query support redirect operation!");
-                                    System.exit(0);
-                                }
-                                AtomicInteger success = new AtomicInteger(0);
-                                AtomicInteger fail = new AtomicInteger(0);
-                                sqls.forEach(sbql -> {
-                                    try {
-                                        printHighlightSql(sbql);
-                                        printQueryResult(executedRow2Stream(baki, sbql), viewMode);
-                                        success.incrementAndGet();
-                                    } catch (Exception e) {
-                                        printError(e);
-                                        fail.incrementAndGet();
+                        try {
+                            List<String> sqls = multiSqlList(sql, sqlDelimiter);
+                            if (sqls.size() == 1) {
+                                SqlType sqlType = SqlUtil.getType(sql);
+                                sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sql);
+                                // 如果是查询是重定向操作
+                                if (redirect && output != null) {
+                                    printHighlightSql(sql);
+                                    if (sqlType == SqlType.QUERY) {
+                                        try (Stream<DataRow> rowStream = baki.query(sql)) {
+                                            printNotice("redirect query to file...");
+                                            writeFile(rowStream, viewMode, output);
+                                        } catch (Exception e) {
+                                            printError(e);
+                                        }
+                                    } else {
+                                        printWarning("only query support redirect operation!");
                                     }
-                                });
-                                printNotice("Execute finished, success: " + success + ", fail: " + fail);
-                                dsLoader.release();
-                                System.exit(0);
-                            }
-                        }
-                        SqlType sqlType = SqlUtil.getType(sql);
-                        sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(sql);
-                        printHighlightSql(sql);
-                        if (sqlType == SqlType.QUERY) {
-                            Matcher m = QUERY_R_FILE.matcher(sourceSql);
-                            if (m.find()) {
-                                String output = m.group("path");
-                                try (Stream<DataRow> rowStream = baki.query(sql)) {
-                                    printNotice("redirect query to file...");
-                                    writeFile(rowStream, viewMode, output);
-                                } catch (Exception e) {
-                                    printError(e);
+                                } else {
+                                    printOneSqlResultByType(baki, sql, viewMode);
                                 }
                             } else {
-                                try (Stream<DataRow> s = baki.query(sql)) {
-                                    printQueryResult(s, viewMode);
-                                } catch (Exception e) {
-                                    printError(e);
+                                // 如果是多条sql并且如果是重定向操作，则不让其执行
+                                if (redirect) {
+                                    printWarning("only single query support redirect operation!");
+                                } else {
+                                    printMultiSqlResult(baki, sqls, viewMode);
                                 }
                             }
-                        } else if (sqlType == SqlType.OTHER) {
-                            try {
-                                printQueryResult(executedRow2Stream(baki, sql), viewMode);
-                            } catch (Exception e) {
-                                printError(e);
-                            }
-                        } else if (sqlType == SqlType.FUNCTION) {
-                            printWarning("function not support now");
-                        } else {
-                            printWarning("unKnow sql type, will not be execute!");
+                        } catch (Exception e) {
+                            printError(e);
                         }
                     } else {
                         printWarning("no sql to execute, please check the -e format, is whitespace between -e and it's arg?");
@@ -174,10 +146,6 @@ public class Startup {
                 AtomicBoolean enableCache = new AtomicBoolean(false);
                 // 结果集缓存key自增
                 AtomicInteger idx = new AtomicInteger(0);
-                // 保存文件格式验证正则
-                Pattern SAVE_FILE_FORMAT = Pattern.compile("^:save\\s+\\$(?<key>res[\\d]+)\\s*>\\s*(?<path>[\\S]+)$");
-                // 直接保存查询结果到文件正则
-                Pattern SAVE_QUERY_FORMAT = Pattern.compile("^:save\\s+\\$\\{\\s*(?<sql>[\\s\\S]+\\S)\\s*}\\s*>\\s*(?<path>[\\S]+)$");
                 // 获取全部结果正则
                 Pattern GET_FORMAT = Pattern.compile("^:get\\s+\\$(?<key>res[\\s\\S]+)$");
                 // 删除缓存正则
@@ -282,20 +250,6 @@ public class Startup {
                                 }
                                 break;
                             default:
-                                Matcher m_save = SAVE_FILE_FORMAT.matcher(line);
-                                if (m_save.matches()) {
-                                    String key = m_save.group("key");
-                                    // 如果存在缓存
-                                    if (CACHE.containsKey(key)) {
-                                        Stream<DataRow> rows = CACHE.get(key).stream();
-                                        String path = m_save.group("path");
-                                        writeFile(rows, viewMode, path);
-                                    } else {
-                                        printDanger("cache of " + key + " not exist!");
-                                    }
-                                    break;
-                                }
-
                                 Matcher m_get = GET_FORMAT.matcher(line);
                                 if (m_get.matches()) {
                                     if (!enableCache.get()) {
@@ -317,7 +271,7 @@ public class Startup {
                                                     writeFile(cache.stream(), viewMode, outputPath);
                                                 }
                                             } else {
-                                                printWarning("e.g. $res0 > /usr/local/you_file_name");
+                                                printWarning("e.g. :get $res0 > /usr/local/you_file_name");
                                             }
                                         } else {
                                             List<DataRow> cache = CACHE.get(keyFormat);
@@ -345,32 +299,6 @@ public class Startup {
                                     break;
                                 }
 
-                                Matcher m_query_save = SAVE_QUERY_FORMAT.matcher(line);
-                                if (m_query_save.matches()) {
-                                    // 查询直接导出记录
-                                    try {
-                                        String sql = m_query_save.group("sql");
-                                        // 以路径开头，则认为是要读取sql查询呢脚本文件
-                                        if (sql.startsWith(File.separator) || sql.startsWith("." + File.separator)) {
-                                            try {
-                                                sql = String.join("\n", Files.readAllLines(Paths.get(sql)));
-                                                printHighlightSql(sql);
-                                            } catch (Exception e) {
-                                                throw new IOException(e);
-                                            }
-                                        }
-                                        String path = m_query_save.group("path");
-                                        try (Stream<DataRow> s = baki.query(sql)) {
-                                            writeFile(s, viewMode, path);
-                                        } catch (Exception e) {
-                                            throw new RuntimeException(e);
-                                        }
-                                    } catch (Exception e) {
-                                        printError(e);
-                                    }
-                                    break;
-                                }
-
                                 Matcher m_load_sql = LOAD_SQL_FORMAT.matcher(line);
                                 if (m_load_sql.matches()) {
                                     if (enableCache.get()) {
@@ -380,7 +308,7 @@ public class Startup {
                                     if (path.length() > 0) {
                                         if (path.startsWith("@")) {
                                             if (path.contains(">")) {
-                                                printWarning("only query support redirect operation!");
+                                                printWarning("batch(@) execute not support redirect operation!");
                                             } else {
                                                 executeBatch(baki, path, sqlDelimiter);
                                             }
@@ -390,14 +318,12 @@ public class Startup {
                                                     String[] input_output = path.split(">");
                                                     String input = input_output[0].trim();
                                                     String output = input_output[1].trim();
-                                                    String sql = String.join("\n", Files.readAllLines(Paths.get(input))).trim();
-                                                    if (sql.split(sqlDelimiter.get()).length > 1) {
+                                                    List<String> sqls = multiSqlList(input, sqlDelimiter);
+                                                    if (sqls.size() > 1) {
                                                         printWarning("only single query support redirect operation!");
-                                                    } else if (SqlUtil.getType(sql) == SqlType.QUERY) {
-                                                        try (Stream<DataRow> s = baki.query(sql)) {
+                                                    } else if (SqlUtil.getType(sqls.get(0)) == SqlType.QUERY) {
+                                                        try (Stream<DataRow> s = baki.query(sqls.get(0))) {
                                                             writeFile(s, viewMode, output);
-                                                        } catch (Exception e) {
-                                                            throw new RuntimeException(e);
                                                         }
                                                     } else {
                                                         printWarning("only query support redirect operation!");
@@ -405,31 +331,24 @@ public class Startup {
                                                 } catch (Exception e) {
                                                     printError(e);
                                                 }
-                                            } else if (Files.exists(Paths.get(path))) {
+                                            } else {
                                                 try {
-                                                    AtomicInteger success = new AtomicInteger(0);
-                                                    AtomicInteger fail = new AtomicInteger(0);
-                                                    Stream.of(String.join("\n", Files.readAllLines(Paths.get(path))).split(sqlDelimiter.get()))
-                                                            .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
-                                                            .forEach(sql -> {
-                                                                try {
-                                                                    printHighlightSql(sql);
-                                                                    printQueryResult(executedRow2Stream(baki, sql), viewMode);
-                                                                    success.incrementAndGet();
-                                                                } catch (Exception e) {
-                                                                    fail.incrementAndGet();
-                                                                    printError(e);
-                                                                }
-                                                            });
-                                                    if (txActive.get()) {
-                                                        printWarning("NOTICE: transaction is active...");
+                                                    List<String> sqls = multiSqlList(path, sqlDelimiter);
+                                                    if (sqls.size() > 0) {
+                                                        if (sqls.size() == 1) {
+                                                            printOneSqlResultByType(baki, sqls.get(0), viewMode);
+                                                        } else {
+                                                            printMultiSqlResult(baki, sqls, viewMode);
+                                                            if (txActive.get()) {
+                                                                printWarning("NOTICE: transaction is active...");
+                                                            }
+                                                        }
+                                                    } else {
+                                                        printDanger("no sql script to execute.");
                                                     }
-                                                    printNotice("Execute finished, success: " + success + ", fail: " + fail);
                                                 } catch (Exception e) {
                                                     printError(e);
                                                 }
-                                            } else {
-                                                printDanger("sql file [ " + path + " ] not exists.");
                                             }
                                         }
                                     } else {
@@ -605,5 +524,73 @@ public class Startup {
             stream = Stream.of(row);
         }
         return stream;
+    }
+
+    /**
+     * 如果是文件路径就读取文件返回sql
+     *
+     * @param sqlOrPath sql字符串或路径
+     * @return sql字符串
+     * @throws IOException 如果读取文件发生异常或文件不存在
+     */
+    public static String getSqlByFileIf(String sqlOrPath) throws IOException {
+        if (sqlOrPath.startsWith(File.separator) || sqlOrPath.startsWith("." + File.separator)) {
+            if (!Files.exists(Paths.get(sqlOrPath))) {
+                throw new FileNotFoundException("sql file [" + sqlOrPath + "] not exists.");
+            }
+            return String.join("\n", Files.readAllLines(Paths.get(sqlOrPath)));
+        }
+        return sqlOrPath;
+    }
+
+    public static void printOneSqlResultByType(Baki baki, String sql, AtomicReference<View> viewMode) {
+        SqlType sqlType = SqlUtil.getType(sql);
+        if (sqlType == SqlType.QUERY) {
+            try (Stream<DataRow> s = baki.query(sql)) {
+                printQueryResult(s, viewMode);
+            } catch (Exception e) {
+                printError(e);
+            }
+        } else if (sqlType == SqlType.OTHER) {
+            try {
+                printQueryResult(executedRow2Stream(baki, sql), viewMode);
+            } catch (Exception e) {
+                printError(e);
+            }
+        } else if (sqlType == SqlType.FUNCTION) {
+            printWarning("function not support now");
+        }
+    }
+
+    public static void printMultiSqlResult(Baki baki, List<String> sqls, AtomicReference<View> viewMode) {
+        AtomicInteger success = new AtomicInteger(0);
+        AtomicInteger fail = new AtomicInteger(0);
+        sqls.forEach(sql -> {
+            try {
+                printHighlightSql(sql);
+                printQueryResult(executedRow2Stream(baki, sql), viewMode);
+                success.incrementAndGet();
+            } catch (Exception e) {
+                fail.incrementAndGet();
+                printError(e);
+            }
+        });
+        printNotice("Execute finished, success: " + success + ", fail: " + fail);
+
+    }
+
+    /**
+     * 整个大字符串或sql文件根据分隔符分块
+     *
+     * @param multiSqlOrFilePath sql或文件路径
+     * @param delimiter          分隔符
+     * @return 一组sql
+     * @throws IOException 如果读取文件发生异常或文件不存在
+     */
+    public static List<String> multiSqlList(String multiSqlOrFilePath, AtomicReference<String> delimiter) throws IOException {
+        String sqls = getSqlByFileIf(multiSqlOrFilePath);
+        return Stream.of(sqls.split(delimiter.get()))
+                .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
+                .collect(Collectors.toList());
     }
 }

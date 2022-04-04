@@ -10,10 +10,10 @@ public class SqlUtil {
 
     public static SqlType getType(final String sql) {
         String trimSql = sql.trim();
-        Matcher m = p.matcher(sql);
+        Matcher m = p.matcher(trimSql);
         if (m.find()) {
             return SqlType.QUERY;
-        } else if (trimSql.startsWith("{") && trimSql.endsWith("}")) {
+        } else if (trimSql.startsWith("call") || trimSql.startsWith("{")) {
             return SqlType.FUNCTION;
         } else {
             return SqlType.OTHER;
