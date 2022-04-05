@@ -147,9 +147,9 @@ public class Startup {
                 // 结果集缓存key自增
                 AtomicInteger idx = new AtomicInteger(0);
                 // 获取全部结果正则
-                Pattern GET_FORMAT = Pattern.compile("^:get\\s+\\$(?<key>res[\\s\\S]+)$");
+                Pattern GET_FORMAT = Pattern.compile("^:get\\s+(?<key>[\\s\\S]+)$");
                 // 删除缓存正则
-                Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm\\s+\\$(?<key>res[\\d]+)$");
+                Pattern RM_CACHE_FORMAT = Pattern.compile("^:rm\\s+(?<key>\\S+)$");
                 // 载入sql文件正则
                 Pattern LOAD_SQL_FORMAT = Pattern.compile("^:load\\s+(?<path>[\\s\\S]+\\S)$");
                 // 设置多行sql分隔符正则
@@ -258,25 +258,25 @@ public class Startup {
                                         String keyFormat = m_get.group("key");
                                         // '>' 代表将结果重定向输出到文件
                                         if (keyFormat.contains(">")) {
-                                            Pattern CACHE_OP_FORMAT = Pattern.compile("(?<key>res\\d+)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
+                                            Pattern CACHE_OP_FORMAT = Pattern.compile("(?<key>\\S+)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
                                             Matcher m = CACHE_OP_FORMAT.matcher(keyFormat);
                                             if (m.find()) {
                                                 String key = m.group("key");
                                                 String outputPath = m.group("path");
                                                 List<DataRow> cache = CACHE.get(key);
-                                                if (cache == null || cache.isEmpty()) {
-                                                    printWarning("0 rows cached!");
+                                                if (cache == null) {
+                                                    printWarning("no cache named " + key);
                                                 } else {
                                                     printNotice("redirect cache data to file...");
                                                     writeFile(cache.stream(), viewMode, outputPath);
                                                 }
                                             } else {
-                                                printWarning("e.g. :get $res0 > /usr/local/you_file_name");
+                                                printWarning("e.g. :get cacheName > /usr/local/you_file_name");
                                             }
                                         } else {
                                             List<DataRow> cache = CACHE.get(keyFormat);
-                                            if (cache == null || cache.isEmpty()) {
-                                                printWarning("0 rows cached!");
+                                            if (cache == null) {
+                                                printWarning("no cache named " + keyFormat);
                                             } else {
                                                 printQueryResult(cache.stream(), viewMode);
                                             }

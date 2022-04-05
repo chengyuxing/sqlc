@@ -28,12 +28,10 @@ public class STests {
     }
     @Test
     public void test3() throws Exception{
-        Pattern p = Pattern.compile("\\$(?<key>res\\d+)(\\[(?<range>[\\d:]+)])*\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
-        Matcher m = p.matcher("$res2[89-90] > /usr/local/aaa.txt");
+        Pattern p = Pattern.compile("^:get\\s+\\$(?<key>[\\s\\S]+)$");
+        Matcher m = p.matcher(":get $res2    ".trim());
         if (m.find()) {
             System.out.println(m.group("key"));
-            System.out.println(m.group("path"));
-            System.out.println(Arrays.toString(m.group("range").split(":",3)));
         }
     }
 }
