@@ -248,34 +248,30 @@ public class Startup {
                             default:
                                 Matcher m_get = GET_FORMAT.matcher(line);
                                 if (m_get.matches()) {
-                                    if (!enableCache.get()) {
-                                        printWarning("cache is disabled, :c to enable.");
-                                    } else {
-                                        String keyFormat = m_get.group("key");
-                                        // '>' 代表将结果重定向输出到文件
-                                        if (keyFormat.contains(">")) {
-                                            Pattern CACHE_OP_FORMAT = Pattern.compile("(?<key>\\S+)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
-                                            Matcher m = CACHE_OP_FORMAT.matcher(keyFormat);
-                                            if (m.find()) {
-                                                String key = m.group("key");
-                                                String outputPath = m.group("path");
-                                                List<DataRow> cache = CACHE.get(key);
-                                                if (cache == null) {
-                                                    printWarning("no cache named " + key);
-                                                } else {
-                                                    printNotice("redirect cache data to file...");
-                                                    writeFile(cache.stream(), viewMode, outputPath);
-                                                }
+                                    String keyFormat = m_get.group("key");
+                                    // '>' 代表将结果重定向输出到文件
+                                    if (keyFormat.contains(">")) {
+                                        Pattern CACHE_OP_FORMAT = Pattern.compile("(?<key>\\S+)\\s*>\\s*(?<path>\\.*" + File.separator + "\\S+)$");
+                                        Matcher m = CACHE_OP_FORMAT.matcher(keyFormat);
+                                        if (m.find()) {
+                                            String key = m.group("key");
+                                            String outputPath = m.group("path");
+                                            List<DataRow> cache = CACHE.get(key);
+                                            if (cache == null) {
+                                                printWarning("no cache named " + key);
                                             } else {
-                                                printWarning("e.g. :get cacheName > /usr/local/you_file_name");
+                                                printNotice("redirect cache data to file...");
+                                                writeFile(cache.stream(), viewMode, outputPath);
                                             }
                                         } else {
-                                            List<DataRow> cache = CACHE.get(keyFormat);
-                                            if (cache == null) {
-                                                printWarning("no cache named " + keyFormat);
-                                            } else {
-                                                printQueryResult(cache.stream(), viewMode);
-                                            }
+                                            printWarning("e.g. :get cacheName > /usr/local/you_file_name");
+                                        }
+                                    } else {
+                                        List<DataRow> cache = CACHE.get(keyFormat);
+                                        if (cache == null) {
+                                            printWarning("no cache named " + keyFormat);
+                                        } else {
+                                            printQueryResult(cache.stream(), viewMode);
                                         }
                                     }
                                     break;
