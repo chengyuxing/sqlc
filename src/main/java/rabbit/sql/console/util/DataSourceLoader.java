@@ -1,5 +1,6 @@
 package rabbit.sql.console.util;
 
+import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.BakiDao;
 import com.zaxxer.hikari.HikariConfig;
@@ -15,10 +16,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -126,18 +124,27 @@ public class DataSourceLoader {
     }
 
     public static Map<String, String> resolverArgs(String... args) {
-        List<String> argNames = Arrays.asList(
+        String[] argNames = new String[]{
                 "-u",   //url
                 "-p",   //password
                 "-n",   //name
                 "-f",   //format
-                "-s",   //savePath
                 "-e",   //sql string or sql file
-                "-d"    //multi sql block delimiter
-        );
-        return Stream.of(args)
-                .filter(arg -> arg.length() >= 2)
-                .filter(arg -> argNames.contains(arg.substring(0, 2)))
-                .collect(Collectors.toMap(k -> k.substring(0, 2), v -> v.substring(2).trim()));
+                "-skipHeader",
+                "-d"    //multi sql block delimiter};
+        };
+        return Stream.of(args).filter(arg -> StringUtil.startsWiths(arg, argNames))
+                .reduce(new HashMap<>(), (acc, curr) -> {
+                    for (String name : argNames) {
+                        if (curr.startsWith(name)) {
+                            int prefixLength = name.length();
+                            String key = curr.substring(0, prefixLength);
+                            String value = curr.substring(key.length());
+                            acc.put(key, value);
+                            break;
+                        }
+                    }
+                    return acc;
+                }, (a, b) -> a);
     }
 }

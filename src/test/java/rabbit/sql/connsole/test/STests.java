@@ -1,6 +1,7 @@
 package rabbit.sql.connsole.test;
 
 import org.junit.Test;
+import rabbit.sql.console.util.DataSourceLoader;
 
 import java.io.File;
 import java.util.Arrays;
@@ -33,5 +34,10 @@ public class STests {
         if (m.find()) {
             System.out.println(m.group("key"));
         }
+    }
+
+    @Test
+    public void testargs() throws Exception{
+        System.out.println(DataSourceLoader.resolverArgs("-ncyx","-p123456","-skipHeader"));
     }
 }
