@@ -159,7 +159,6 @@ public class Startup {
                         Tx.rollback();
                     }
                     dsLoader.release();
-                    scanner.close();
                     System.out.println("Bye bye :(");
                 }));
 
