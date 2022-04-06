@@ -7,9 +7,7 @@ import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rabbit.sql.console.core.Command;
-import rabbit.sql.console.core.DataSourceLoader;
-import rabbit.sql.console.core.Version;
+import rabbit.sql.console.util.DataSourceLoader;
 import rabbit.sql.console.types.SqlType;
 import rabbit.sql.console.types.View;
 import rabbit.sql.console.util.SqlUtil;
@@ -28,8 +26,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static rabbit.sql.console.core.FileHelper.writeFile;
-import static rabbit.sql.console.core.PrintHelper.*;
+import static rabbit.sql.console.util.FileHelper.writeFile;
+import static rabbit.sql.console.util.PrintHelper.*;
 
 public class Startup {
     private static final Logger log = LoggerFactory.getLogger("SQLC");
@@ -196,14 +194,13 @@ public class Startup {
                                 break;
                             case ":C":
                                 enableCache.set(false);
-                                CACHE.clear();
-                                idx.set(0);
                                 printNotice("cache disabled!");
                                 break;
-                            case ":clear":
+                            case ":C!":
+                                enableCache.set(false);
                                 CACHE.clear();
                                 idx.set(0);
-                                printNotice("cache cleared!");
+                                printNotice("cache disabled and cleared!");
                                 break;
                             case ":keys":
                                 printNotice(CACHE.keySet().toString());

@@ -1,4 +1,4 @@
-package rabbit.sql.console.core;
+package rabbit.sql.console;
 
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
@@ -31,9 +31,8 @@ public class Command {
                         "Interactive Mode:\n" +
                         "\t:q\t\t\t\t--quit.\n" +
                         "\t:c\t\t\t\t--enable cache query results (Warning: be careful out of memory).\n" +
-                        "\t:C\t\t\t\t--disable cache query results. (default)\n" +
+                        "\t:C[!]\t\t\t\t--disable cache(if !, disable and clear all cache)\n" +
                         "\t:status\t\t\t\t--show current status.\n" +
-                        "\t:clear\t\t\t\t--clear query results cache.\n" +
                         "\t:begin\t\t\t\t--begin transaction, and the prefix[*] means transaction is active now!\n" +
                         "\t:commit\t\t\t\t--commit transaction.\n" +
                         "\t:rollback\t\t\t--rollback transaction.\n" +
@@ -42,7 +41,7 @@ public class Command {
                         "\t:get key[>outputPath]\t--query cache by key or redirect cache data to file.\n" +
                         "\t:rm key\t\t\t--remove the cache by key.\n" +
                         "\t:d [delimiter]\t\t\t--use for delimit multi and single line sql block to batch execute, default ';;'(double semicolon).\n" +
-                        "\t:load [[@]path][>outputPath]\t\t\t--load local sql file and execute  or redirect single query to file(if ends with '.sql', will ignore -f and generate insert sql script and file name will as table name) with format(-f), if path starts with '@', batch execute ddl or dml statement for each line faster('delimited by \\n'), otherwise delimited by ';;'(double semicolon).\n" +
+                        "\t:load [@]path[>outputPath]\t\t\t--load local sql file and execute  or redirect single query to file(if ends with '.sql', will ignore -f and generate insert sql script and file name will as table name) with format(-f), if path starts with '@', batch execute ddl or dml statement for each line faster('delimited by \\n'), otherwise delimited by ';;'(double semicolon).\n" +
                         "\t:h[elp]\t\t\t\t--get some help.", Color.CYAN));
         commands.put("-h", commands.get("--help"));
         commands.put("-v", Version.RELEASE);
