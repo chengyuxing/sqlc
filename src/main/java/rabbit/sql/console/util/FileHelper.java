@@ -1,4 +1,4 @@
-package rabbit.sql.console.core;
+package rabbit.sql.console.util;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.Lines;
@@ -17,8 +17,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-import static rabbit.sql.console.core.PrintHelper.*;
-import static rabbit.sql.console.core.PrintHelper.printError;
+import static rabbit.sql.console.util.PrintHelper.*;
+import static rabbit.sql.console.util.PrintHelper.printError;
 
 public final class FileHelper {
     public static void writeFile(Stream<DataRow> stream, AtomicReference<View> mode, String path) {

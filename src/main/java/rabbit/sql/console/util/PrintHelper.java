@@ -1,4 +1,4 @@
-package rabbit.sql.console.core;
+package rabbit.sql.console.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
