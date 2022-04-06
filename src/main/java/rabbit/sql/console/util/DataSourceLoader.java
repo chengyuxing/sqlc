@@ -1,4 +1,4 @@
-package rabbit.sql.console.core;
+package rabbit.sql.console.util;
 
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.BakiDao;
