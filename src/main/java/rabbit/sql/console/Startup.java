@@ -201,7 +201,7 @@ public class Startup {
                                 idx.set(0);
                                 printNotice("cache disabled and cleared!");
                                 break;
-                            case ":keys":
+                            case ":ls":
                                 printNotice(CACHE.keySet().toString());
                                 break;
                             case ":json":
