@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import static rabbit.sql.console.util.ObjectUtil.getJson;
 import static rabbit.sql.console.util.PrintHelper.*;
 import static rabbit.sql.console.util.PrintHelper.printError;
 
@@ -102,10 +103,10 @@ public final class FileHelper {
                 try {
                     if (first.get()) {
                         writer.write("[");
-                        writer.write(PrintHelper.getJson(row));
+                        writer.write(getJson(row));
                         first.set(false);
                     } else {
-                        writer.write(", " + PrintHelper.getJson(row));
+                        writer.write(", " + getJson(row));
                     }
                     long offset = i.incrementAndGet();
                     if (offset % 10000 == 0) {
