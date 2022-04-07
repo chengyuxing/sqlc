@@ -38,7 +38,6 @@ public class DataSourceLoader {
         config.setJdbcUrl(jdbcUrl);
         config.setUsername(username);
         config.setPassword(password);
-        config.setDriverClassName(getDriverClassName(jdbcUrl));
         return new DataSourceLoader(config);
     }
 
@@ -97,31 +96,6 @@ public class DataSourceLoader {
     public String getDbInfo() throws SQLException {
         DatabaseMetaData metaData = baki.metaData();
         return metaData.getDatabaseProductName() + " " + metaData.getDatabaseProductVersion();
-    }
-
-    /**
-     * 根据jdbcUrl获取驱动名称
-     *
-     * @param url jdbcUrl
-     * @return 驱动名
-     */
-    public static String getDriverClassName(String url) {
-        if (url.startsWith("jdbc:oracle")) {
-            return "oracle.jdbc.driver.OracleDriver";
-        }
-        if (url.startsWith("jdbc:postgresql")) {
-            return "org.postgresql.Driver";
-        }
-        if (url.startsWith("jdbc:sqlserver")) {
-            return "com.microsoft.sqlserver.jdbc.SQLServerDriver";
-        }
-        if (url.startsWith("jdbc:mysql")) {
-            return "com.mysql.jdbc.Driver";
-        }
-        if (url.startsWith("jdbc:sqlite")) {
-            return "org.sqlite.JDBC";
-        }
-        throw new IllegalArgumentException("jdbc url error:" + url);
     }
 
     public static Map<String, String> resolverArgs(String... args) {
