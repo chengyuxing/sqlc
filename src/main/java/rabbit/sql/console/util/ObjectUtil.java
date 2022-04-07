@@ -3,12 +3,12 @@ package rabbit.sql.console.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.common.utils.StringUtil;
 
 import java.util.Arrays;
-import java.util.Formatter;
 
 public class ObjectUtil {
-    private final static ObjectMapper JSON = new ObjectMapper();
+    public final static ObjectMapper JSON = new ObjectMapper();
 
     public static String getJson(DataRow row) throws JsonProcessingException {
         DataRow res = jsonSerializedExceptBlob(row);
@@ -35,14 +35,7 @@ public class ObjectUtil {
         }
         if (obj instanceof byte[]) {
             byte[] bytesArr = (byte[]) obj;
-            String strSize = "0KB";
-            final Formatter fmt = new Formatter();
-            if (bytesArr.length > 1048576) {
-                strSize = fmt.format("%.2f", bytesArr.length / 1048576.0) + "MB";
-            } else if (bytesArr.length > 0) {
-                strSize = fmt.format("%.2f", bytesArr.length / 1024.0) + "KB";
-            }
-            return "blob:" + strSize;
+            return "blob:" + StringUtil.getSize(bytesArr);
         }
         return obj;
     }
