@@ -1,15 +1,16 @@
 package rabbit.sql.console;
 
 import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rabbit.sql.console.util.DataSourceLoader;
 import rabbit.sql.console.types.SqlType;
 import rabbit.sql.console.types.View;
+import rabbit.sql.console.util.DataSourceLoader;
 import rabbit.sql.console.util.SqlUtil;
 
 import java.io.File;
@@ -109,7 +110,7 @@ public class Startup {
                                         printWarning("only query support redirect operation!");
                                     }
                                 } else {
-                                    printOneSqlResultByType(baki, sql, viewMode);
+                                    printOneSqlResultByType(baki, sql, Collections.emptyMap(), viewMode);
                                 }
                             } else {
                                 // 如果是多条sql并且如果是重定向操作，则不让其执行
@@ -315,7 +316,8 @@ public class Startup {
                                                         printWarning("only single query support redirect operation!");
                                                     } else if (SqlUtil.getType(sqls.get(0)) == SqlType.QUERY) {
                                                         printHighlightSql(sqls.get(0));
-                                                        try (Stream<DataRow> s = baki.query(sqls.get(0))) {
+                                                        String sql = sqls.get(0);
+                                                        try (Stream<DataRow> s = baki.query(sql, prepareSqlArgIf(sql, scanner))) {
                                                             writeFile(s, viewMode, output);
                                                         }
                                                     } else {
@@ -329,8 +331,10 @@ public class Startup {
                                                     List<String> sqls = multiSqlList(path, sqlDelimiter);
                                                     if (sqls.size() > 0) {
                                                         if (sqls.size() == 1) {
-                                                            printHighlightSql(sqls.get(0));
-                                                            printOneSqlResultByType(baki, sqls.get(0), viewMode);
+                                                            String sql = sqls.get(0);
+                                                            Map<String, Object> argx = prepareSqlArgIf(sql, scanner);
+                                                            printHighlightSql(sql);
+                                                            printOneSqlResultByType(baki, sql, argx, viewMode);
                                                         } else {
                                                             printMultiSqlResult(baki, sqls, viewMode);
                                                             if (txActive.get()) {
@@ -384,14 +388,14 @@ public class Startup {
                                         if (m.find()) {
                                             sql = m.group("sql");
                                             String output = m.group("path");
-                                            try (Stream<DataRow> rowStream = baki.query(sql)) {
+                                            try (Stream<DataRow> rowStream = baki.query(sql, prepareSqlArgIf(sql, scanner))) {
                                                 printNotice("redirect query to file...");
                                                 writeFile(rowStream, viewMode, output);
                                             } catch (Exception e) {
                                                 printError(e);
                                             }
                                         } else {
-                                            try (Stream<DataRow> rowStream = baki.query(sql)) {
+                                            try (Stream<DataRow> rowStream = baki.query(sql, prepareSqlArgIf(sql, scanner))) {
                                                 // 查询缓存结果
                                                 if (enableCache.get()) {
                                                     List<DataRow> queryResult = new ArrayList<>();
@@ -418,7 +422,7 @@ public class Startup {
                                             if (sql.matches(QUERY_R_FILE.pattern())) {
                                                 printWarning("only query support redirect operation!");
                                             } else {
-                                                printQueryResult(executedRow2Stream(baki, sql), viewMode);
+                                                printQueryResult(executedRow2Stream(baki, sql, prepareSqlArgIf(sql, scanner)), viewMode);
                                             }
                                         } catch (Exception e) {
                                             printError(e);
@@ -449,6 +453,21 @@ public class Startup {
             }
         }
         System.exit(0);
+    }
+
+    public static Map<String, Object> prepareSqlArgIf(String sql, Scanner scanner) {
+        Pair<String, List<String>> pSql = com.github.chengyuxing.sql.utils.SqlUtil.generateSql(sql, Collections.emptyMap(), true);
+        List<String> pNames = pSql.getItem2();
+        if (pNames.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Object> parameters = new HashMap<>();
+        for (String name : pSql.getItem2()) {
+            printPrefix(name + " =");
+            Object value = SqlUtil.stringValue2Object(scanner.nextLine().trim());
+            parameters.put(name, value);
+        }
+        return parameters;
     }
 
     public static void executeBatch(Baki baki, String path, AtomicReference<String> delimiterR) {
@@ -507,8 +526,8 @@ public class Startup {
     }
 
     @SuppressWarnings("unchecked")
-    public static Stream<DataRow> executedRow2Stream(Baki baki, String sql) {
-        DataRow row = baki.execute(sql);
+    public static Stream<DataRow> executedRow2Stream(Baki baki, String sql, Map<String, Object> args) {
+        DataRow row = baki.execute(sql, args);
         Object res = row.get(0);
         Stream<DataRow> stream;
         if (res instanceof DataRow) {
@@ -538,17 +557,17 @@ public class Startup {
         return sqlOrPath;
     }
 
-    public static void printOneSqlResultByType(Baki baki, String sql, AtomicReference<View> viewMode) {
+    public static void printOneSqlResultByType(Baki baki, String sql, Map<String, Object> args, AtomicReference<View> viewMode) {
         SqlType sqlType = SqlUtil.getType(sql);
         if (sqlType == SqlType.QUERY) {
-            try (Stream<DataRow> s = baki.query(sql)) {
+            try (Stream<DataRow> s = baki.query(sql, args)) {
                 printQueryResult(s, viewMode);
             } catch (Exception e) {
                 printError(e);
             }
         } else if (sqlType == SqlType.OTHER) {
             try {
-                printQueryResult(executedRow2Stream(baki, sql), viewMode);
+                printQueryResult(executedRow2Stream(baki, sql, args), viewMode);
             } catch (Exception e) {
                 printError(e);
             }
@@ -563,7 +582,7 @@ public class Startup {
         sqls.forEach(sql -> {
             try {
                 printHighlightSql(sql);
-                printQueryResult(executedRow2Stream(baki, sql), viewMode);
+                printQueryResult(executedRow2Stream(baki, sql, Collections.emptyMap()), viewMode);
                 success.incrementAndGet();
             } catch (Exception e) {
                 fail.incrementAndGet();
