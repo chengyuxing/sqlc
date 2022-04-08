@@ -227,7 +227,7 @@ public class Startup {
                                 } else {
                                     Tx.begin();
                                     txActive.set(true);
-                                    printInfo("open transaction: [*]sqlc> means transaction is active now!");
+                                    printInfo("open transaction: *sqlc> means transaction is active now!");
                                 }
                                 break;
                             case ":commit":
