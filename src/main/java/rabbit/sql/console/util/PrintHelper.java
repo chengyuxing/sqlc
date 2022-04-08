@@ -1,7 +1,6 @@
 package rabbit.sql.console.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
@@ -9,19 +8,19 @@ import com.github.chengyuxing.common.utils.StringUtil;
 import rabbit.sql.console.types.View;
 
 import java.io.*;
+import java.text.NumberFormat;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class PrintHelper {
-    private final static ObjectMapper JSON = new ObjectMapper();
-    public static boolean isWindows = StringUtil.containsIgnoreCase(System.getProperty("os.name"), "windows");
+import static rabbit.sql.console.util.ObjectUtil.getJson;
+import static rabbit.sql.console.util.ObjectUtil.wrapObjectForSerialized;
 
-    public static String getJson(DataRow row) throws JsonProcessingException {
-        return JSON.writerWithDefaultPrettyPrinter().writeValueAsString(row.toMap());
-    }
+public final class PrintHelper {
+    public static boolean isWindows = StringUtil.containsIgnoreCase(System.getProperty("os.name"), "windows");
 
     public static void printQueryResult(Stream<DataRow> s, AtomicReference<View> viewMode, Consumer<DataRow> eachRowFunc) {
         AtomicBoolean first = new AtomicBoolean(true);
@@ -121,13 +120,16 @@ public final class PrintHelper {
     }
 
     public static void printPrefix(AtomicBoolean isTxActive, String text) {
-        String txActiveFlag = isTxActive.get() ? "[*]" : "";
+        String txActiveFlag = isTxActive.get() ? "*" : "";
         if (!isWindows) {
-            Printer.printf("%s%s ", Color.PURPLE, txActiveFlag, text);
+            System.out.print(Printer.colorful(txActiveFlag, Color.SILVER) + Printer.colorful(text, Color.PURPLE) + " ");
         } else {
-            System.out.println(txActiveFlag + text);
+            System.out.print(txActiveFlag + text + " ");
         }
+    }
 
+    public static void printPrefix(String text) {
+        printPrefix(new AtomicBoolean(false), text);
     }
 
     public static void printDanger(String msg) {
@@ -203,8 +205,26 @@ public final class PrintHelper {
             if (null == v) {
                 return "null";
             }
-            return v.toString();
+            return wrapObjectForSerialized(v).toString();
         }).collect(Collectors.joining(d, "[", "]"));
         Printer.println(valuesLine, Color.CYAN);
+    }
+
+    public static void printPercentProgress(int value, int max, String prefix, String suffix) throws InterruptedException {
+        float maxValue = Float.parseFloat(max + ".0");
+        NumberFormat num = NumberFormat.getPercentInstance();
+        num.setMaximumIntegerDigits(4);
+        num.setMaximumFractionDigits(2);
+        double percent = value / maxValue;
+        String temp = prefix + num.format(percent) + suffix;
+        System.out.print(temp);
+        TimeUnit.MILLISECONDS.sleep(500);
+        if (value == max) {
+            System.out.println();
+        } else {
+            for (int j = 0, l = temp.length() + suffix.length(); j < l; j++) {
+                System.out.print("\b");
+            }
+        }
     }
 }
