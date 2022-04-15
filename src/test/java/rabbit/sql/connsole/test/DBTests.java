@@ -8,8 +8,8 @@ import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
 import org.junit.Test;
-import rabbit.sql.console.core.DataSourceLoader;
-import rabbit.sql.console.core.PrintHelper;
+import rabbit.sql.console.util.DataSourceLoader;
+import rabbit.sql.console.util.PrintHelper;
 import rabbit.sql.console.util.SqlUtil;
 
 import java.util.Arrays;
@@ -103,7 +103,7 @@ public class DBTests {
     public void sqlFile() throws Exception {
         XQLFileManager manager = new XQLFileManager(Args.of("sql", "/Users/chengyuxing/Downloads/sqlc.sql"));
         manager.init();
-        manager.foreachEntry((k, r) -> r.foreach((n, v) -> {
+        manager.foreachEntry((k, r) -> r.forEach((n, v) -> {
             if (!n.startsWith("${")) {
                 Printer.println("Execute sql [ " + n + " ] ::: ", Color.DARK_CYAN);
             }

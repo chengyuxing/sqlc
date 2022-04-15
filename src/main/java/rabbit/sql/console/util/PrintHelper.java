@@ -183,12 +183,13 @@ public final class PrintHelper {
 
     public static void printDSV(DataRow data, String d, AtomicBoolean firstLine) {
         if (firstLine.get()) {
-            String typesLine = data.getNames().stream()
+            String typesLine = data.keySet().stream()
                     .map(n -> {
-                        String v = data.getType(n);
-                        if (v == null) {
+                        Class<?> type = data.getType(n);
+                        if (type == null) {
                             return "unKnow";
                         }
+                        String v = type.getName();
                         int idx = v.lastIndexOf(".");
                         if (idx == -1) {
                             return v;
@@ -196,12 +197,12 @@ public final class PrintHelper {
                         return v.substring(idx + 1);
                     }).collect(Collectors.joining(d, "[", "]"));
             Printer.println(typesLine, Color.YELLOW);
-            String namesLine = data.getNames().stream()
+            String namesLine = data.keySet().stream()
                     .collect(Collectors.joining(d, "[", "]"));
             Printer.println(namesLine, Color.YELLOW);
             firstLine.set(false);
         }
-        String valuesLine = data.getValues().stream().map(v -> {
+        String valuesLine = data.values().stream().map(v -> {
             if (null == v) {
                 return "null";
             }

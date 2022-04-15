@@ -11,19 +11,13 @@ public class ObjectUtil {
     public final static ObjectMapper JSON = new ObjectMapper();
 
     public static String getJson(DataRow row) throws JsonProcessingException {
-        DataRow res = jsonSerializedExceptBlob(row);
-        return JSON.writerWithDefaultPrettyPrinter().writeValueAsString(res.toMap());
-    }
-
-    public static DataRow jsonSerializedExceptBlob(DataRow row) {
-        DataRow res = row.cloneNew();
-        for (String name : row.getNames()) {
+        for (String name : row.keySet()) {
             Object v = row.get(name);
             if (v instanceof byte[]) {
-                res = res.put(name, wrapObjectForSerialized(v));
+                row.put(name, wrapObjectForSerialized(v));
             }
         }
-        return res;
+        return JSON.writerWithDefaultPrettyPrinter().writeValueAsString(row);
     }
 
     public static Object wrapObjectForSerialized(Object obj) {

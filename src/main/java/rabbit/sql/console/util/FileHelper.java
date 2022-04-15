@@ -58,10 +58,10 @@ public final class FileHelper {
             s.forEach(row -> {
                 try {
                     if (first.get()) {
-                        Lines.writeLine(out, row.getNames(), d);
+                        Lines.writeLine(out, row.names(), d);
                         first.set(false);
                     }
-                    Lines.writeLine(out, row.getValues(), d);
+                    Lines.writeLine(out, row.values(), d);
                     long offset = i.incrementAndGet();
                     if (offset % 10000 == 0) {
                         printPrimary(offset + " rows has written.");
@@ -147,10 +147,10 @@ public final class FileHelper {
             AtomicLong i = new AtomicLong(0);
             rowStream.forEach(row -> {
                 if (first.get()) {
-                    writer.writeRow(sheet, row.getNames().toArray());
+                    writer.writeRow(sheet, row.names().toArray());
                     first.set(false);
                 }
-                writer.writeRow(sheet, row.getValues());
+                writer.writeRow(sheet, row.values());
                 long offset = i.incrementAndGet();
                 if (offset % 10000 == 0) {
                     printPrimary(offset + " rows has written.");
@@ -184,7 +184,7 @@ public final class FileHelper {
             AtomicInteger rows = new AtomicInteger(0);
             stream.forEach(d -> {
                 try {
-                    String insert = com.github.chengyuxing.sql.utils.SqlUtil.generateInsert(tableName, d.toMap(), d.getNames()).replace("\n", "") + ";;\n";
+                    String insert = com.github.chengyuxing.sql.utils.SqlUtil.generateInsert(tableName, d, d.names()).replace("\n", "") + ";;\n";
                     writer.write(insert);
                     int i = rows.incrementAndGet();
                     if (i % 10000 == 0) {
