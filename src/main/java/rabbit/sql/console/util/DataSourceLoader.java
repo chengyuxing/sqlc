@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 public class DataSourceLoader {
     private static final Logger log = LoggerFactory.getLogger(DataSourceLoader.class);
 
-    private Baki baki;
+    private BakiDao baki;
     private final HikariConfig config;
     private HikariDataSource dataSource;
 
@@ -74,7 +74,7 @@ public class DataSourceLoader {
      * @return baki
      * @throws SQLException sqlExp
      */
-    public Baki getBaki() throws SQLException {
+    public BakiDao getBaki() throws SQLException {
         if (baki == null) {
             dataSource = new HikariDataSource(config);
             baki = BakiDao.of(dataSource);

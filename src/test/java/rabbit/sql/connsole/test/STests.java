@@ -1,5 +1,8 @@
 package rabbit.sql.connsole.test;
 
+import com.github.chengyuxing.sql.Args;
+import com.github.chengyuxing.sql.BakiDao;
+import com.github.chengyuxing.sql.XQLFileManager;
 import org.junit.Test;
 import rabbit.sql.console.util.DataSourceLoader;
 import rabbit.sql.console.util.PrintHelper;
@@ -64,7 +67,24 @@ public class STests {
     }
 
     @Test
-    public void test() throws Exception{
+    public void test() throws Exception {
         System.out.println(Object[].class.isAssignableFrom(byte[].class));
+    }
+
+    @Test
+    public void testSqlFile() throws Exception {
+        XQLFileManager xqlFileManager = new XQLFileManager();
+        xqlFileManager.add("x", "file:/Users/chengyuxing/Downloads/xql_file_manager.xql");
+//        xqlFileManager.init();
+        xqlFileManager.foreach((k, v) -> System.out.println(k + " -> " + v));
+
+        Args<Object> args = Args.of("id", "");
+
+        BakiDao bakiDao = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "")
+                .getBaki();
+        bakiDao.setDebugFullSql(true);
+        bakiDao.setXqlFileManager(xqlFileManager);
+        Thread.sleep(5000);
+        bakiDao.query("&x.query_region", args).forEach(System.out::println);
     }
 }

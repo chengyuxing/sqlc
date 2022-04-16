@@ -175,7 +175,7 @@ public final class FileHelper {
         // e.g. /usr/local/qbpt_deve.pinyin_ch.sql
         String tableName = outputPath.substring(outputPath.lastIndexOf(File.separator) + 1, outputPath.lastIndexOf("."));
         printWarning("Ignore view mode(-f and :[tsv|csv|json|excel]), output file name will as the insert sql script target table name!!!");
-        printWarning("e.g. " + outputPath + " --> insert into " + tableName + "(...) values(...);;");
+        printWarning("e.g. " + outputPath + " --> insert into " + tableName + "(...) values(...);");
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         try {
             bufferedWriterAtomicReference.set(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath))));
@@ -184,7 +184,7 @@ public final class FileHelper {
             AtomicInteger rows = new AtomicInteger(0);
             stream.forEach(d -> {
                 try {
-                    String insert = com.github.chengyuxing.sql.utils.SqlUtil.generateInsert(tableName, d, d.names()).replace("\n", "") + ";;\n";
+                    String insert = com.github.chengyuxing.sql.utils.SqlUtil.generateInsert(tableName, d, d.names()).replace("\n", "") + ";\n";
                     writer.write(insert);
                     int i = rows.incrementAndGet();
                     if (i % 10000 == 0) {

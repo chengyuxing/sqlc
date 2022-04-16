@@ -4,6 +4,8 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.Baki;
+import com.github.chengyuxing.sql.BakiDao;
+import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
 import org.slf4j.Logger;
@@ -44,14 +46,14 @@ public class Startup {
             DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"),
                     Optional.ofNullable(argMap.get("-n")).orElse(""),
                     Optional.ofNullable(argMap.get("-p")).orElse(""));
-            Baki baki = dsLoader.getBaki();
+            BakiDao baki = dsLoader.getBaki();
 
             log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
             log.info("Go to \33[4mhttps://github.com/chengyuxing/sqlc\33[0m get more information about this.");
 
             if (baki != null) {
                 // 多行sql分隔符
-                final AtomicReference<String> sqlDelimiter = new AtomicReference<>(";;");
+                final AtomicReference<String> sqlDelimiter = new AtomicReference<>(";");
                 if (argMap.containsKey("-d")) {
                     sqlDelimiter.set(argMap.get("-d"));
                 }
@@ -110,7 +112,7 @@ public class Startup {
                                         printWarning("only query support redirect operation!");
                                     }
                                 } else {
-                                    printOneSqlResultByType(baki, sql, Collections.emptyMap(), viewMode);
+                                    printOneSqlResultByType(baki, sql, sql, Collections.emptyMap(), viewMode);
                                 }
                             } else {
                                 // 如果是多条sql并且如果是重定向操作，则不让其执行
@@ -145,6 +147,8 @@ public class Startup {
                 AtomicBoolean enableCache = new AtomicBoolean(false);
                 // 结果集缓存key自增
                 AtomicInteger idx = new AtomicInteger(0);
+                // xql文件解析管理器
+                XQLFileManager xqlFileManager = null;
                 // 获取全部结果正则
                 Pattern GET_FORMAT = Pattern.compile("^:get\\s+(?<key>[\\s\\S]+)$");
                 // 删除缓存正则
@@ -268,11 +272,31 @@ public class Startup {
                                             printWarning("e.g. :get cacheName > /usr/local/you_file_name");
                                         }
                                     } else {
-                                        List<DataRow> cache = CACHE.get(keyFormat);
-                                        if (cache == null) {
-                                            printWarning("no cache named " + keyFormat);
+                                        // 读取sql解析器内的sql
+                                        if (keyFormat.startsWith("&")) {
+                                            try {
+                                                if (xqlFileManager == null) {
+                                                    printWarning("XQLFileManager init failed, :load /you_path/you.xql to enable it.");
+                                                    break;
+                                                }
+                                                String sqlName = "x." + keyFormat.substring(1);
+                                                // 这里不进行动态sql解析，因为需要先获取sql用来计算出需要输入的参数
+                                                String sql = xqlFileManager.get(sqlName);
+                                                Map<String, Object> argx = prepareSqlArgIf(sql, scanner);
+                                                // 真正执行时使用baki来进行动态sql解析
+                                                printHighlightSql(sql);
+                                                printOneSqlResultByType(baki, "&" + sqlName, sql, argx, viewMode);
+                                            } catch (Exception e) {
+                                                printError(e);
+                                            }
+                                            // 获取缓存
                                         } else {
-                                            printQueryResult(cache.stream(), viewMode);
+                                            List<DataRow> cache = CACHE.get(keyFormat);
+                                            if (cache == null) {
+                                                printWarning("no cache named " + keyFormat);
+                                            } else {
+                                                printQueryResult(cache.stream(), viewMode);
+                                            }
                                         }
                                     }
                                     break;
@@ -327,22 +351,32 @@ public class Startup {
                                                     printError(e);
                                                 }
                                             } else {
+                                                // 简单装载sql的处理，如果是xql文件，则使用XQLFileManager文件管理器来解析
+                                                // 否则就常规解法
                                                 try {
-                                                    List<String> sqls = multiSqlList(path, sqlDelimiter);
-                                                    if (sqls.size() > 0) {
-                                                        if (sqls.size() == 1) {
-                                                            String sql = sqls.get(0);
-                                                            Map<String, Object> argx = prepareSqlArgIf(sql, scanner);
-                                                            printHighlightSql(sql);
-                                                            printOneSqlResultByType(baki, sql, argx, viewMode);
-                                                        } else {
-                                                            printMultiSqlResult(baki, sqls, viewMode);
-                                                            if (txActive.get()) {
-                                                                printWarning("NOTICE: transaction is active...");
-                                                            }
-                                                        }
+                                                    if (path.endsWith(".xql")) {
+                                                        xqlFileManager = new XQLFileManager();
+                                                        xqlFileManager.setDelimiter(sqlDelimiter.get());
+                                                        xqlFileManager.add("x", "file:" + path);
+                                                        baki.setXqlFileManager(xqlFileManager);
+                                                        printInfo("XQLFileManager enabled, input command: ':get &you_sql_name' to execute!");
                                                     } else {
-                                                        printDanger("no sql script to execute.");
+                                                        List<String> sqls = multiSqlList(path, sqlDelimiter);
+                                                        if (sqls.size() > 0) {
+                                                            if (sqls.size() == 1) {
+                                                                String sql = sqls.get(0);
+                                                                Map<String, Object> argx = prepareSqlArgIf(sql, scanner);
+                                                                printHighlightSql(sql);
+                                                                printOneSqlResultByType(baki, sql, sql, argx, viewMode);
+                                                            } else {
+                                                                printMultiSqlResult(baki, sqls, viewMode);
+                                                                if (txActive.get()) {
+                                                                    printWarning("NOTICE: transaction is active...");
+                                                                }
+                                                            }
+                                                        } else {
+                                                            printDanger("no sql script to execute.");
+                                                        }
                                                     }
                                                 } catch (Exception e) {
                                                     printError(e);
@@ -461,8 +495,9 @@ public class Startup {
         if (pNames.isEmpty()) {
             return Collections.emptyMap();
         }
+        Set<String> distinctArgs = new HashSet<>(pSql.getItem2());
         Map<String, Object> parameters = new HashMap<>();
-        for (String name : pSql.getItem2()) {
+        for (String name : distinctArgs) {
             printPrefix(name + " =");
             Object value = SqlUtil.stringValue2Object(scanner.nextLine().trim());
             parameters.put(name, value);
@@ -557,17 +592,17 @@ public class Startup {
         return sqlOrPath;
     }
 
-    public static void printOneSqlResultByType(Baki baki, String sql, Map<String, Object> args, AtomicReference<View> viewMode) {
-        SqlType sqlType = SqlUtil.getType(sql);
+    public static void printOneSqlResultByType(Baki baki, String sqlOrAddress, String tempString, Map<String, Object> args, AtomicReference<View> viewMode) {
+        SqlType sqlType = SqlUtil.getType(tempString);
         if (sqlType == SqlType.QUERY) {
-            try (Stream<DataRow> s = baki.query(sql, args)) {
+            try (Stream<DataRow> s = baki.query(sqlOrAddress, args)) {
                 printQueryResult(s, viewMode);
             } catch (Exception e) {
                 printError(e);
             }
         } else if (sqlType == SqlType.OTHER) {
             try {
-                printQueryResult(executedRow2Stream(baki, sql, args), viewMode);
+                printQueryResult(executedRow2Stream(baki, sqlOrAddress, args), viewMode);
             } catch (Exception e) {
                 printError(e);
             }

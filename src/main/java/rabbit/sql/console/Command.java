@@ -16,7 +16,7 @@ public class Command {
                         "\t-n[username]\t\t\t--database username.\n" +
                         "\t-p[password]\t\t\t--database password.\n" +
                         "\t-e\"[sql|[@]path][>output]\"\t--(file path start with '@' to batch) execute sql or redirect single query result to file(if ends with '.sql', will ignore -f and generate insert sql script and file name will as table name) with format(-f).\n" +
-                        "\t-d\"[delimiter]\"\t\t\t--delimiter for sqls to batch execute, default ';;'(double semicolon)\n" +
+                        "\t-d\"[delimiter]\"\t\t\t--delimiter for sqls to batch execute, default ';'(single semicolon)\n" +
                         "\t-f[tsv|csv|json|excel]\t\t--format of query result which will be executed.(default tsv)\n" +
                         "\t-v\t\t\t\t--version\n" +
                         "\t-h\t\t\t\t--help\n" +
@@ -30,10 +30,10 @@ public class Command {
                         "\t:commit\t\t\t\t--commit transaction.\n" +
                         "\t:rollback\t\t\t--rollback transaction.\n" +
                         "\t:[tsv|csv|json|excel]\t\t--format of query and exported file(default tsv).\n" +
-                        "\t:get key[>output]\t\t--get cache by key or redirect cache to file.\n" +
+                        "\t:get [&]key[>output]\t\t--get cache or execute sql by key or redirect cache to file.\n" +
                         "\t:rm key\t\t\t\t--remove the cache by key.\n" +
-                        "\t:d [delimiter]\t\t\t--delimiter for sqls to batch execute, default ';;'(double semicolon).\n" +
-                        "\t:load [@]path[>output]\t\t--(file path start with '@' to batch) execute sql or redirect single query result to file(if ends with '.sql', will ignore -f and generate insert sql script and file name will as table name) with format(-f).\n" +
+                        "\t:d [delimiter]\t\t\t--delimiter for sqls to batch execute, default ';'(single semicolon).\n" +
+                        "\t:load [@]path[.sql|.xql][>output]\t\t--(file path start with '@' to batch) execute sql or redirect single query result to file(if ends with '.sql', will ignore -f and generate insert sql script and file name will as table name) with format(-f).\n" +
                         "\t:h[elp]\t\t\t\t--get some help.", Color.CYAN));
         commands.put("-h", commands.get("--help"));
         commands.put("-v", Version.RELEASE);
