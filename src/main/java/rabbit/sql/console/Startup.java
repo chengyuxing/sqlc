@@ -528,7 +528,7 @@ public class Startup {
     @SuppressWarnings("unchecked")
     public static Stream<DataRow> executedRow2Stream(Baki baki, String sql, Map<String, Object> args) {
         DataRow row = baki.execute(sql, args);
-        Object res = row.getAs(0);
+        Object res = row.getFirst();
         Stream<DataRow> stream;
         if (res instanceof DataRow) {
             stream = Stream.of((DataRow) res);
