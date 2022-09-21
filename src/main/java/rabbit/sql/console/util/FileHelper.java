@@ -4,6 +4,7 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.Lines;
 import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
+import com.github.chengyuxing.sql.utils.SqlTranslator;
 import org.apache.poi.ss.usermodel.Sheet;
 import rabbit.sql.console.types.View;
 
@@ -177,14 +178,15 @@ public final class FileHelper {
         printWarning("Ignore view mode(-f and :[tsv|csv|json|excel]), output file name will as the insert sql script target table name!!!");
         printWarning("e.g. " + outputPath + " --> insert into " + tableName + "(...) values(...);");
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
+        Path path = Paths.get(outputPath);
         try {
-            bufferedWriterAtomicReference.set(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath))));
+            bufferedWriterAtomicReference.set(new BufferedWriter(new OutputStreamWriter(Files.newOutputStream(path))));
             BufferedWriter writer = bufferedWriterAtomicReference.get();
             printPrimary("waiting...");
             AtomicInteger rows = new AtomicInteger(0);
             stream.forEach(d -> {
                 try {
-                    String insert = com.github.chengyuxing.sql.utils.SqlUtil.generateInsert(tableName, d, d.names()).replace("\n", "") + ";\n";
+                    String insert = new SqlTranslator(':').generateInsert(tableName, d, d.names()).replace("\n", "") + ";\n";
                     writer.write(insert);
                     int i = rows.incrementAndGet();
                     if (i % 10000 == 0) {
@@ -202,7 +204,7 @@ public final class FileHelper {
                 BufferedWriter writer = bufferedWriterAtomicReference.get();
                 if (writer != null) {
                     writer.close();
-                    Files.deleteIfExists(Paths.get(outputPath));
+                    Files.deleteIfExists(path);
                 }
             } catch (IOException ioException) {
                 e.addSuppressed(ioException);

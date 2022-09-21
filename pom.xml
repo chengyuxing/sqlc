@@ -17,13 +17,13 @@
         <dependency>
             <groupId>com.github.chengyuxing</groupId>
             <artifactId>rabbit-sql</artifactId>
-            <version>6.2.0</version>
+            <version>6.3.2</version>
         </dependency>
 
         <dependency>
             <groupId>com.github.chengyuxing</groupId>
             <artifactId>rabbit-excel</artifactId>
-            <version>4.1.0</version>
+            <version>4.1.4</version>
         </dependency>
 
         <dependency>

@@ -3,23 +3,26 @@ package rabbit.sql.console;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
-import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
-import com.github.chengyuxing.sql.transaction.Tx;
+import com.github.chengyuxing.sql.utils.SqlTranslator;
 import com.zaxxer.hikari.util.FastList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rabbit.sql.console.types.SqlType;
 import rabbit.sql.console.types.View;
 import rabbit.sql.console.util.DataSourceLoader;
+import rabbit.sql.console.util.SingleBaki;
 import rabbit.sql.console.util.SqlUtil;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,7 +49,7 @@ public class Startup {
             DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"),
                     Optional.ofNullable(argMap.get("-n")).orElse(""),
                     Optional.ofNullable(argMap.get("-p")).orElse(""));
-            BakiDao baki = dsLoader.getBaki();
+            SingleBaki baki = dsLoader.getBaki();
 
             log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
             log.info("Go to \33[4mhttps://github.com/chengyuxing/sqlc\33[0m get more information about this.");
@@ -134,9 +137,17 @@ public class Startup {
 
                 // 进入交互模式
                 log.info("Type in sql script to execute query, ddl, dml..., Or try :help");
+                if (argMap.get("-u").contains("postgresql")) {
+                    try (Stream<DataRow> s = baki.query("select schema_name from information_schema.schemata where schema_owner = :owner", Args.of("owner", argMap.get("-n")))) {
+                        String schemas = s.map(d -> "\"" + d.getFirst() + "\"")
+                                .collect(Collectors.joining(","));
+                        String searchPath = "set search_path = " + schemas;
+                        baki.execute(searchPath);
+                        System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(searchPath));
+                    }
+                }
                 Scanner scanner = new Scanner(System.in);
                 printPrefix(new AtomicBoolean(false), "sqlc>");
-
                 // 数据缓存
                 Map<String, List<DataRow>> CACHE = new LinkedHashMap<>();
                 // 输入字符串缓冲
@@ -161,7 +172,11 @@ public class Startup {
                 //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     if (txActive.get()) {
-                        Tx.rollback();
+                        try {
+                            baki.rollbackTransaction();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                     dsLoader.release();
                     System.out.println("Bye bye :(");
@@ -229,7 +244,7 @@ public class Startup {
                                 if (txActive.get()) {
                                     printNotice("transaction is active now!");
                                 } else {
-                                    Tx.begin();
+                                    baki.beginTransaction();
                                     txActive.set(true);
                                     printInfo("open transaction: *sqlc> means transaction is active now!");
                                 }
@@ -238,7 +253,7 @@ public class Startup {
                                 if (!txActive.get()) {
                                     printNotice("transaction is not active now!");
                                 } else {
-                                    Tx.commit();
+                                    baki.commitTransaction();
                                     txActive.set(false);
                                 }
                                 break;
@@ -246,7 +261,7 @@ public class Startup {
                                 if (!txActive.get()) {
                                     printNotice("transaction is not active now!");
                                 } else {
-                                    Tx.rollback();
+                                    baki.rollbackTransaction();
                                     txActive.set(false);
                                 }
                                 break;
@@ -474,7 +489,7 @@ public class Startup {
 
                 // 正常退出：如果在事务中，则回滚事务
                 if (txActive.get()) {
-                    Tx.rollback();
+                    baki.rollbackTransaction();
                 }
                 System.exit(0);
             }
@@ -490,7 +505,7 @@ public class Startup {
     }
 
     public static Map<String, Object> prepareSqlArgIf(String sql, Scanner scanner) {
-        Pair<String, List<String>> pSql = com.github.chengyuxing.sql.utils.SqlUtil.generateSql(sql, Collections.emptyMap(), true);
+        Pair<String, List<String>> pSql = new SqlTranslator(':').generateSql(sql, Collections.emptyMap(), true);
         List<String> pNames = pSql.getItem2();
         if (pNames.isEmpty()) {
             return Collections.emptyMap();
@@ -508,11 +523,12 @@ public class Startup {
     public static void executeBatch(Baki baki, String path, AtomicReference<String> delimiterR) {
         String delimiter = delimiterR.get();
         String bPath = path.substring(1);
-        if (Files.exists(Paths.get(bPath))) {
+        Path path1 = Paths.get(bPath);
+        if (Files.exists(path1)) {
             printPrimary("Prepare to batch execute, default chunk size is 1000, waiting...");
             FastList<String> chunk = new FastList<>(String.class);
             AtomicInteger chunkNum = new AtomicInteger(0);
-            try (Stream<String> lineStream = Files.lines(Paths.get(bPath))) {
+            try (Stream<String> lineStream = Files.lines(path1)) {
                 StringBuilder sb = new StringBuilder();
                 lineStream.map(String::trim)
                         .filter(sql -> !sql.equals("") && !StringUtil.startsWithsIgnoreCase(sql, "--", "#", "/*"))
@@ -584,10 +600,11 @@ public class Startup {
      */
     public static String getSqlByFileIf(String sqlOrPath) throws IOException {
         if (sqlOrPath.startsWith(File.separator) || sqlOrPath.startsWith("." + File.separator)) {
-            if (!Files.exists(Paths.get(sqlOrPath))) {
+            Path path = Paths.get(sqlOrPath);
+            if (!Files.exists(path)) {
                 throw new FileNotFoundException("sql file [" + sqlOrPath + "] not exists.");
             }
-            return String.join("\n", Files.readAllLines(Paths.get(sqlOrPath)));
+            return String.join("\n", Files.readAllLines(path));
         }
         return sqlOrPath;
     }

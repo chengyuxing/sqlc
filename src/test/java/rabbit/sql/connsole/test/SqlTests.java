@@ -1,5 +1,9 @@
 package rabbit.sql.connsole.test;
 
+import com.github.chengyuxing.sql.Baki;
+import com.github.chengyuxing.sql.BakiDao;
+import com.github.chengyuxing.sql.page.impl.MysqlPageHelper;
+import com.github.chengyuxing.sql.utils.SqlTranslator;
 import com.github.chengyuxing.sql.utils.SqlUtil;
 import org.junit.Test;
 
@@ -11,7 +15,7 @@ public class SqlTests {
     @Test
     public void test1() throws Exception {
         String sql = "select * from test.region where id < :id";
-        System.out.println(SqlUtil.generateSql(sql, Collections.emptyMap(), true));
+        System.out.println(new SqlTranslator(':').generateSql(sql, Collections.emptyMap(), true));
     }
 
     @Test
@@ -21,5 +25,18 @@ public class SqlTests {
             System.out.println(Arrays.toString((Object[]) v));
         } else
             System.out.println(v + ": " + Objects.requireNonNull(v).getClass());
+    }
+
+    @Test
+    public void testbaki() throws Exception {
+        Baki baki = BakiDao.of(null);
+        baki.query("", 1, 10)
+                .disableDefaultPageSql()
+                .pageHelper(new MysqlPageHelper() {
+                    @Override
+                    public String pagedSql(String sql) {
+                        return super.pagedSql(sql);
+                    }
+                }).collect(d -> d);
     }
 }

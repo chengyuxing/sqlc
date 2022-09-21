@@ -1,8 +1,6 @@
 package rabbit.sql.console.util;
 
 import com.github.chengyuxing.common.utils.StringUtil;
-import com.github.chengyuxing.sql.Baki;
-import com.github.chengyuxing.sql.BakiDao;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
@@ -24,7 +22,7 @@ import java.util.stream.Stream;
 public class DataSourceLoader {
     private static final Logger log = LoggerFactory.getLogger(DataSourceLoader.class);
 
-    private BakiDao baki;
+    private SingleBaki baki;
     private final HikariConfig config;
     private HikariDataSource dataSource;
 
@@ -74,10 +72,10 @@ public class DataSourceLoader {
      * @return baki
      * @throws SQLException sqlExp
      */
-    public BakiDao getBaki() throws SQLException {
+    public SingleBaki getBaki() throws SQLException {
         if (baki == null) {
             dataSource = new HikariDataSource(config);
-            baki = BakiDao.of(dataSource);
+            baki = new SingleBaki(dataSource);
         }
         log.info("DataBase: {}", getDbInfo());
         return baki;
