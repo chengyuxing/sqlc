@@ -6,7 +6,7 @@
 
     <groupId>rabbit.sql.console</groupId>
     <artifactId>sqlc</artifactId>
-    <version>1.1.4</version>
+    <version>1.1.5</version>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
