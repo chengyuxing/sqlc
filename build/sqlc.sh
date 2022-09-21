@@ -27,6 +27,7 @@ if hash rlwrap 2>/dev/null; then
         DBNAME=${item#-ujdbc:*}
         DBNAME=${DBNAME%:*}
         DBNAME=${DBNAME%:*}
+        DBNAME=${DBNAME%:*}
       fi
       if [[ $item == -n* ]]; then
         UN=$item\ $UN
@@ -45,24 +46,25 @@ if hash rlwrap 2>/dev/null; then
       touch "$H_FILE"
     fi
 
-    # 默认的sql自动完成关键字
-    COMPLETION=$CURDIR/completion/$DBNAME.cnf
-    TEMP_COMPLETION=$COMPLETION
+    TEMP_COMPLETION="$CURDIR"/temp_completion.tsv
+    if [ ! -f "$TEMP_COMPLETION" ]; then
+      touch "$TEMP_COMPLETION"
+    fi
+
     # 暂时仅支持postgresql数据库，当前用户下的表明自动完成处理
     if [ "$DBNAME" = postgresql ] || [ "$DBNAME" = oracle ]; then
-      TEMP_COMPLETION=$CURDIR/temp_completion.tsv
       if [ "$DBNAME" = postgresql ]; then
         EXE="-eselect tablename from pg_tables where tableowner = '$USERNAME' > $TEMP_COMPLETION"
       elif [ "$DBNAME" = oracle ]; then
-        EXE="-eselect table_name from all_tables where owner = upper('$USERNAME') > $TEMP_COMPLETION"
+        EXE="-eselect table_name from user_tables > $TEMP_COMPLETION"
       fi
 
       echo "loading completion..."
-      rlwrap -c java -jar "$CURDIR"/sqlc.jar $UN "$EXE" > /dev/null
+      rlwrap -c java -jar "$CURDIR"/sqlc.jar $UN "$EXE" >/dev/null
       # 把内置的关键字自动完成文件追加到临时文件中
       while read -r line; do
         echo "$line" >>"$TEMP_COMPLETION"
-      done <"$COMPLETION"
+      done <"$CURDIR/completion/$DBNAME.cnf"
     fi
   fi
 
@@ -80,5 +82,5 @@ else
   printf '\t\033[93mLinux: 1. yum –y install readline-devel\033[0m\n'
   printf '\t\t\033[93m2. Download source: https://github.com/hanslub42/rlwrap(or app dir deps/rlwrap-0.43.tar.gz) and make install.\033[0m\n'
   printf '\t\033[93mWindows:Enm...\033[0m\n'
-  java -jar $CURDIR/sqlc.jar "$@"
+  java -jar "$CURDIR"/sqlc.jar "$@"
 fi
