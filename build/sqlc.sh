@@ -25,9 +25,15 @@ if hash rlwrap 2>/dev/null; then
       if [[ $item == -ujdbc:* ]]; then
         UN=$item\ $UN
         DBNAME=${item#-ujdbc:*}
-        DBNAME=${DBNAME%:*}
-        DBNAME=${DBNAME%:*}
-        DBNAME=${DBNAME%:*}
+        DBNAME=${DBNAME%%:*}
+
+        if [ "$DBNAME" = mysql ]; then
+          HAS_DB=$(awk -v url=$item 'BEGIN{print match(url,/:[0-9]+\//) ? "y" : "n"}')
+          if [ "$HAS_DB" = y ]; then
+            MYSQL_SCHEMA=${item##*/}
+            MYSQL_SCHEMA=${MYSQL_SCHEMA%\?*}
+          fi
+        fi
       fi
       if [[ $item == -n* ]]; then
         UN=$item\ $UN
@@ -51,21 +57,19 @@ if hash rlwrap 2>/dev/null; then
       touch "$TEMP_COMPLETION"
     fi
 
-    # 暂时仅支持postgresql数据库，当前用户下的表明自动完成处理
-    if [ "$DBNAME" = postgresql ] || [ "$DBNAME" = oracle ]; then
-      if [ "$DBNAME" = postgresql ]; then
-        EXE="-eselect tablename from pg_tables where tableowner = '$USERNAME' > $TEMP_COMPLETION"
-      elif [ "$DBNAME" = oracle ]; then
-        EXE="-eselect table_name from user_tables > $TEMP_COMPLETION"
-      fi
-
-      echo "loading completion..."
-      rlwrap -c java -jar "$CURDIR"/sqlc.jar $UN "$EXE" >/dev/null
-      # 把内置的关键字自动完成文件追加到临时文件中
-      while read -r line; do
-        echo "$line" >>"$TEMP_COMPLETION"
-      done <"$CURDIR/completion/$DBNAME.cnf"
+    echo "loading completion..."
+    if [ "$DBNAME" = postgresql ]; then
+      rlwrap -c java -jar "$CURDIR"/sqlc.jar $UN "-eselect tablename from pg_tables where tableowner = '$USERNAME' > $TEMP_COMPLETION" >/dev/null
+    elif [ "$DBNAME" = oracle ]; then
+      rlwrap -c java -jar "$CURDIR"/sqlc.jar $UN "-eselect table_name from user_tables > $TEMP_COMPLETION" >/dev/null
+    elif [ "$DBNAME" = mysql ] && [ "$HAS_DB" = y ]; then
+      rlwrap -c java -jar "$CURDIR"/sqlc.jar $UN "-eselect TABLE_NAME from information_schema.TABLES where TABLE_SCHEMA = '$MYSQL_SCHEMA' > $TEMP_COMPLETION" >/dev/null
     fi
+
+    # 把内置的关键字自动完成文件追加到临时文件中
+    while read -r line; do
+      echo "$line" >>"$TEMP_COMPLETION"
+    done <"$CURDIR/completion/$DBNAME.cnf"
   fi
 
   rlwrap -c -H $H_FILE -f $TEMP_COMPLETION java -jar "$CURDIR"/sqlc.jar "$@"
