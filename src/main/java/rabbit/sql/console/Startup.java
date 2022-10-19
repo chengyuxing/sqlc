@@ -141,9 +141,11 @@ public class Startup {
                     try (Stream<DataRow> s = baki.query("select schema_name from information_schema.schemata where schema_owner = :owner", Args.of("owner", argMap.get("-n")))) {
                         String schemas = s.map(d -> "\"" + d.getFirst() + "\"")
                                 .collect(Collectors.joining(","));
-                        String searchPath = "set search_path = " + schemas;
-                        baki.execute(searchPath);
-                        System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(searchPath));
+                        if (!schemas.trim().equals("")) {
+                            String searchPath = "set search_path = " + schemas;
+                            baki.execute(searchPath);
+                            System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(searchPath));
+                        }
                     }
                 }
                 Scanner scanner = new Scanner(System.in);
