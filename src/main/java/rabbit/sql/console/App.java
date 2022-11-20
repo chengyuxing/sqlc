@@ -22,7 +22,6 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -152,7 +151,7 @@ public class App {
         }
     }
 
-    public static void startInteractiveMode(SingleBaki baki, DataSourceLoader dataSourceLoader) throws Exception {
+    public static void startInteractiveMode(SingleBaki baki, DataSourceLoader dataSourceLoader) {
         isInteractive.set(true);
 
         XQLFileManager xqlFileManager = null;
