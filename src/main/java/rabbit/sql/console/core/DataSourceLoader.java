@@ -1,4 +1,4 @@
-package rabbit.sql.console.util;
+package rabbit.sql.console.core;
 
 import com.github.chengyuxing.common.utils.StringUtil;
 import com.zaxxer.hikari.HikariConfig;
@@ -12,8 +12,6 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +30,7 @@ public class DataSourceLoader {
 
     public static DataSourceLoader of(String jdbcUrl, String username, String password) {
         HikariConfig config = new HikariConfig();
-        config.setMaximumPoolSize(2);
+        config.setMaximumPoolSize(5);
         config.setJdbcUrl(jdbcUrl);
         config.setUsername(username);
         config.setPassword(password);
@@ -70,30 +68,18 @@ public class DataSourceLoader {
      * 获取light实例
      *
      * @return baki
-     * @throws SQLException sqlExp
      */
-    public SingleBaki getBaki() throws SQLException {
+    public SingleBaki getBaki(String username) {
         if (baki == null) {
             dataSource = new HikariDataSource(config);
-            baki = new SingleBaki(dataSource);
+            baki = new SingleBaki(dataSource, username);
+            baki.metaData();
         }
-        log.info("DataBase: {}", getDbInfo());
         return baki;
     }
 
     public void release() {
         dataSource.close();
-    }
-
-    /**
-     * 获取数据库信息
-     *
-     * @return 数据库信息
-     * @throws SQLException sqlExp
-     */
-    public String getDbInfo() throws SQLException {
-        DatabaseMetaData metaData = baki.metaData();
-        return metaData.getDatabaseProductName() + " " + metaData.getDatabaseProductVersion();
     }
 
     public static Map<String, String> resolverArgs(String... args) {
