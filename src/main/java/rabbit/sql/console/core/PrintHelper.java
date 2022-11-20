@@ -1,4 +1,4 @@
-package rabbit.sql.console.util;
+package rabbit.sql.console.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.chengyuxing.common.DataRow;
@@ -8,8 +8,6 @@ import com.github.chengyuxing.common.utils.StringUtil;
 import rabbit.sql.console.types.View;
 
 import java.io.*;
-import java.text.NumberFormat;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -46,7 +44,7 @@ public final class PrintHelper {
                         });
                     }
                     if (viewMode.get() == View.JSON) {
-                        printWarning("]");
+                        printlnWarning("]");
                         System.out.println();
                     }
                     break;
@@ -82,7 +80,7 @@ public final class PrintHelper {
                     break;
             }
         } catch (Exception e) {
-            printError(e);
+            printlnError(e);
         }
     }
 
@@ -90,7 +88,7 @@ public final class PrintHelper {
         printQueryResult(s, viewMode, null);
     }
 
-    public static void printHighlightSql(String sql) {
+    public static void printlnHighlightSql(String sql) {
         if (!isWindows) {
             Printer.print(">>> ", Color.SILVER);
             System.out.println(com.github.chengyuxing.sql.utils.SqlUtil.highlightSql(sql.trim()));
@@ -100,7 +98,7 @@ public final class PrintHelper {
         }
     }
 
-    public static void printError(Throwable e) {
+    public static void printlnError(Throwable e) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream();
              PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(out)), true)) {
             writer.println(new Object() {
@@ -113,26 +111,13 @@ public final class PrintHelper {
                     return buffer.toString();
                 }
             });
-            printDanger(out.toString());
+            printlnDanger(out.toString());
         } catch (IOException ioException) {
-            printDanger(ioException.toString());
+            printlnDanger(ioException.toString());
         }
     }
 
-    public static void printPrefix(AtomicBoolean isTxActive, String text) {
-        String txActiveFlag = isTxActive.get() ? "*" : "";
-        if (!isWindows) {
-            System.out.print(Printer.colorful(txActiveFlag, Color.SILVER) + Printer.colorful(text, Color.PURPLE) + " ");
-        } else {
-            System.out.print(txActiveFlag + text + " ");
-        }
-    }
-
-    public static void printPrefix(String text) {
-        printPrefix(new AtomicBoolean(false), text);
-    }
-
-    public static void printDanger(String msg) {
+    public static void printlnDanger(String msg) {
         if (!isWindows) {
             Printer.println(msg, Color.RED);
         } else {
@@ -140,7 +125,7 @@ public final class PrintHelper {
         }
     }
 
-    public static void printWarning(String msg) {
+    public static void printlnWarning(String msg) {
         if (!isWindows) {
             Printer.println(msg, Color.YELLOW);
         } else {
@@ -148,7 +133,7 @@ public final class PrintHelper {
         }
     }
 
-    public static void printInfo(String msg) {
+    public static void printlnInfo(String msg) {
         if (!isWindows) {
             Printer.println(msg, Color.CYAN);
         } else {
@@ -156,7 +141,7 @@ public final class PrintHelper {
         }
     }
 
-    public static void printNotice(String msg) {
+    public static void printlnNotice(String msg) {
         if (!isWindows) {
             Printer.println(msg, Color.SILVER);
         } else {
@@ -164,11 +149,19 @@ public final class PrintHelper {
         }
     }
 
-    public static void printPrimary(String msg) {
+    public static void printlnPrimary(String msg) {
         if (!isWindows) {
             Printer.println(msg, Color.DARK_CYAN);
         } else {
             System.out.println(msg);
+        }
+    }
+
+    public static void printPrimary(String msg) {
+        if (!isWindows) {
+            Printer.print(msg, Color.DARK_CYAN);
+        } else {
+            System.out.print(msg);
         }
     }
 
@@ -209,23 +202,5 @@ public final class PrintHelper {
             return wrapObjectForSerialized(v).toString();
         }).collect(Collectors.joining(d, "[", "]"));
         Printer.println(valuesLine, Color.CYAN);
-    }
-
-    public static void printPercentProgress(int value, int max, String prefix, String suffix) throws InterruptedException {
-        float maxValue = Float.parseFloat(max + ".0");
-        NumberFormat num = NumberFormat.getPercentInstance();
-        num.setMaximumIntegerDigits(4);
-        num.setMaximumFractionDigits(2);
-        double percent = value / maxValue;
-        String temp = prefix + num.format(percent) + suffix;
-        System.out.print(temp);
-        TimeUnit.MILLISECONDS.sleep(500);
-        if (value == max) {
-            System.out.println();
-        } else {
-            for (int j = 0, l = temp.length() + suffix.length(); j < l; j++) {
-                System.out.print("\b");
-            }
-        }
     }
 }
