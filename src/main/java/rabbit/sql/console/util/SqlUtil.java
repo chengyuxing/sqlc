@@ -1,18 +1,31 @@
 package rabbit.sql.console.util;
 
 import com.github.chengyuxing.common.DateTimes;
+import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.sql.utils.SqlTranslator;
+import rabbit.sql.console.core.ScannerHelper;
 import rabbit.sql.console.types.SqlType;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.github.chengyuxing.sql.utils.SqlUtil.quoteFormatValueIfNecessary;
+import static rabbit.sql.console.core.StatusManager.sqlDelimiter;
 
 public class SqlUtil {
     public static Pattern p = Pattern.compile("^[(\\s]*(select|with)\\s+");
     public static Pattern TYPE_PARSE = Pattern.compile("::(?<type>[a-zA-Z]+\\[*)((?<delimiter>[\\s\\S]*)])*$");
+    public static final SqlTranslator sqlTranslator = new SqlTranslator(':');
 
     public static SqlType getType(final String sql) {
         String trimSql = sql.trim();
@@ -101,5 +114,77 @@ public class SqlUtil {
             return Paths.get(value).toFile();
         }
         return value;
+    }
+
+    public static Pair<String, List<String>> generateInsert(final String tableName, final Map<String, ?> row, long blobRowNum) {
+        StringJoiner f = new StringJoiner(", ");
+        StringJoiner v = new StringJoiner(", ");
+        List<String> blobKeys = new ArrayList<>();
+        for (Map.Entry<String, ?> e : row.entrySet()) {
+            if (e.getValue() instanceof byte[]) {
+                f.add(e.getKey());
+                v.add(":blob_" + blobRowNum + "_" + e.getKey());
+                blobKeys.add(e.getKey());
+            } else {
+                f.add(e.getKey());
+                v.add(quoteFormatValueIfNecessary(e.getValue()));
+            }
+        }
+        return Pair.of("insert into " + tableName + "(" + f + ") values (" + v + ")", blobKeys);
+    }
+
+    /**
+     * 获取命名的sql参数
+     *
+     * @param sql     命名sql
+     * @param scanner scanner
+     * @return 参数字典
+     */
+    public static Map<String, Object> prepareSqlArgIf(String sql, Scanner scanner) {
+        Pair<String, List<String>> pSql = sqlTranslator.generateSql(sql, Collections.emptyMap(), true);
+        List<String> pNames = pSql.getItem2();
+        if (pNames.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Set<String> distinctArgs = new HashSet<>(pSql.getItem2());
+        Map<String, Object> parameters = new HashMap<>();
+        for (String name : distinctArgs) {
+            ScannerHelper.print(name + " =");
+            Object value = SqlUtil.stringValue2Object(scanner.nextLine().trim());
+            parameters.put(name, value);
+        }
+        return parameters;
+    }
+
+    /**
+     * 整个大字符串或sql文件根据分隔符分块
+     *
+     * @param multiSqlOrFilePath sql或文件路径
+     * @return 一组sql
+     * @throws IOException 如果读取文件发生异常或文件不存在
+     */
+    public static List<String> multiSqlList(String multiSqlOrFilePath) throws IOException {
+        String sqls = getSqlByFileIf(multiSqlOrFilePath);
+        return Stream.of(sqls.split(sqlDelimiter.get()))
+                .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 如果是文件路径就读取文件返回sql
+     *
+     * @param sqlOrPath sql字符串或路径
+     * @return sql字符串
+     * @throws IOException 如果读取文件发生异常或文件不存在
+     */
+    public static String getSqlByFileIf(String sqlOrPath) throws IOException {
+        if (sqlOrPath.startsWith(File.separator) || sqlOrPath.startsWith("." + File.separator)) {
+            Path path = Paths.get(sqlOrPath);
+            if (!Files.exists(path)) {
+                throw new FileNotFoundException("sql file [" + sqlOrPath + "] not exists.");
+            }
+            return String.join("\n", Files.readAllLines(path));
+        }
+        return sqlOrPath;
     }
 }
