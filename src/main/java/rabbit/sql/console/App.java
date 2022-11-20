@@ -4,6 +4,7 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,11 +171,7 @@ public class App {
         //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (txActive.get()) {
-                try {
-                    baki.rollbackTransaction();
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
+                Tx.rollback();
             }
             dataSourceLoader.release();
             System.out.println("Bye bye :(");
@@ -243,7 +240,7 @@ public class App {
                         if (txActive.get()) {
                             printlnNotice("transaction is active now!");
                         } else {
-                            baki.beginTransaction();
+                            Tx.begin();
                             txActive.set(true);
                             printlnInfo("open transaction: *sqlc> means transaction is active now!");
                         }
@@ -252,7 +249,7 @@ public class App {
                         if (!txActive.get()) {
                             printlnNotice("transaction is not active now!");
                         } else {
-                            baki.commitTransaction();
+                            Tx.commit();
                             txActive.set(false);
                         }
                         break;
@@ -260,7 +257,7 @@ public class App {
                         if (!txActive.get()) {
                             printlnNotice("transaction is not active now!");
                         } else {
-                            baki.rollbackTransaction();
+                            Tx.rollback();
                             txActive.set(false);
                         }
                         break;
