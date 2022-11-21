@@ -12,17 +12,20 @@ import rabbit.sql.console.core.DataSourceLoader;
 import rabbit.sql.console.core.ScannerHelper;
 import rabbit.sql.console.core.SingleBaki;
 import rabbit.sql.console.core.StatusManager;
-import rabbit.sql.console.progress.impl.NumberProgressPrinter;
+import rabbit.sql.console.progress.impl.ProgressPrinter;
 import rabbit.sql.console.types.SqlType;
 import rabbit.sql.console.types.View;
 import rabbit.sql.console.util.SqlUtil;
 import rabbit.sql.console.util.TimeUtil;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -32,8 +35,7 @@ import java.util.stream.Stream;
 import static rabbit.sql.console.core.FileHelper.writeFile;
 import static rabbit.sql.console.core.PrintHelper.*;
 import static rabbit.sql.console.core.StatusManager.*;
-import static rabbit.sql.console.util.SqlUtil.multiSqlList;
-import static rabbit.sql.console.util.SqlUtil.prepareSqlArgIf;
+import static rabbit.sql.console.util.SqlUtil.*;
 
 public class App {
     private static final Logger log = LoggerFactory.getLogger("SQLC");
@@ -97,7 +99,8 @@ public class App {
             if (sql.contains(">")) {
                 printlnWarning("batch(@) execute not support redirect operation!");
             } else {
-                executeBatch(baki, sql);
+                String filePath = sql.substring(1).trim();
+                executeBatch(baki, filePath);
             }
             return;
         }
@@ -337,7 +340,8 @@ public class App {
                                     if (path.contains(">")) {
                                         printlnWarning("batch(@) execute not support redirect operation!");
                                     } else {
-                                        executeBatch(baki, path);
+                                        String fileName = path.substring(1).trim();
+                                        executeBatch(baki, fileName);
                                         newlineInThread.set(true);
                                     }
                                 } else {
@@ -492,71 +496,129 @@ public class App {
         }
     }
 
-    public static void executeBatch(Baki baki, String path) {
-        String delimiter = sqlDelimiter.get();
-        String bPath = path.substring(1);
-        Path path1 = Paths.get(bPath);
-        if (Files.exists(path1)) {
-            printlnPrimary("prepare to batch execute, default chunk size is 1000, waiting...");
-            FastList<String> chunk = new FastList<>(String.class);
-            AtomicReference<String> example = new AtomicReference<>("");
-            NumberProgressPrinter pp = NumberProgressPrinter.of("chunk ", " executed.");
-            pp.setStep(2);
-            pp.valueFormatter(v -> v + "(" + v * 1000 + ")");
-            pp.start((value, during) -> {
-                if (value % 1000 != 0) {
-                    value = value - 1;
+    public static void executeBatch(SingleBaki baki, String filePath) {
+        Path file = Paths.get(filePath);
+        if (Files.exists(file)) {
+            try {
+                String fileName = file.getFileName().toString();
+                String tableName = fileName.substring(0, fileName.lastIndexOf("."));
+                String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
+                printlnPrimary("prepare to batch execute, default chunk size is 1000, waiting...");
+                switch (ext) {
+                    case "sql":
+                        executeBatchInsertSqlScript(baki, file, tableName);
+                        break;
+                    case "json":
+                        break;
+                    case "csv":
+                        break;
+                    case "tsv":
+                        break;
+                    case "xlsx":
+                        break;
                 }
-                long rows = value * 1000 + Math.max(chunk.size(), 1);
-                long chunks = value;
-                if (!chunk.isEmpty()) {
-                    chunks += 1;
-                }
-                printlnHighlightSql(example.get() + ", more...");
-                printlnPrimary("all of " + chunks + " chunks(" + rows + ") execute completed.(" + TimeUtil.format(during) + ")");
-                chunk.clear();
-                if (StatusManager.isInteractive.get()) {
-                    ScannerHelper.newLine();
-                }
-            });
-            try (Stream<String> lineStream = Files.lines(path1)) {
-                StringBuilder sb = new StringBuilder();
-                lineStream.map(String::trim)
-                        .filter(sql -> !sql.equals("") && !StringUtil.startsWithsIgnoreCase(sql, "--", "#", "/*"))
-                        .forEach(sql -> {
-                            if (delimiter.equals("")) {
-                                chunk.add(sql);
-                            } else {
-                                sb.append(sql).append("\n");
-                                if (sql.endsWith(delimiter)) {
-                                    chunk.add(sb.substring(0, sb.length() - delimiter.length() - 1));
-                                    sb.setLength(0);
-                                }
-                            }
-                            if (chunk.size() == 1000) {
-                                if (example.get().equals("")) {
-                                    example.set(chunk.get(0));
-                                }
-                                baki.batchExecute(chunk);
-                                chunk.clear();
-                                pp.increment();
-                            }
-                        });
-                if (sb.length() > 0) {
-                    chunk.add(sb.toString());
-                    sb.setLength(0);
-                }
-                if (!chunk.isEmpty()) {
-                    baki.batchExecute(chunk);
-                    pp.increment();
-                }
-                pp.stop();
             } catch (Exception e) {
-                pp.interrupt();
                 printlnError(e);
+                ScannerHelper.newLine();
             }
         } else {
-            printlnDanger("sql file [ " + path + " ] not exists.");
+            printlnDanger(" file [ " + file + " ] does not exists.");
+            ScannerHelper.newLine();
+        }
+    }
+
+    public static boolean executePrepareForBlob(SingleBaki baki, List<String> sqls, Path path) throws IOException {
+        Path blobsDir = Paths.get(path.getParent().toString() + File.separator + "blobs");
+        if (Files.exists(blobsDir)) {
+            Tx.using(() -> {
+                for (String sql : sqls) {
+                    List<String> names = sqlTranslator.getPreparedSql(sql, Collections.emptyMap()).getItem2();
+                    Map<String, Object> arg = new HashMap<>();
+                    for (String name : names) {
+                        arg.put(name, Paths.get(blobsDir + File.separator + name).toFile());
+                    }
+                    baki.executeNonQuery(sql, Collections.singletonList(arg));
+                }
+            });
+            return true;
+        }
+        throw new FileNotFoundException("cannot find 'blobs' folder on " + path.getParent() + ".");
+    }
+
+    public static void executeBatchInsertSqlScript(SingleBaki baki, Path path, String tableName) throws IOException {
+        String delimiter = sqlDelimiter.get();
+        FastList<String> chunk = new FastList<>(String.class);
+        AtomicReference<String> example = new AtomicReference<>("");
+        AtomicBoolean prepared = new AtomicBoolean(false);
+
+        ProgressPrinter pp = new ProgressPrinter();
+        pp.setStep(2);
+        pp.setFormatter((v, c) -> "chunk " + v + "(" + v * 1000 + ") executed.(" + TimeUtil.format(c) + ")");
+        pp.whenStopped((value, during) -> {
+            long i = value;
+            if (!chunk.isEmpty()) {
+                i -= 1;
+            }
+            long rows = i * 1000 + chunk.size();
+            printlnHighlightSql(example.get() + ", more...");
+            printlnPrimary("all of " + value + " chunks(" + rows + ") execute completed.(" + TimeUtil.format(during) + ")");
+            chunk.clear();
+            if (StatusManager.isInteractive.get()) {
+                ScannerHelper.newLine();
+            }
+        }).start();
+
+        try (Stream<String> lineStream = Files.lines(path)) {
+            StringBuilder sb = new StringBuilder();
+            lineStream.map(String::trim)
+                    .filter(sql -> !sql.equals("") && !StringUtil.startsWithsIgnoreCase(sql, "--", "#", "/*"))
+                    .forEach(sql -> {
+                        if (delimiter.equals("")) {
+                            chunk.add(sql);
+                        } else {
+                            sb.append(sql).append("\n");
+                            if (sql.endsWith(delimiter)) {
+                                chunk.add(sb.substring(0, sb.length() - delimiter.length() - 1));
+                                sb.setLength(0);
+                            }
+                        }
+                        if (example.get().equals("")) {
+                            if (!chunk.isEmpty()) {
+                                example.set(chunk.get(0));
+                                boolean isPrepared = !sqlTranslator.getPreparedSql(chunk.get(0), Collections.emptyMap()).getItem2().isEmpty();
+                                prepared.set(isPrepared);
+                            }
+                        }
+                        if (chunk.size() == 1000) {
+                            if (prepared.get()) {
+                                try {
+                                    executePrepareForBlob(baki, chunk, path);
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            } else {
+                                baki.batchExecute(chunk);
+                            }
+                            chunk.clear();
+                            pp.increment();
+                        }
+                    });
+            if (sb.length() > 0) {
+                chunk.add(sb.toString());
+                sb.setLength(0);
+            }
+            if (!chunk.isEmpty()) {
+                if (prepared.get()) {
+                    executePrepareForBlob(baki, chunk, path);
+                } else {
+                    baki.batchExecute(chunk);
+                }
+                pp.increment();
+            }
+            pp.stop();
+        } catch (Exception e) {
+            pp.interrupt();
+            throw e;
         }
     }
 
