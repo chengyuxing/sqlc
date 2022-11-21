@@ -530,16 +530,18 @@ public class App {
     public static boolean executePrepareForBlob(SingleBaki baki, List<String> sqls, Path path) throws IOException {
         Path blobsDir = Paths.get(path.getParent().toString() + File.separator + "blobs");
         if (Files.exists(blobsDir)) {
-            Tx.using(() -> {
-                for (String sql : sqls) {
-                    List<String> names = sqlTranslator.getPreparedSql(sql, Collections.emptyMap()).getItem2();
-                    Map<String, Object> arg = new HashMap<>();
-                    for (String name : names) {
-                        arg.put(name, Paths.get(blobsDir + File.separator + name).toFile());
+            if (!txActive.get()) {
+                Tx.using(() -> {
+                    for (String sql : sqls) {
+                        List<String> names = sqlTranslator.getPreparedSql(sql, Collections.emptyMap()).getItem2();
+                        Map<String, Object> arg = new HashMap<>();
+                        for (String name : names) {
+                            arg.put(name, Paths.get(blobsDir + File.separator + name).toFile());
+                        }
+                        baki.executeNonQuery(sql, Collections.singletonList(arg));
                     }
-                    baki.executeNonQuery(sql, Collections.singletonList(arg));
-                }
-            });
+                });
+            }
             return true;
         }
         throw new FileNotFoundException("cannot find 'blobs' folder on " + path.getParent() + ".");
