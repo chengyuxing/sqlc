@@ -1,15 +1,24 @@
 package rabbit.sql.connsole.test;
 
-import rabbit.sql.console.util.PrintHelper;
+import com.github.chengyuxing.sql.terminal.progress.formatter.PercentFormatter;
+import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 
 public class PrinterTests {
+    static final ProgressPrinter pp = ProgressPrinter.of("data of ", "");
+
     public static void main(String[] args) throws InterruptedException {
-        String prefix = "chunk";
-        String suffix = " executed!" +
-                "                \">>> insert into test.region(id,name,pid) values (1,'中国',0)" +
-                "                \"more(22)......";
-        for (int i = 1; i <= 34; i++) {
-            PrintHelper.printPercentProgress(i, 34, prefix, suffix);
+        int max = 1034;
+        pp.setFormatter(new PercentFormatter(max));
+        pp.setStep(2);
+        pp.whenStopped((v, d) -> {
+            System.out.println("已完成：" + v);
+            System.out.println(d);
+        }).start();
+
+        for (int i = 0; i < max; i++) {
+            pp.increment();
+            Thread.sleep(10);
         }
+        pp.stop();
     }
 }

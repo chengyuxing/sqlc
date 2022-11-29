@@ -4,15 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
-import com.github.chengyuxing.common.utils.ReflectUtil;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
 import org.junit.Test;
 import org.postgresql.util.PGobject;
-import rabbit.sql.console.util.DataSourceLoader;
-import rabbit.sql.console.util.PrintHelper;
-import rabbit.sql.console.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
+import com.github.chengyuxing.sql.terminal.core.PrintHelper;
+import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,16 +36,15 @@ public class DBTests {
     @Test
     public void test1() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "123456");
-        Baki light = loader.getBaki();
-        Stream<DataRow> row = light.query("insert into test.sqlc1(id) values (10);");
-        System.out.println(row);
+        Baki baki = loader.getBaki("chengyuxing");
+        System.out.println(baki.metaData().getURL());
     }
 
     @Test
     public void test2() throws Exception{
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "123456");
-        Baki baki = loader.getBaki();
-        baki.fetch("select '{\"a\":\"cyx\"}'::jsonb as x").ifPresent(d->{
+        Baki baki = loader.getBaki("");
+        baki.query("select '{\"a\":\"cyx\"}'::jsonb as x").findFirst().ifPresent(d->{
             Object v = d.get("x");
             if (v instanceof PGobject) {
                 System.out.println(((PGobject) v).getValue());

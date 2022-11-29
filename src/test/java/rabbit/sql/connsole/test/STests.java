@@ -1,36 +1,48 @@
 package rabbit.sql.connsole.test;
 
+import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.terminal.cli.Command;
+import com.github.chengyuxing.sql.terminal.vars.Constants;
 import org.junit.Test;
-import rabbit.sql.console.util.DataSourceLoader;
-import rabbit.sql.console.util.PrintHelper;
-import rabbit.sql.console.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
+import com.github.chengyuxing.sql.terminal.core.FileHelper;
 
-import java.text.NumberFormat;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
 
 public class STests {
     public static void main(String[] args) throws Exception {
-        System.out.print("Progress:");
-        NumberFormat num = NumberFormat.getPercentInstance();
-        num.setMaximumIntegerDigits(4);
-        num.setMaximumFractionDigits(3);
-        for (int i = 1; i <= 13; i++) {
-            double percent = i / 13.0;
-            String temp = num.format(percent);
-            System.out.print(temp);
-            Thread.sleep(1000);
-            // 退格
-            if (i != 13) {
-                for (int j = 0; j < temp.length(); j++) {
-                    System.out.print("\b");
-                }
-            }
-        }
-        System.out.println();
+        Stream<DataRow> rowStream = Stream.iterate(0, (i) -> i + 1)
+//                .limit(10006093)
+                .limit(906093)
+                .map(i -> DataRow.fromPair("id", i, "name", "cyx", "address", "昆明市西山区", "age", 27));
+//        FileHelper.writeJSON(rowStream, "/Users/chengyuxing/Downloads/big.json");
+//        FileHelper.writeDSV(rowStream, new AtomicReference<>(View.TSV), "/Users/chengyuxing/Downloads/big.tsv");
+//        FileHelper.writeExcel(rowStream, "/Users/chengyuxing/Downloads/big.xlsx");
+        FileHelper.writeInsertSqlFile(rowStream, "/Users/chengyuxing/Downloads/test.big.sql");
+//        ObjectMapper mapper = new ObjectMapper();
+//        SequenceWriter writer = mapper.writer().withDefaultPrettyPrinter().writeValuesAsArray(Files.newOutputStream(Paths.get("/Users/chengyuxing/Downloads/big.json")));
+//        rowStream.forEach(d->{
+//            try {
+//                writer.write(d);
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
+//        });
+    }
+
+    @Test
+    public void testFileLines() throws Exception {
+        System.out.println(FileHelper.lineNumber("/Users/chengyuxing/Downloads/big.tsv"));
     }
 
     @Test
@@ -81,10 +93,47 @@ public class STests {
         Args<Object> args = Args.of("id", "");
 
         BakiDao bakiDao = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "")
-                .getBaki();
+                .getBaki("");
         bakiDao.setDebugFullSql(true);
         bakiDao.setXqlFileManager(xqlFileManager);
         Thread.sleep(5000);
-        bakiDao.query("&x.query_region", args).forEach(System.out::println);
+        bakiDao.query("&x.query_region").args(args).stream().forEach(System.out::println);
+    }
+
+    @Test
+    public void testBuildText() throws Exception {
+        List<String> sqls = Files.readAllLines(Paths.get("/Users/chengyuxing/Downloads/skynet.files_1669005346688/skynet.files.sql"));
+//        App.createBlobArgs(sqls, Paths.get("/Users/chengyuxing/Downloads/skynet.files_1669005346688/skynet.files.sql"));
+    }
+
+    @Test
+    public void testFile() throws Exception {
+        FileResource fr = new FileResource("file:" + "/Users/chengyuxing/Downloads/skynet.files_1669005346688/skynet.files.sql");
+        System.out.println(fr.getFilenameExtension());
+        System.out.println(fr.getFileName());
+    }
+
+    @Test
+    public void testRegex() throws Exception {
+        System.out.println(Constants.USER_HOME);
+        System.out.println(Constants.CURRENT_DIR);
+        System.out.println(Constants.TERM);
+        System.out.println(Constants.IS_XTERM);
+    }
+
+    @Test
+    public void testFilePath() throws Exception {
+        String path = "./README.md";
+        System.out.println(Paths.get(path));
+        System.out.println(Paths.get(path).toAbsolutePath());
+    }
+
+    @Test
+    public void testFilesCompare() throws Exception {
+    }
+
+    @Test
+    public void testCmdDesc() throws Exception {
+        Command.get("--help");
     }
 }

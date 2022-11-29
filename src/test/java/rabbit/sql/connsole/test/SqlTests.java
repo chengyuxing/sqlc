@@ -3,8 +3,8 @@ package rabbit.sql.connsole.test;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.page.impl.MysqlPageHelper;
+import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.utils.SqlTranslator;
-import com.github.chengyuxing.sql.utils.SqlUtil;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -20,7 +20,7 @@ public class SqlTests {
 
     @Test
     public void test2() throws Exception {
-        Object v = rabbit.sql.console.util.SqlUtil.stringValue2Object("[1,2,3,4,5]::string[]");
+        Object v = SqlUtil.stringValue2Object("[1,2,3,4,5]::string[]");
         if (v instanceof Object[]) {
             System.out.println(Arrays.toString((Object[]) v));
         } else
@@ -30,7 +30,8 @@ public class SqlTests {
     @Test
     public void testbaki() throws Exception {
         Baki baki = BakiDao.of(null);
-        baki.query("", 1, 10)
+        baki.query("")
+                .pageable(1, 10)
                 .disableDefaultPageSql()
                 .pageHelper(new MysqlPageHelper() {
                     @Override
