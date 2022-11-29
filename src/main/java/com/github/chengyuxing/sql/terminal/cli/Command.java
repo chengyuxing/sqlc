@@ -40,11 +40,13 @@ public class Command {
             if (!k.equals("")) {
                 List<String> mainDesc = v.getItem1();
                 List<String> argDesc = v.getItem2();
-                TerminalColor.printf("%-2s %-10s %-10s\n", Color.CYAN, "", k, mainDesc.get(0));
-                if (!argDesc.isEmpty()) {
-                    TerminalColor.printf("%-2s %-10s %-10s\n", Color.SILVER, "", "", "args: " + String.join(" ", argDesc));
+                if (argDesc.isEmpty()) {
+                    TerminalColor.printf("%-2s %-10s %-10s\n", Color.CYAN, "", k, mainDesc.get(0));
+                    mainDesc.subList(1, mainDesc.size()).forEach(s -> TerminalColor.printf("%-2s %-10s %-10s\n", Color.CYAN, "", "", s));
+                } else {
+                    TerminalColor.printf("%-2s %-10s %-10s\n", Color.DARK_CYAN, "", k, String.join(" ", argDesc));
+                    mainDesc.forEach(s -> TerminalColor.printf("%-2s %-10s %-10s\n", Color.CYAN, "", "", s));
                 }
-                mainDesc.subList(1, mainDesc.size()).forEach(s -> TerminalColor.printf("%-2s %-10s %-10s\n", Color.CYAN, "", "", s));
             }
         }));
         put("-h", () -> {

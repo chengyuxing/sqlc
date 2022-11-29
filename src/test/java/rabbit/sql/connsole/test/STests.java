@@ -134,6 +134,6 @@ public class STests {
 
     @Test
     public void testCmdDesc() throws Exception {
-        Command.get("--help");
+        Command.get("--cmd");
     }
 }
