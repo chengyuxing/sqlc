@@ -36,6 +36,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.stream.Stream;
 
+import static com.github.chengyuxing.sql.terminal.cli.Command.url;
 import static com.github.chengyuxing.sql.terminal.vars.Constants.*;
 
 /**
@@ -46,7 +47,7 @@ public class App {
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
-            System.out.println("--help to get some help.");
+            System.out.println("-h to get some help.");
             System.exit(0);
         }
         Map<String, String> argMap = DataSourceLoader.resolverArgs(args);
@@ -57,8 +58,7 @@ public class App {
                     Optional.ofNullable(argMap.get("-p")).orElse(""));
 
             log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
-            // 这里记得链接地址改为2.x的。
-            log.info("Go to " + TerminalColor.underline("https://github.com/chengyuxing/sqlc") + " get more information about this.");
+            log.info("Go to " + url + " get more information about this.");
             SingleBaki baki = dsLoader.getBaki(argMap.get("-n"));
             if (baki != null) {
                 if (argMap.containsKey("-d")) {
@@ -78,7 +78,7 @@ public class App {
                     return;
                 }
                 // 进入交互模式
-                log.info("Type in sql script to execute query, ddl, dml..., Or try :help");
+                log.info("Type in sql script to execute query, ddl, dml..., Or try :help.");
                 startInteractiveMode(baki, dsLoader);
             }
         } else {
@@ -414,6 +414,7 @@ public class App {
                 } catch (UserInterruptException e) {
                     // ctrl+c
                 } catch (EndOfFileException e) {
+                    System.out.println(":q");
                     // ctrl+d
                     break;
                 } catch (Exception e) {

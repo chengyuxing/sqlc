@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Command {
-    public static final String url = TerminalColor.underline("https://github.com/chengyuxing/sqlc");
+    public static final String url = TerminalColor.underline("https://github.com/chengyuxing/sqlc/tree/2.x");
     public static final String header = "A Command Line sql tool, support Query, DDL, DML, Transaction, (@)Batch Execute, Export File(json, csv, tsv, excel, sql)!\nHome page: " + url;
     public static final String footer = "When no '-e' command is given, sqlc starts in interactive mode.\nType :help in interactive mode for information on available commands and settings.";
     public static final Map<String, Pair<List<String>, List<String>>> cmdDesc = CompleterBuilder.builtins.getCmdDesc();
