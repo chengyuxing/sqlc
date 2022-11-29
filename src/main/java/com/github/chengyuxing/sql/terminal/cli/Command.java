@@ -2,9 +2,8 @@ package com.github.chengyuxing.sql.terminal.cli;
 
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
-import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
-import com.github.chengyuxing.sql.terminal.core.Version;
+import com.github.chengyuxing.sql.terminal.Version;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
