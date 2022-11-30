@@ -1,11 +1,8 @@
 package com.github.chengyuxing.sql.terminal.core;
 
-import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -13,29 +10,42 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class DataSourceLoader {
-    private static final Logger log = LoggerFactory.getLogger(DataSourceLoader.class);
-
-    private SingleBaki baki;
-    private final HikariConfig config;
+    private final HikariConfig config = new HikariConfig();
     private HikariDataSource dataSource;
+    private SingleBaki baki;
+    private String username = "";
+    private String password = "";
 
-    DataSourceLoader(HikariConfig config) {
-        this.config = config;
+    DataSourceLoader(String jdbcUrl) {
+        this.config.setJdbcUrl(jdbcUrl);
     }
 
-    public static DataSourceLoader of(String jdbcUrl, String username, String password) {
-        HikariConfig config = new HikariConfig();
+    public static DataSourceLoader of(String jdbcUrl) {
+        return new DataSourceLoader(jdbcUrl);
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public void init() {
         config.setMaximumPoolSize(5);
-        config.setJdbcUrl(jdbcUrl);
         config.setUsername(username);
         config.setPassword(password);
-        return new DataSourceLoader(config);
+        dataSource = new HikariDataSource(config);
+
     }
 
     /**
@@ -66,53 +76,22 @@ public class DataSourceLoader {
     }
 
     /**
-     * 获取light实例
+     * 获取baki实例
      *
      * @return baki
      */
-    public SingleBaki getBaki(String username) {
+    public SingleBaki getBaki() {
         if (baki == null) {
-            dataSource = new HikariDataSource(config);
             baki = new SingleBaki(dataSource, username);
             if (Constants.IS_XTERM) {
                 baki.setHighlightSql(true);
             }
             baki.setCheckParameterType(false);
-            baki.metaData();
         }
         return baki;
     }
 
-    public HikariConfig getConfig() {
-        return config;
-    }
-
     public void release() {
         dataSource.close();
-    }
-
-    public static Map<String, String> resolverArgs(String... args) {
-        String[] argNames = new String[]{
-                "-u",   //url
-                "-p",   //password
-                "-n",   //name
-                "-f",   //format
-                "-e",   //sql string or sql file
-                "-skipHeader",
-                "-d"    //multi sql block delimiter};
-        };
-        return Stream.of(args).filter(arg -> StringUtil.startsWiths(arg, argNames))
-                .reduce(new HashMap<>(), (acc, curr) -> {
-                    for (String name : argNames) {
-                        if (curr.startsWith(name)) {
-                            int prefixLength = name.length();
-                            String key = curr.substring(0, prefixLength);
-                            String value = curr.substring(key.length());
-                            acc.put(key, value);
-                            break;
-                        }
-                    }
-                    return acc;
-                }, (a, b) -> a);
     }
 }
