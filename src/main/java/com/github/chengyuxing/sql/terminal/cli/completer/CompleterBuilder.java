@@ -41,8 +41,8 @@ public class CompleterBuilder {
 
     public static CompleterBuilder builtins = new CompleterBuilder() {
         {
-            add(CliCompleters.readQuery(":exec"), "read a sql file for execute query, and redirect query result to file optional.",
-                    Arrays.asList("e.g.", ":exec /query.sql", ":exec /query.sql " + Constants.REDIRECT_SYMBOL + " /path/result.[sql|tsv|csv|excel|json]"),
+            add(CliCompleters.readQuery(":exec"), "read a sql file for execute query, and redirect query result to ",
+                    Arrays.asList("file optional.", "e.g.", ":exec /query.sql", ":exec /query.sql " + Constants.REDIRECT_SYMBOL + " /path/result.[sql|tsv|csv|excel|json]"),
                     "[sql-file]", "[" + Constants.REDIRECT_SYMBOL + " output]");
             add(CliCompleters.read4Batch(":exec@"), "read a multi-line file(sql|json) for execute batch insert.", "[sql|json]");
             add(CliCompleters.cmdBuilder(":exec&",
@@ -70,7 +70,7 @@ public class CompleterBuilder {
             add(CliCompleters.cmdBuilder(":rm", cacheNameCompleter, NullCompleter.INSTANCE), "remove the cache by key.", "[key]");
             add(CliCompleters.transaction(":tx"), "use transaction.", "[begin|commit|rollback]");
             add(CliCompleters.view(":view"), "set result view format(display and redirected file format).", "[csv|tsv|json|excel]");
-            add(CliCompleters.singleCmd(":d"), "delimiter for multi-sql to batch execute, default ';'(single semicolon)", "[delimiter]");
+            add(CliCompleters.singleCmd(":d"), "delimiter for multi-sql to batch execute.", Collections.singletonList("default ';'(single semicolon)"), "[delimiter]");
             add(CliCompleters.singleCmd(":q"), "quit.");
             add(CliCompleters.singleCmd(":help"), "get some help.");
             add(CliCompleters.directoriesCmd(Constants.CURRENT_DIR), "redirect to file symbol.");

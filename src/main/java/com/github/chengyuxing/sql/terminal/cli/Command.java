@@ -19,10 +19,10 @@ public class Command {
         put("-u[url]", "jdbc url, e.g.: -ujdbc:postgresql://... (require)");
         put("-n[username]", "database username.");
         put("-p[password]", "database password.");
-        put("-e\"[sql|path[&> output]]\"", "execute sql or redirect single query result to file\n(if ends with '.sql', will ignore -f and generate insert \nsql script and file name will as table name) with format(-f).");
-        put("-e\"[@path]\"", "read file(sql(delimiter default ';')|json) for execute batch insert.");
-        put("-d\"[delimiter]\"", "delimiter for multi-sql, default ';'(single semicolon)");
-        put("-f[tsv|csv|json|excel]", "format of query result which will be executed.(default tsv)");
+        put("-e\"[sql|path[&> output]]\"", "execute sql or redirect single query result to \nfile(if ends with '.sql', will ignore -f and \ngenerate insert sql script and file name will \nas table name) with format(-f).");
+        put("-e\"[@path]\"", "read file(sql(delimiter default ';')|json) for \nexecute batch insert.");
+        put("-d\"[delimiter]\"", "delimiter for multi-sql, default ';'(single \nsemicolon)");
+        put("-f[tsv|csv|json|excel]", "format of query result which will be executed.\n(default tsv)");
         put("-v", "version");
         put("-h[elp]", "get some help.");
     }};
