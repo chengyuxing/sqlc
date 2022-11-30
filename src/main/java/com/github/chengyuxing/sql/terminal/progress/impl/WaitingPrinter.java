@@ -1,5 +1,6 @@
 package com.github.chengyuxing.sql.terminal.progress.impl;
 
+import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 
 import java.util.concurrent.Callable;
@@ -17,10 +18,15 @@ public class WaitingPrinter extends ProgressPrinter {
 
     public static <T> T waiting(String prompt, Callable<T> callable) throws Exception {
         WaitingPrinter wp = new WaitingPrinter(prompt);
-        wp.start();
-        T result = callable.call();
-        wp.stop();
-        return result;
+        try {
+            wp.start();
+            T result = callable.call();
+            wp.stop();
+            return result;
+        } catch (Exception e) {
+            wp.interrupt();
+            throw e;
+        }
     }
 
     public static <T> T waiting(Callable<T> callable) throws Exception {
