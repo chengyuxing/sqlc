@@ -5,10 +5,12 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
+import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
+import org.jline.reader.LineReader;
 
 import java.io.*;
 import java.util.Collections;
@@ -93,8 +95,8 @@ public final class PrintHelper {
     }
 
     @SuppressWarnings("unchecked")
-    public static Stream<DataRow> executedRow2Stream(Baki baki, String sql, Map<String, Object> args) {
-        DataRow row = baki.execute(sql, args);
+    public static Stream<DataRow> executedRow2Stream(Baki baki, String sql, Map<String, Object> args) throws Exception {
+        DataRow row = WaitingPrinter.waiting(() -> baki.execute(sql, args));
         Object res = row.getFirst();
         Stream<DataRow> stream;
         if (res instanceof DataRow) {
@@ -110,7 +112,7 @@ public final class PrintHelper {
     public static void printOneSqlResultByType(Baki baki, String sqlOrAddress, String tempString, Map<String, Object> args) {
         SqlType sqlType = SqlUtil.getType(tempString);
         if (sqlType == SqlType.QUERY) {
-            try (Stream<DataRow> s = baki.query(sqlOrAddress).args(args).stream()) {
+            try (Stream<DataRow> s = WaitingPrinter.waiting(() -> baki.query(sqlOrAddress).args(args).stream())) {
                 printQueryResult(s);
             } catch (Exception e) {
                 printlnError(e);
@@ -126,13 +128,14 @@ public final class PrintHelper {
         }
     }
 
-    public static void printMultiSqlResult(Baki baki, List<String> sqls) {
+    public static void printMultiSqlResult(Baki baki, List<String> sqls, LineReader reader) {
         AtomicInteger success = new AtomicInteger(0);
         AtomicInteger fail = new AtomicInteger(0);
         sqls.forEach(sql -> {
             try {
                 printlnHighlightSql(sql);
-                printQueryResult(executedRow2Stream(baki, sql, Collections.emptyMap()));
+                Map<String, Object> args = SqlUtil.prepareSqlArgIf(sql, reader);
+                printQueryResult(executedRow2Stream(baki, sql, args));
                 success.incrementAndGet();
             } catch (Exception e) {
                 fail.incrementAndGet();

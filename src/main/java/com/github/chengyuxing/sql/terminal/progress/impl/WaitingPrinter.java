@@ -1,6 +1,5 @@
 package com.github.chengyuxing.sql.terminal.progress.impl;
 
-import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 
 import java.util.concurrent.Callable;

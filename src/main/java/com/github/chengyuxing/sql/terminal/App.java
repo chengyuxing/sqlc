@@ -5,6 +5,7 @@ import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Command;
+import com.github.chengyuxing.sql.terminal.cli.SimpleReadLine;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
@@ -20,6 +21,7 @@ import com.github.chengyuxing.sql.terminal.vars.Data;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
 import org.apache.log4j.Level;
+import org.jline.builtins.Completers;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.completer.AggregateCompleter;
@@ -96,41 +98,37 @@ public class App {
 
             log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
             log.info("Go to " + Command.url + " get more information about this.");
-            SingleBaki baki = dsLoader.getBaki();
-            if (baki != null) {
-                baki.metaData();
-                if (argMap.containsKey("-d")) {
-                    StatusManager.sqlDelimiter.set(argMap.get("-d"));
-                }
-
-                if (argMap.containsKey("-f")) {
-                    String format = argMap.get("-f");
-                    StatusManager.viewMode.set(format.equals("csv") ?
-                            View.CSV : format.equals("json") ?
-                            View.JSON : format.equals("excel") ?
-                            View.EXCEL : View.TSV);
-                }
-
-
-                // 如果有-e参数，就执行命令模式
-                if (argMap.containsKey("-e")) {
-                    startCommandMode(baki, dsLoader, argMap.get("-e"));
-                    return;
-                }
-                // 进入交互模式
-                log.info("Type in sql script to execute query, ddl, dml..., Or try :help.");
-                startInteractiveMode(baki, dsLoader);
+            if (argMap.containsKey("-d")) {
+                StatusManager.sqlDelimiter.set(argMap.get("-d"));
             }
+
+            if (argMap.containsKey("-f")) {
+                String format = argMap.get("-f");
+                StatusManager.viewMode.set(format.equals("csv") ?
+                        View.CSV : format.equals("json") ?
+                        View.JSON : format.equals("excel") ?
+                        View.EXCEL : View.TSV);
+            }
+
+            // 如果有-e参数，就执行命令模式
+            if (argMap.containsKey("-e")) {
+                startCommandMode(dsLoader, argMap.get("-e"));
+                return;
+            }
+            // 进入交互模式
+            startInteractiveMode(dsLoader);
         } else {
             Command.get(args[0]);
         }
     }
 
-    public static void startCommandMode(SingleBaki baki, DataSourceLoader dataSourceLoader, String execute) {
+    public static void startCommandMode(DataSourceLoader dataSourceLoader, String execute) throws IOException {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             dataSourceLoader.release();
             System.out.println("Bye bye :(");
         }));
+        SingleBaki baki = dataSourceLoader.getBaki();
+        baki.metaData();
         String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(execute);
         // 以@开头那么批量执行直接执行完退出
         if (sql.startsWith("@")) {
@@ -138,12 +136,17 @@ public class App {
             BatchInsertHelper.readFile4batch(baki, filePath);
             return;
         }
-        Executor executor = new Executor(baki, sql);
-        executor.exec();
+
+        // 支持命令行模式的预编译sql
+        SimpleReadLine.readline(lb -> {
+            StatusManager.promptReference.set(new Prompt(""));
+            LineReader reader = lb.completer(new Completers.FilesCompleter(CURRENT_DIR)).build();
+            Executor executor = new Executor(baki, sql);
+            executor.exec(reader);
+        });
     }
 
-    public static void startInteractiveMode(SingleBaki baki, DataSourceLoader dataSourceLoader) throws IOException, SQLException {
-        //如果使用杀进程或ctrl+c结束，或者关机，退出程序的情况下，做一些收尾工作
+    public static void startInteractiveMode(DataSourceLoader dataSourceLoader) throws IOException, SQLException {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (StatusManager.txActive.get()) {
                 Tx.rollback();
@@ -176,8 +179,12 @@ public class App {
             suggest.getKeyMap().bind(new Reference(LineReader.FORWARD_WORD), KeyMap.ctrl('o'));
             suggest.enable();
 
+            SingleBaki baki = dataSourceLoader.getBaki();
+
             Prompt prompt = new Prompt(baki.metaData().getURL());
             StatusManager.promptReference.set(prompt);
+
+            log.info("Type in command or sql script to execute query, ddl, dml..., or try :help.");
 
             exit:
             while (true) {

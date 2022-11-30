@@ -46,14 +46,14 @@ public class Executor {
                 if (sqls.size() > 0) {
                     if (sqls.size() == 1) {
                         String sql = sqls.get(0);
+                        PrintHelper.printlnHighlightSql(sql);
                         Map<String, Object> argx = Collections.emptyMap();
                         if (reader != null) {
                             argx = SqlUtil.prepareSqlArgIf(sql, reader);
                         }
-                        PrintHelper.printlnHighlightSql(sql);
                         PrintHelper.printOneSqlResultByType(baki, sql, sql, argx);
                     } else {
-                        PrintHelper.printMultiSqlResult(baki, sqls);
+                        PrintHelper.printMultiSqlResult(baki, sqls, reader);
                     }
                 } else {
                     PrintHelper.printlnDanger("no sql script to execute.");

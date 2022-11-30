@@ -99,6 +99,9 @@ public class SqlUtil {
         if (value.startsWith("\"") && value.endsWith("\"")) {
             return value.substring(1, value.length() - 1);
         }
+        if (value.startsWith("'") && value.startsWith("'")) {
+            return value.substring(1, value.length() - 1);
+        }
         if (value.matches("[\\d\\-]+")) {
             return Integer.parseInt(value);
         }
@@ -111,7 +114,7 @@ public class SqlUtil {
         if (StringUtil.equalsAnyIgnoreCase(value, "null")) {
             return null;
         }
-        if (StringUtil.startsWiths(value, File.separator, "." + File.separator)) {
+        if (StringUtil.startsWiths(value, File.separator, "." + File.separator, ".." + File.separator)) {
             return Paths.get(value).toFile();
         }
         return value;
@@ -140,7 +143,7 @@ public class SqlUtil {
         if (pNames.isEmpty()) {
             return Collections.emptyMap();
         }
-        Set<String> distinctArgs = new HashSet<>(pSql.getItem2());
+        Set<String> distinctArgs = new LinkedHashSet<>(pSql.getItem2());
         Map<String, Object> parameters = new HashMap<>();
         for (String name : distinctArgs) {
             StatusManager.promptReference.get().custom(name + " = ");
