@@ -3,6 +3,7 @@ package com.github.chengyuxing.sql.terminal;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
+import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Command;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
@@ -18,6 +19,7 @@ import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
+import org.apache.log4j.Level;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.completer.AggregateCompleter;
@@ -32,11 +34,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.stream.Stream;
 
-import static com.github.chengyuxing.sql.terminal.cli.Command.url;
 import static com.github.chengyuxing.sql.terminal.vars.Constants.*;
 
 /**
@@ -50,17 +54,51 @@ public class App {
             System.out.println("-h to get some help.");
             System.exit(0);
         }
-        Map<String, String> argMap = DataSourceLoader.resolverArgs(args);
+        Map<String, String> argMap = new Arguments(args).toMap();
         if (argMap.containsKey("-u")) {
             DataSourceLoader.loadDrivers("drivers");
-            DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"),
-                    Optional.ofNullable(argMap.get("-n")).orElse(""),
-                    Optional.ofNullable(argMap.get("-p")).orElse(""));
+            DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"));
+            try (Terminal terminal = TerminalBuilder.builder()
+                    .name("sqlc login")
+                    .encoding(StandardCharsets.UTF_8)
+                    .system(true)
+                    .build()) {
+                LineReader lineReader = LineReaderBuilder.builder().terminal(terminal).build();
+                if (!argMap.containsKey("-n")) {
+                    dsLoader.setUsername(lineReader.readLine("username: "));
+                } else {
+                    dsLoader.setUsername(argMap.get("-n"));
+                }
+                if (!argMap.containsKey("-p")) {
+                    org.apache.log4j.Logger.getLogger("com.zaxxer.hikari").setLevel(Level.FATAL);
+                    for (int i = 5; i >= 0; i--) {
+                        try {
+                            if (i == 0) {
+                                System.out.println("login rejected.");
+                                return;
+                            }
+                            dsLoader.setPassword(lineReader.readLine("password: ", '*'));
+                            dsLoader.init();
+                            org.apache.log4j.Logger.getLogger("com.zaxxer.hikari").setLevel(Level.INFO);
+                            break;
+                        } catch (UserInterruptException | EndOfFileException e) {
+                            System.out.println("cancel login.");
+                            return;
+                        } catch (Exception e) {
+                            PrintHelper.printlnDanger(e.getCause().getMessage() + ", please try again.");
+                        }
+                    }
+                } else {
+                    dsLoader.setPassword(argMap.get("-p"));
+                    dsLoader.init();
+                }
+            }
 
             log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
-            log.info("Go to " + url + " get more information about this.");
-            SingleBaki baki = dsLoader.getBaki(argMap.get("-n"));
+            log.info("Go to " + Command.url + " get more information about this.");
+            SingleBaki baki = dsLoader.getBaki();
             if (baki != null) {
+                baki.metaData();
                 if (argMap.containsKey("-d")) {
                     StatusManager.sqlDelimiter.set(argMap.get("-d"));
                 }
@@ -72,6 +110,8 @@ public class App {
                             View.JSON : format.equals("excel") ?
                             View.EXCEL : View.TSV);
                 }
+
+
                 // 如果有-e参数，就执行命令模式
                 if (argMap.containsKey("-e")) {
                     startCommandMode(baki, dsLoader, argMap.get("-e"));
