@@ -144,13 +144,13 @@ public class SqlUtil {
             return Collections.emptyMap();
         }
         Set<String> distinctArgs = new LinkedHashSet<>(pSql.getItem2());
-        Map<String, Object> parameters = new HashMap<>();
+        Map<String, Object> args = new HashMap<>();
         for (String name : distinctArgs) {
             StatusManager.promptReference.get().custom(name + " = ");
             Object value = SqlUtil.stringValue2Object(lineReader.readLine(StatusManager.promptReference.get().getValue()).trim());
-            parameters.put(name, value);
+            args.put(name, value);
         }
-        return parameters;
+        return args;
     }
 
     /**

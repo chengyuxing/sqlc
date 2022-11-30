@@ -91,7 +91,7 @@ public final class PrintHelper {
     }
 
     @SuppressWarnings("unchecked")
-    public static Stream<DataRow> executedRow2Stream(Baki baki, String sql, Map<String, Object> args) throws Exception {
+    public static Stream<DataRow> executedRow2Stream(Baki baki, String sql, Map<String, Object> args) {
         DataRow row = WaitingPrinter.waiting(() -> baki.execute(sql, args));
         Object res = row.getFirst();
         Stream<DataRow> stream;

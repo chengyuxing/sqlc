@@ -83,7 +83,7 @@ public class App {
                         for (int i = 5; i >= 0; i--) {
                             try {
                                 if (i == 0) {
-                                    System.out.println("login rejected.");
+                                    System.out.println("login denied.");
                                     return;
                                 }
                                 dsLoader.setPassword(lineReader.readLine("password: ", '*'));
@@ -183,7 +183,6 @@ public class App {
                     .terminal(terminal)
                     .parser(cliParser)
                     .completer(new AggregateCompleter(CompleterBuilder.builtins.getCompleters()))
-                    // 历史记录文件配置
                     .variable(LineReader.HISTORY_FILE, Paths.get(Constants.USER_HOME.toString(), "sqlc.new.history"))
                     .history(new SqlHistory(sqlBuilder))
                     .build();
