@@ -67,10 +67,16 @@ public class App {
                     .build()) {
                 LineReader lineReader = LineReaderBuilder.builder().terminal(terminal).build();
                 if (!argMap.containsKey("-n")) {
-                    dsLoader.setUsername(lineReader.readLine("username: "));
+                    try {
+                        dsLoader.setUsername(lineReader.readLine("username: "));
+                    } catch (UserInterruptException | EndOfFileException e) {
+                        System.out.println("cancel login.");
+                        return;
+                    }
                 } else {
                     dsLoader.setUsername(argMap.get("-n"));
                 }
+
                 if (!argMap.containsKey("-p")) {
                     org.apache.log4j.Logger.getLogger("com.zaxxer.hikari").setLevel(Level.FATAL);
                     for (int i = 5; i >= 0; i--) {
@@ -142,7 +148,13 @@ public class App {
             StatusManager.promptReference.set(new Prompt(""));
             LineReader reader = lb.completer(new Completers.FilesCompleter(CURRENT_DIR)).build();
             Executor executor = new Executor(baki, sql);
-            executor.exec(reader);
+            try {
+                executor.exec(reader);
+            } catch (UserInterruptException | EndOfFileException e) {
+                System.out.println("canceled.");
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage());
+            }
         });
     }
 
