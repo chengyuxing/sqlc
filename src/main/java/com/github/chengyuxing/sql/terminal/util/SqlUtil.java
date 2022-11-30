@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 import static com.github.chengyuxing.sql.utils.SqlUtil.quoteFormatValueIfNecessary;
 
 public class SqlUtil {
-    public static Pattern p = Pattern.compile("^[(\\s]*(select|with)\\s+");
+    public static Pattern p = Pattern.compile("^[(\\s]*((select\\s*)|with\\s+[\\w_]+\\s+as\\s+\\([\\s\\S]+\\)\\s*select)");
     public static Pattern TYPE_PARSE = Pattern.compile("::(?<type>[a-zA-Z]+\\[*)((?<delimiter>[\\s\\S]*)])*$");
     public static final SqlTranslator sqlTranslator = new SqlTranslator(':');
 
