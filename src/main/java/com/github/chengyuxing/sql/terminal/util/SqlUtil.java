@@ -41,7 +41,7 @@ public class SqlUtil {
     }
 
     public static Object stringValue2Object(String str) {
-        String value = str;
+        String value = str.trim();
         Matcher m = TYPE_PARSE.matcher(str);
         if (m.find()) {
             value = str.substring(0, m.start("type") - 2);
@@ -102,10 +102,13 @@ public class SqlUtil {
         if (value.startsWith("'") && value.startsWith("'")) {
             return value.substring(1, value.length() - 1);
         }
-        if (value.matches("[\\d\\-]+")) {
-            return Integer.parseInt(value);
+        if (value.matches("-?(0|[1-9]\\d*)")) {
+            if (value.length() < 10) {
+                return Integer.parseInt(value);
+            }
+            return Long.parseLong(value);
         }
-        if (value.matches("[\\d.\\-]+")) {
+        if (value.matches("-?(0|[1-9]\\d*)\\.\\d+")) {
             return Double.parseDouble(value);
         }
         if (StringUtil.equalsAnyIgnoreCase(value, "true", "false")) {

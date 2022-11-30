@@ -163,4 +163,10 @@ public class STests {
             System.out.println(i);
         }
     }
+
+    @Test
+    public void testNum() throws Exception{
+        Integer i = 2147483647;
+        System.out.println(Integer.parseInt("2147483649"));
+    }
 }
