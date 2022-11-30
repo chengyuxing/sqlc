@@ -90,7 +90,7 @@ public final class FileHelper {
             } catch (IOException ex) {
                 e.addSuppressed(ex);
             }
-            PrintHelper.printlnError(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -139,7 +139,7 @@ public final class FileHelper {
                     e.addSuppressed(ex);
                 }
             }
-            PrintHelper.printlnError(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -178,7 +178,7 @@ public final class FileHelper {
             } catch (Exception ex) {
                 e.addSuppressed(ex);
             }
-            PrintHelper.printlnError(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -191,7 +191,7 @@ public final class FileHelper {
         // qbpt_deve.pinyin_ch
         String tableName = fileName.substring(0, fileName.lastIndexOf("."));
         PrintHelper.printlnWarning("Ignore view mode, output file name will as the insert sql script target table name!!!");
-        PrintHelper.printlnWarning("e.g. " + fileName + " --> insert into " + tableName + "(...) values(...);");
+        PrintHelper.printlnWarning("e.g. " + fileName + " --> insert into " + tableName + " (...) values (...);");
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         ProgressPrinter pp = ProgressPrinter.of("", " rows has written.");
         try {
@@ -240,7 +240,7 @@ public final class FileHelper {
                     }
                     pp.increment();
                 } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+                    throw new UncheckedIOException("write blob file error:" + blobsDir + "; " + fileDir, e);
                 }
             });
             writer.close();
@@ -256,7 +256,7 @@ public final class FileHelper {
             } catch (IOException ioException) {
                 e.addSuppressed(ioException);
             }
-            PrintHelper.printlnError(e);
+            throw new UncheckedIOException(e);
         }
     }
 

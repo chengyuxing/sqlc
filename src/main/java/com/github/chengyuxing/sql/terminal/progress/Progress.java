@@ -32,7 +32,7 @@ public abstract class Progress {
                     whenStopped.accept(value.get(), during);
                 }
             } catch (Exception e) {
-                PrintHelper.printlnError(e);
+                throw new RuntimeException(e);
             }
         });
         current.start();
@@ -55,7 +55,7 @@ public abstract class Progress {
         try {
             current.join();
         } catch (InterruptedException e) {
-            PrintHelper.printlnError(e);
+            throw new RuntimeException(e);
         }
     }
 

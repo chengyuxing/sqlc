@@ -8,12 +8,12 @@ import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.types.View;
+import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import org.jline.reader.LineReader;
 
 import java.io.*;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,65 +28,61 @@ import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.wrapObjectForS
 public final class PrintHelper {
     public static void printQueryResult(Stream<DataRow> s, Consumer<DataRow> eachRowFunc) {
         AtomicBoolean first = new AtomicBoolean(true);
-        try {
-            switch (StatusManager.viewMode.get()) {
-                case JSON:
-                    if (eachRowFunc == null) {
-                        s.forEach(row -> {
-                            try {
-                                PrintHelper.printJSON(row, first);
-                            } catch (JsonProcessingException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-                    } else {
-                        s.forEach(row -> {
-                            try {
-                                PrintHelper.printJSON(row, first);
-                                eachRowFunc.accept(row);
-                            } catch (JsonProcessingException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-                    }
-                    if (StatusManager.viewMode.get() == View.JSON) {
-                        printlnWarning("]");
-                        System.out.println();
-                    }
-                    break;
-                case TSV:
-                    if (eachRowFunc == null) {
-                        s.forEach(row -> PrintHelper.printDSV(row, "\t", first));
-                    } else {
-                        s.forEach(row -> {
-                            PrintHelper.printDSV(row, "\t", first);
+        switch (StatusManager.viewMode.get()) {
+            case JSON:
+                if (eachRowFunc == null) {
+                    s.forEach(row -> {
+                        try {
+                            PrintHelper.printJSON(row, first);
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                } else {
+                    s.forEach(row -> {
+                        try {
+                            PrintHelper.printJSON(row, first);
                             eachRowFunc.accept(row);
-                        });
-                    }
-                    break;
-                case CSV:
-                    if (eachRowFunc == null) {
-                        s.forEach(row -> PrintHelper.printDSV(row, ",", first));
-                    } else {
-                        s.forEach(row -> {
-                            PrintHelper.printDSV(row, ",", first);
-                            eachRowFunc.accept(row);
-                        });
-                    }
-                    break;
-                case EXCEL:
-                    if (eachRowFunc == null) {
-                        s.forEach(row -> PrintHelper.printDSV(row, " | ", first));
-                    } else {
-                        s.forEach(row -> {
-                            PrintHelper.printDSV(row, " | ", first);
-                            eachRowFunc.accept(row);
-                        });
-                    }
-                    break;
-            }
-        } catch (Exception e) {
-            printlnError(e);
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                }
+                if (StatusManager.viewMode.get() == View.JSON) {
+                    printlnWarning("]");
+                    System.out.println();
+                }
+                break;
+            case TSV:
+                if (eachRowFunc == null) {
+                    s.forEach(row -> PrintHelper.printDSV(row, "\t", first));
+                } else {
+                    s.forEach(row -> {
+                        PrintHelper.printDSV(row, "\t", first);
+                        eachRowFunc.accept(row);
+                    });
+                }
+                break;
+            case CSV:
+                if (eachRowFunc == null) {
+                    s.forEach(row -> PrintHelper.printDSV(row, ",", first));
+                } else {
+                    s.forEach(row -> {
+                        PrintHelper.printDSV(row, ",", first);
+                        eachRowFunc.accept(row);
+                    });
+                }
+                break;
+            case EXCEL:
+                if (eachRowFunc == null) {
+                    s.forEach(row -> PrintHelper.printDSV(row, " | ", first));
+                } else {
+                    s.forEach(row -> {
+                        PrintHelper.printDSV(row, " | ", first);
+                        eachRowFunc.accept(row);
+                    });
+                }
+                break;
         }
     }
 
@@ -109,28 +105,21 @@ public final class PrintHelper {
         return stream;
     }
 
-    public static void printOneSqlResultByType(Baki baki, String sqlOrAddress, String tempString, Map<String, Object> args) {
+    public static void printOneSqlResultByType(Baki baki, String sqlOrAddress, String tempString, Map<String, Object> args) throws Exception {
         SqlType sqlType = SqlUtil.getType(tempString);
         if (sqlType == SqlType.QUERY) {
             try (Stream<DataRow> s = WaitingPrinter.waiting(() -> baki.query(sqlOrAddress).args(args).stream())) {
                 printQueryResult(s);
-            } catch (Exception e) {
-                printlnError(e);
             }
         } else if (sqlType == SqlType.OTHER) {
-            try {
-                printQueryResult(executedRow2Stream(baki, sqlOrAddress, args));
-            } catch (Exception e) {
-                printlnError(e);
-            }
+            printQueryResult(executedRow2Stream(baki, sqlOrAddress, args));
         } else if (sqlType == SqlType.FUNCTION) {
-            printlnWarning("function not support now");
+            throw new UnsupportedOperationException("function not support now");
         }
     }
 
     public static void printMultiSqlResult(Baki baki, List<String> sqls, LineReader reader) {
         AtomicInteger success = new AtomicInteger(0);
-        AtomicInteger fail = new AtomicInteger(0);
         sqls.forEach(sql -> {
             try {
                 printlnHighlightSql(sql);
@@ -138,11 +127,10 @@ public final class PrintHelper {
                 printQueryResult(executedRow2Stream(baki, sql, args));
                 success.incrementAndGet();
             } catch (Exception e) {
-                fail.incrementAndGet();
-                printlnError(e);
+                printlnNotice("Execute " + success + "/" + sqls.size() + " finished.");
+                throw new RuntimeException(e);
             }
         });
-        printlnNotice("Execute finished, success: " + success + ", fail: " + fail);
 
     }
 
@@ -152,21 +140,29 @@ public final class PrintHelper {
     }
 
     public static void printlnError(Throwable e) {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-             PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(out)), true)) {
-            writer.println(new Object() {
-                @Override
-                public String toString() {
-                    StringWriter stringWriter = new StringWriter();
-                    PrintWriter writer = new PrintWriter(stringWriter);
-                    e.printStackTrace(writer);
-                    StringBuffer buffer = stringWriter.getBuffer();
-                    return buffer.toString();
-                }
-            });
-            printlnDanger(out.toString());
-        } catch (IOException ioException) {
-            printlnDanger(ioException.toString());
+        printlnError(e, false);
+    }
+
+    public static void printlnError(Throwable e, boolean full) {
+        if (full) {
+            try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+                 PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(out)), true)) {
+                writer.println(new Object() {
+                    @Override
+                    public String toString() {
+                        StringWriter stringWriter = new StringWriter();
+                        PrintWriter writer = new PrintWriter(stringWriter);
+                        e.printStackTrace(writer);
+                        StringBuffer buffer = stringWriter.getBuffer();
+                        return buffer.toString();
+                    }
+                });
+                printlnDanger(out.toString());
+            } catch (IOException ioException) {
+                printlnDanger(ioException.toString());
+            }
+        } else {
+            printlnDanger(ExceptionUtil.getCauseMessage(e));
         }
     }
 

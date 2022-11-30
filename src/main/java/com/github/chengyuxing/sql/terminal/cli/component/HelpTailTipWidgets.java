@@ -1,8 +1,6 @@
 package com.github.chengyuxing.sql.terminal.cli.component;
 
-import org.jline.keymap.KeyMap;
 import org.jline.reader.LineReader;
-import org.jline.reader.Reference;
 import org.jline.widget.TailTipWidgets;
 import org.jline.widget.Widgets;
 

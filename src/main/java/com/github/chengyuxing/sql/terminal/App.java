@@ -51,80 +51,84 @@ import static com.github.chengyuxing.sql.terminal.vars.Constants.*;
 public class App {
     private static final Logger log = LoggerFactory.getLogger("SQLC");
 
-    public static void main(String[] args) throws Exception {
-        if (args.length == 0) {
-            System.out.println("-h to get some help.");
-            System.exit(0);
-        }
-        Map<String, String> argMap = new Arguments(args).toMap();
-        if (argMap.containsKey("-u")) {
-            DataSourceLoader.loadDrivers("drivers");
-            DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"));
-            try (Terminal terminal = TerminalBuilder.builder()
-                    .name("sqlc login")
-                    .encoding(StandardCharsets.UTF_8)
-                    .system(true)
-                    .build()) {
-                LineReader lineReader = LineReaderBuilder.builder().terminal(terminal).build();
-                if (!argMap.containsKey("-n")) {
-                    try {
-                        dsLoader.setUsername(lineReader.readLine("username: "));
-                    } catch (UserInterruptException | EndOfFileException e) {
-                        System.out.println("cancel login.");
-                        return;
-                    }
-                } else {
-                    dsLoader.setUsername(argMap.get("-n"));
-                }
-
-                if (!argMap.containsKey("-p")) {
-                    org.apache.log4j.Logger.getLogger("com.zaxxer.hikari").setLevel(Level.FATAL);
-                    for (int i = 5; i >= 0; i--) {
+    public static void main(String[] args) {
+        try {
+            if (args.length == 0) {
+                System.out.println("-h to get some help.");
+                System.exit(0);
+            }
+            Map<String, String> argMap = new Arguments(args).toMap();
+            if (argMap.containsKey("-u")) {
+                DataSourceLoader.loadDrivers("drivers");
+                DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"));
+                try (Terminal terminal = TerminalBuilder.builder()
+                        .name("sqlc login")
+                        .encoding(StandardCharsets.UTF_8)
+                        .system(true)
+                        .build()) {
+                    LineReader lineReader = LineReaderBuilder.builder().terminal(terminal).build();
+                    if (!argMap.containsKey("-n")) {
                         try {
-                            if (i == 0) {
-                                System.out.println("login rejected.");
-                                return;
-                            }
-                            dsLoader.setPassword(lineReader.readLine("password: ", '*'));
-                            dsLoader.init();
-                            org.apache.log4j.Logger.getLogger("com.zaxxer.hikari").setLevel(Level.INFO);
-                            break;
+                            dsLoader.setUsername(lineReader.readLine("username: "));
                         } catch (UserInterruptException | EndOfFileException e) {
                             System.out.println("cancel login.");
                             return;
-                        } catch (Exception e) {
-                            PrintHelper.printlnDanger(e.getCause().getMessage() + ", please try again.");
                         }
+                    } else {
+                        dsLoader.setUsername(argMap.get("-n"));
                     }
-                } else {
-                    dsLoader.setPassword(argMap.get("-p"));
-                    dsLoader.init();
+
+                    if (!argMap.containsKey("-p")) {
+                        org.apache.log4j.Logger.getLogger("com.zaxxer.hikari").setLevel(Level.FATAL);
+                        for (int i = 5; i >= 0; i--) {
+                            try {
+                                if (i == 0) {
+                                    System.out.println("login rejected.");
+                                    return;
+                                }
+                                dsLoader.setPassword(lineReader.readLine("password: ", '*'));
+                                dsLoader.init();
+                                org.apache.log4j.Logger.getLogger("com.zaxxer.hikari").setLevel(Level.INFO);
+                                break;
+                            } catch (UserInterruptException | EndOfFileException e) {
+                                System.out.println("cancel login.");
+                                return;
+                            } catch (Exception e) {
+                                PrintHelper.printlnDanger(e.getCause().getMessage() + ", please try again.");
+                            }
+                        }
+                    } else {
+                        dsLoader.setPassword(argMap.get("-p"));
+                        dsLoader.init();
+                    }
                 }
-            }
 
-            log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
-            log.info("Go to " + Command.url + " get more information about this.");
-            if (argMap.containsKey("-d")) {
-                StatusManager.sqlDelimiter.set(argMap.get("-d"));
-            }
+                log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
+                log.info("Go to " + Command.url + " get more information about this.");
+                if (argMap.containsKey("-d")) {
+                    StatusManager.sqlDelimiter.set(argMap.get("-d"));
+                }
 
-            if (argMap.containsKey("-f")) {
-                String format = argMap.get("-f");
-                StatusManager.viewMode.set(format.equals("csv") ?
-                        View.CSV : format.equals("json") ?
-                        View.JSON : format.equals("excel") ?
-                        View.EXCEL : View.TSV);
-            }
+                if (argMap.containsKey("-f")) {
+                    String format = argMap.get("-f");
+                    StatusManager.viewMode.set(format.equals("csv") ?
+                            View.CSV : format.equals("json") ?
+                            View.JSON : format.equals("excel") ?
+                            View.EXCEL : View.TSV);
+                }
 
-            // 如果有-e参数，就执行命令模式
-            if (argMap.containsKey("-e")) {
-                startCommandMode(dsLoader, argMap.get("-e"));
-                return;
+                // 如果有-e参数，就执行命令模式
+                if (argMap.containsKey("-e")) {
+                    startCommandMode(dsLoader, argMap.get("-e"));
+                    return;
+                }
+                // 进入交互模式
+                startInteractiveMode(dsLoader);
+            } else {
+                Command.get(args[0]);
             }
-            // 进入交互模式
-            startInteractiveMode(dsLoader);
-        } else {
-            Command.get(args[0]);
+        } catch (Exception e) {
+            PrintHelper.printlnError(e);
         }
     }
 
@@ -152,8 +156,8 @@ public class App {
                 executor.exec(reader);
             } catch (UserInterruptException | EndOfFileException e) {
                 System.out.println("canceled.");
-            } catch (IOException e) {
-                throw new RuntimeException(e.getMessage());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         });
     }
@@ -291,9 +295,7 @@ public class App {
                                         Data.xqlFileManager.add(alias, "file:" + filePath);
                                         Data.xqlFileManager.setDelimiter(StatusManager.sqlDelimiter.get());
                                         Data.xqlFileManager.init();
-                                        Data.xqlFileManager.foreach((k, v) -> {
-                                            System.out.println("+[" + TerminalColor.colorful(k, Color.DARK_CYAN) + "]:" + TerminalColor.highlightSql(v));
-                                        });
+                                        Data.xqlFileManager.foreach((k, v) -> System.out.println("+[" + TerminalColor.colorful(k, Color.DARK_CYAN) + "]:" + TerminalColor.highlightSql(v)));
                                         if (baki.getXqlFileManager() == null) {
                                             baki.setXqlFileManager(Data.xqlFileManager);
                                         }
@@ -406,8 +408,6 @@ public class App {
                                                 try (Stream<DataRow> rowStream = WaitingPrinter.waiting("preparing...", () -> baki.query(pair.getItem1()).args(argx).stream())) {
                                                     PrintHelper.printlnNotice("redirect query to file...");
                                                     FileHelper.writeFile(rowStream, pair.getItem2());
-                                                } catch (Exception e) {
-                                                    PrintHelper.printlnError(e);
                                                 }
                                             } else {
                                                 boolean hasName = false;
@@ -438,8 +438,6 @@ public class App {
                                                     } else {
                                                         PrintHelper.printQueryResult(rowStream);
                                                     }
-                                                } catch (Exception e) {
-                                                    PrintHelper.printlnError(e);
                                                 }
                                             }
                                             break;
@@ -447,14 +445,10 @@ public class App {
                                             PrintHelper.printlnWarning("function not support now!");
                                             break;
                                         case OTHER:
-                                            try {
-                                                if (sql.contains(REDIRECT_SYMBOL)) {
-                                                    PrintHelper.printlnWarning("only query support redirect operation!");
-                                                } else {
-                                                    PrintHelper.printQueryResult(PrintHelper.executedRow2Stream(baki, sql, SqlUtil.prepareSqlArgIf(sql, lineReader)));
-                                                }
-                                            } catch (Exception e) {
-                                                PrintHelper.printlnError(e);
+                                            if (sql.contains(REDIRECT_SYMBOL)) {
+                                                PrintHelper.printlnWarning("only query support redirect operation!");
+                                            } else {
+                                                PrintHelper.printQueryResult(PrintHelper.executedRow2Stream(baki, sql, SqlUtil.prepareSqlArgIf(sql, lineReader)));
                                             }
                                             break;
                                         default:
@@ -472,12 +466,16 @@ public class App {
                     }
                 } catch (UserInterruptException e) {
                     // ctrl+c
+                    System.out.println(":q");
+                    break;
                 } catch (EndOfFileException e) {
                     System.out.println(":q");
                     // ctrl+d
                     break;
                 } catch (Exception e) {
                     PrintHelper.printlnError(e);
+                    sqlBuilder.clear();
+                    prompt.newLine();
                 }
             }
         }

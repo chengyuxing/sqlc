@@ -16,6 +16,9 @@ import java.util.stream.Stream;
 
 import static com.github.chengyuxing.sql.terminal.vars.Constants.REDIRECT_SYMBOL;
 
+/**
+ * exec指令执行器
+ */
 public class Executor {
     private final Baki baki;
     private final String execContent;
@@ -25,7 +28,15 @@ public class Executor {
         this.execContent = execContent;
     }
 
-    public void exec(LineReader reader) throws IOException {
+    /**
+     * 执行
+     *
+     * @param reader readline
+     * @throws IOException                             如果输入文件不存在
+     * @throws org.jline.reader.UserInterruptException ctrl+c
+     * @throws org.jline.reader.EndOfFileException     ctrl+d
+     */
+    public void exec(LineReader reader) throws Exception {
         if (execContent.contains(REDIRECT_SYMBOL)) {
             Pair<String, String> pair = SqlUtil.getSqlAndRedirect(execContent);
             List<String> sqls = SqlUtil.multiSqlList(pair.getItem1());
@@ -63,7 +74,7 @@ public class Executor {
         }
     }
 
-    public void exec() throws IOException {
+    public void exec() throws Exception {
         exec(null);
     }
 }

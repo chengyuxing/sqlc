@@ -7,12 +7,16 @@ import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Command;
+import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import org.junit.Test;
 import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -131,6 +135,20 @@ public class STests {
 
     @Test
     public void testFilesCompare() throws Exception {
+        try {
+            catchError();
+        } catch (Exception e) {
+            System.out.println(ExceptionUtil.getCauseMessage(e));;
+        }
+    }
+
+    public static void catchError() {
+        try {
+            Path path = Paths.get("/Users/chengyuxing/Downloads/xql_file_manager.xqlm").toRealPath();
+            System.out.println(path);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Test

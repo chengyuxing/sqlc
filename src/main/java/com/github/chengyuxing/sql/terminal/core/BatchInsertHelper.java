@@ -11,6 +11,7 @@ import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 public class BatchInsertHelper {
-    public static void readFile4batch(SingleBaki baki, String filePath) {
+    public static void readFile4batch(SingleBaki baki, String filePath) throws FileNotFoundException {
         Path file = Paths.get(filePath);
         if (Files.exists(file)) {
             try {
@@ -43,11 +44,11 @@ public class BatchInsertHelper {
                     case "xlsx":
                         break;
                 }
-            } catch (Exception e) {
-                PrintHelper.printlnError(e);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
         } else {
-            PrintHelper.printlnDanger(" file [ " + file + " ] does not exists.");
+            throw new FileNotFoundException("file [ " + file + " ] does not exists.");
         }
     }
 

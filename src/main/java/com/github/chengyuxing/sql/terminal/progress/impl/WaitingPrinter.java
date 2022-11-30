@@ -15,7 +15,15 @@ public class WaitingPrinter extends ProgressPrinter {
         };
     }
 
-    public static <T> T waiting(String prompt, Callable<T> callable) throws Exception {
+    /**
+     * 等待进度逻辑
+     *
+     * @param prompt   题词
+     * @param callable 运行逻辑
+     * @param <T>      结果类型参数
+     * @return 运行结果
+     */
+    public static <T> T waiting(String prompt, Callable<T> callable) {
         WaitingPrinter wp = new WaitingPrinter(prompt);
         try {
             wp.start();
@@ -24,11 +32,18 @@ public class WaitingPrinter extends ProgressPrinter {
             return result;
         } catch (Exception e) {
             wp.interrupt();
-            throw e;
+            throw new RuntimeException("an error in waiting: ", e);
         }
     }
 
-    public static <T> T waiting(Callable<T> callable) throws Exception {
+    /**
+     * 等待进度逻辑
+     *
+     * @param callable 运行逻辑
+     * @param <T>      结果类型参数
+     * @return 运行结果
+     */
+    public static <T> T waiting(Callable<T> callable) {
         return waiting("waiting...", callable);
     }
 }
