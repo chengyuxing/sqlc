@@ -6,7 +6,11 @@ import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
+import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.terminal.cli.Arguments;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.junit.Test;
 import org.postgresql.util.PGobject;
 import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
@@ -35,16 +39,15 @@ public class DBTests {
 
     @Test
     public void test1() throws Exception {
-        DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "123456");
-        Baki baki = loader.getBaki("chengyuxing");
-        System.out.println(baki.metaData().getURL());
+        DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
+        Baki baki = loader.getBaki();
     }
 
     @Test
-    public void test2() throws Exception{
-        DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "123456");
-        Baki baki = loader.getBaki("");
-        baki.query("select '{\"a\":\"cyx\"}'::jsonb as x").findFirst().ifPresent(d->{
+    public void test2() throws Exception {
+        DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
+        Baki baki = loader.getBaki();
+        baki.query("select '{\"a\":\"cyx\"}'::jsonb as x").findFirst().ifPresent(d -> {
             Object v = d.get("x");
             if (v instanceof PGobject) {
                 System.out.println(((PGobject) v).getValue());
@@ -104,13 +107,13 @@ public class DBTests {
                 "test.user\"",
                 "-texcel",
         };
-        Map<String, String> map = DataSourceLoader.resolverArgs(args);
+        Map<String, String> map = new Arguments(args).toMap();
         System.out.println(map);
     }
 
     @Test
     public void sss() throws Exception {
-        System.out.println(DataSourceLoader.resolverArgs("-n", "-p123456", "-asss"));
+        System.out.println(new Arguments("-n", "-p123456", "-asss"));
     }
 
     @Test

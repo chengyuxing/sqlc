@@ -5,6 +5,7 @@ import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Command;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import org.junit.Test;
@@ -75,7 +76,7 @@ public class STests {
 
     @Test
     public void testargs() throws Exception {
-        System.out.println(DataSourceLoader.resolverArgs("-ncyx", "-p123456", "-skipHeader"));
+        System.out.println(new Arguments("-ncyx", "-p123456", "-skipHeader"));
     }
 
     @Test
@@ -92,8 +93,8 @@ public class STests {
 
         Args<Object> args = Args.of("id", "");
 
-        BakiDao bakiDao = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "")
-                .getBaki("");
+        BakiDao bakiDao = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres")
+                .getBaki();
         bakiDao.setDebugFullSql(true);
         bakiDao.setXqlFileManager(xqlFileManager);
         Thread.sleep(5000);
@@ -135,5 +136,13 @@ public class STests {
     @Test
     public void testCmdDesc() throws Exception {
         Command.get("--cmd");
+    }
+
+    @Test
+    public void testArgs() throws Exception {
+        System.out.println(new Arguments("-nchengyuxing", "-p").toMap().get("-p"));
+        for (int i = 5; i >= 0; i--) {
+            System.out.println(i);
+        }
     }
 }
