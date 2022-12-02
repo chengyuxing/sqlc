@@ -10,6 +10,8 @@
 - 支持命令行历史记录**（依赖C库：`readline`，`rlwrap`）**；
 - 支持命令模式和交互模式；
 
+[2.x版不再依赖readline和rlwrap](https://github.com/chengyuxing/sqlc/tree/2.x)
+
 ## 预编译SQL参数占位符
 
 仅支持执行单条预编译sql

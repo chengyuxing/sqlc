@@ -4,9 +4,7 @@ import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
 import org.junit.Test;
-import rabbit.sql.console.util.DataSourceLoader;
-import rabbit.sql.console.util.PrintHelper;
-import rabbit.sql.console.util.SqlUtil;
+import rabbit.sql.console.core.DataSourceLoader;
 
 import java.text.NumberFormat;
 import java.util.regex.Matcher;
@@ -81,7 +79,7 @@ public class STests {
         Args<Object> args = Args.of("id", "");
 
         BakiDao bakiDao = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres", "chengyuxing", "")
-                .getBaki();
+                .getBaki("");
         bakiDao.setDebugFullSql(true);
         bakiDao.setXqlFileManager(xqlFileManager);
         Thread.sleep(5000);
