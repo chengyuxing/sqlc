@@ -42,17 +42,17 @@ public class CompleterBuilder {
     public static CompleterBuilder builtins = new CompleterBuilder() {
         {
             add(CliCompleters.readQuery(":exec"), "read a sql file for execute query, and redirect query result to ",
-                    Arrays.asList("file optional.", "e.g.", ":exec /query.sql", ":exec /query.sql " + Constants.REDIRECT_SYMBOL + " /path/result.[sql|tsv|csv|excel|json]"),
+                    Arrays.asList("file optional.", "e.g:", ":exec /query.sql", ":exec /query.sql " + Constants.REDIRECT_SYMBOL + " /path/result.[sql|tsv|csv|excel|json]"),
                     "[sql-file]", "[" + Constants.REDIRECT_SYMBOL + " output]");
-            add(CliCompleters.read4Batch(":exec@"), "read a multi-line file(sql|json) for execute batch insert.", "[sql|json]");
+            add(CliCompleters.read4Batch(":exec@"), "read a multi-line file(sql(delimiter default ';')|json) for ", Collections.singletonList("execute batch insert."), "[sql|json]");
             add(CliCompleters.cmdBuilder(":exec&",
                             xqlNameCompleter,
                             NullCompleter.INSTANCE),
                     "get sql by name(after ':load .../your.sql as me') to execute.",
-                    Arrays.asList("e.g. ", ":exec& me.query"),
+                    Arrays.asList("e.g: ", ":exec& me.query"),
                     "[sql-name]");
             add(CliCompleters.readXqlFile(":load"), "read load alia a xql file for execute by name.",
-                    Arrays.asList("e.g.", ":load /my.xql as my"),
+                    Arrays.asList("e.g:", ":load /my.xql as my"),
                     "[xql-file]", "as", "[alias]");
             add(CliCompleters.singleCmd(":c"), "enable cache query results.");
             add(CliCompleters.singleCmd(":C"), "disable cache query results.");
@@ -65,7 +65,7 @@ public class CompleterBuilder {
                             new Completers.DirectoriesCompleter(Paths.get(File.separator)),
                             NullCompleter.INSTANCE),
                     "get cache by key [redirect to file].",
-                    Arrays.asList("e.g. ", ":get res0", ":get res0 " + Constants.REDIRECT_SYMBOL + " /result.[sql|tsv|csv|excel|json]"),
+                    Arrays.asList("e.g: ", ":get res0", ":get res0 " + Constants.REDIRECT_SYMBOL + " /result.[sql|tsv|csv|excel|json]"),
                     "[key]", "[" + Constants.REDIRECT_SYMBOL + " output]");
             add(CliCompleters.cmdBuilder(":rm", cacheNameCompleter, NullCompleter.INSTANCE), "remove the cache by key.", "[key]");
             add(CliCompleters.transaction(":tx"), "use transaction.", "[begin|commit|rollback]");

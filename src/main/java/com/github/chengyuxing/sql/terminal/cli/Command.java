@@ -16,11 +16,11 @@ public class Command {
     public static final String footer = "When no '-e' command is given, sqlc starts in interactive mode.\nType :help in interactive mode for information on available commands and settings.";
     public static final Map<String, Pair<List<String>, List<String>>> cmdDesc = CompleterBuilder.builtins.getCmdDesc();
     public static final Map<String, String> cliDesc = new LinkedHashMap<String, String>() {{
-        put("-u[url]", "jdbc url, e.g.: -ujdbc:postgresql://... (require)");
+        put("-u[url]", "jdbc url, e.g: -ujdbc:postgresql://... (require)");
         put("-n[username]", "database username.");
         put("-p[password]", "database password.");
         put("-e\"[sql|path[&> output]]\"", "execute sql or redirect single query result to \nfile(if ends with '.sql', will ignore -f and \ngenerate insert sql script and file name will \nas table name) with format(-f).");
-        put("-e\"[@path]\"", "read file(sql(delimiter default ';')|json) for \nexecute batch insert.");
+        put("-e\"[@path]\"", "read a multi-line file\n(sql(delimiter default ';')|json) for execute \nbatch insert.");
         put("-d\"[delimiter]\"", "delimiter for multi-sql, default ';'(single \nsemicolon)");
         put("-f[tsv|csv|json|excel]", "format of query result which will be executed.\n(default tsv)");
         put("-v", "version");
