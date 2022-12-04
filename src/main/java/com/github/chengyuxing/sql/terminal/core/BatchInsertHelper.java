@@ -1,12 +1,14 @@
 package com.github.chengyuxing.sql.terminal.core;
 
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
-import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -24,6 +26,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 public class BatchInsertHelper {
+    static final ObjectMapper JSON = new ObjectMapper();
+
     public static void readFile4batch(SingleBaki baki, String filePath) throws FileNotFoundException {
         Path file = Paths.get(filePath);
         if (Files.exists(file)) {
@@ -36,6 +40,7 @@ public class BatchInsertHelper {
                         readInsertSqlScriptBatchExecute(baki, file);
                         break;
                     case "json":
+                        readJson4batch(baki, file, fileName);
                         break;
                     case "csv":
                         break;
@@ -60,7 +65,7 @@ public class BatchInsertHelper {
 
         ProgressPrinter pp = new ProgressPrinter();
         pp.setStep(2);
-        pp.setFormatter((v, c) -> "chunk " + v + "(" + v * 1000 + ") executed.(" + TimeUtil.format(c) + ")");
+        pp.setFormatter((v, c) -> "chunk " + v + "(" + v * 1000 + " rows) executed.(" + TimeUtil.format(c) + ")");
         pp.whenStopped((value, during) -> {
             long i = value;
             if (!chunk.isEmpty()) {
@@ -147,4 +152,44 @@ public class BatchInsertHelper {
     }
 
 
+    public static void readJson4batch(SingleBaki baki, Path path, String fileName) throws IOException {
+        FastList<String> chunk = new FastList<>(String.class);
+        AtomicReference<String> example = new AtomicReference<>("");
+        ProgressPrinter pp = new ProgressPrinter();
+        pp.setStep(2);
+        pp.setFormatter((v, c) -> "chunk " + v + "(" + v * 1000 + " objects) inserted.(" + TimeUtil.format(c) + ")");
+        pp.whenStopped((v, c) -> {
+            long i = v;
+            if (!chunk.isEmpty()) {
+                i -= 1;
+            }
+            long rows = i * 1000 + chunk.size();
+            PrintHelper.printlnHighlightSql(example.get() + ", more...");
+            PrintHelper.printlnPrimary("all of " + v + " chunks(" + rows + ") insert completed.(" + TimeUtil.format(c) + ")");
+            chunk.clear();
+        }).start();
+        try (MappingIterator<Map<String, Object>> iterator = JSON.reader().forType(Map.class).readValues(path.toFile())) {
+            String tableName = fileName.substring(0, fileName.lastIndexOf(".json"));
+            while (iterator.hasNext()) {
+                Map<String, Object> obj = iterator.next();
+                chunk.add(SqlUtil.sqlTranslator.generateInsert(tableName, obj, Collections.emptyList()));
+                if (example.get().equals("")) {
+                    example.set(chunk.get(0));
+                }
+                if (chunk.size() == 1000) {
+                    baki.batchExecute(chunk);
+                    chunk.clear();
+                    pp.increment();
+                }
+            }
+            if (!chunk.isEmpty()) {
+                baki.batchExecute(chunk);
+                pp.increment();
+            }
+            pp.stop();
+        } catch (Exception e) {
+            pp.interrupt();
+            throw e;
+        }
+    }
 }
