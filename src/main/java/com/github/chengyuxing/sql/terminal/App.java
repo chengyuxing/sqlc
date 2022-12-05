@@ -119,7 +119,8 @@ public class App {
 
                 // 如果有-e参数，就执行命令模式
                 if (argMap.containsKey("-e")) {
-                    startCommandMode(dsLoader, argMap.get("-e"));
+                    int headerIdx = Integer.parseInt(argMap.getOrDefault("-header", "0"));
+                    startCommandMode(dsLoader, argMap.get("-e"), headerIdx);
                     return;
                 }
                 // 进入交互模式
@@ -132,7 +133,7 @@ public class App {
         }
     }
 
-    public static void startCommandMode(DataSourceLoader dataSourceLoader, String execute) throws IOException {
+    public static void startCommandMode(DataSourceLoader dataSourceLoader, String execute, int headerIdx) throws Exception {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             dataSourceLoader.release();
             System.out.println("Bye bye :(");
@@ -140,14 +141,16 @@ public class App {
         SingleBaki baki = dataSourceLoader.getBaki();
         baki.metaData();
         String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(execute);
-        // 以@开头那么批量执行直接执行完退出
+        // just execute batch insert
         if (sql.startsWith("@")) {
             String filePath = sql.substring(1).trim();
-            BatchInsertHelper.readFile4batch(baki, filePath);
+            BatchInsertHelper.readFile4batch(baki, filePath, headerIdx);
             return;
         }
 
-        // 支持命令行模式的预编译sql
+        // for support prepared sql
+        // e.g: -e"select ... where id = :id;..."
+        // e.g: -e"insert ...(file) values (:path)"
         SimpleReadLine.readline(lb -> {
             StatusManager.promptReference.set(new Prompt(""));
             LineReader reader = lb.completer(new Completers.FilesCompleter(CURRENT_DIR)).build();
@@ -259,10 +262,18 @@ public class App {
                                     }
                                     break;
                                 default:
+                                    Matcher bmh = EXEC_BATCH_WITH_HEADER_REGEX.matcher(line);
+                                    if (bmh.find()) {
+                                        String file = bmh.group("input");
+                                        int headerIdx = Integer.parseInt(bmh.group("headerIdx"));
+                                        BatchInsertHelper.readFile4batch(baki, file, headerIdx);
+                                        break;
+                                    }
+
                                     Matcher bm = EXEC_BATCH_REGEX.matcher(line);
                                     if (bm.find()) {
                                         String file = bm.group("input");
-                                        BatchInsertHelper.readFile4batch(baki, file);
+                                        BatchInsertHelper.readFile4batch(baki, file, 0);
                                         break;
                                     }
 

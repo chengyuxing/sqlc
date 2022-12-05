@@ -16,6 +16,7 @@ public class Constants {
     public static final boolean IS_XTERM = TERM != null && TERM.startsWith("xterm");
     public static final DefaultParser cliParser = new DefaultParser().regexCommand(":?[a-zA-Z]+[a-zA-Z0-9_\\-@&]*!?");
     public static final Pattern EXEC_BATCH_REGEX = Pattern.compile("^:exec@\\s+(?<input>.+)");
+    public static final Pattern EXEC_BATCH_WITH_HEADER_REGEX = Pattern.compile("^:exec@\\s+(?<input>.+)\\s+(?<headerIdx>-?(0|[1-9]\\d*))");
     public static final Pattern EXEC_XQL_REGEX = Pattern.compile("^:exec&\\s+(?<name>.+)");
     public static final Pattern LOAD_XQL_FILE_REGEX = Pattern.compile("^:load\\s+(?<input>.+\\.xql)\\s+as\\s+(?<alias>.+)");
     public static final Pattern REMOVE_CACHE_REGEX = Pattern.compile("^:rm\\s+(?<name>.+)");
