@@ -7,9 +7,9 @@ public class TimeUtil {
         final Formatter fmt = new Formatter();
         String time;
         if (milliseconds > 60000) {
-            time = fmt.format("%.2f", milliseconds / 60000.0) + " m";
+            time = fmt.format("%.2f", milliseconds / 60000.0) + " mins";
         } else {
-            time = fmt.format("%.2f", milliseconds / 1000.0) + " s";
+            time = fmt.format("%.2f", milliseconds / 1000.0) + " sec";
         }
         return time;
     }
