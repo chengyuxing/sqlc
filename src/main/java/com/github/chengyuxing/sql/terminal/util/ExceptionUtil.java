@@ -14,4 +14,18 @@ public class ExceptionUtil {
         }
         return "";
     }
+
+    public static Set<String> getCauseMessages(Throwable throwable) {
+        Set<String> messages = new LinkedHashSet<>();
+        while (throwable != null) {
+            Throwable cause = throwable.getCause();
+            if (cause == null) {
+                messages.add(throwable.toString());
+            } else {
+                messages.add(cause.toString());
+            }
+            throwable = cause;
+        }
+        return messages;
+    }
 }
