@@ -2,6 +2,8 @@ package com.github.chengyuxing.sql.terminal.progress.impl;
 
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.progress.Progress;
+import com.github.chengyuxing.sql.terminal.progress.UncheckedInterruptedException;
+import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -47,12 +49,12 @@ public class ProgressPrinter extends Progress {
         if (value.get() % step == 0) {
             try {
                 if (formatter == null) {
-                    updateValue(prefix + value.get() + suffix + "(" + cost + ")");
+                    updateValue(prefix + value.get() + suffix + "(" + TimeUtil.format(cost) + ")");
                 } else {
                     updateValue(formatter.apply(value.get(), cost));
                 }
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedInterruptedException();
             }
         }
     }

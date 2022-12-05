@@ -1,7 +1,5 @@
 package com.github.chengyuxing.sql.terminal.progress;
 
-import com.github.chengyuxing.sql.terminal.core.PrintHelper;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
@@ -31,6 +29,8 @@ public abstract class Progress {
                 if (whenStopped != null) {
                     whenStopped.accept(value.get(), during);
                 }
+            } catch (UncheckedInterruptedException e) {
+                // ignore
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
