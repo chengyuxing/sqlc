@@ -1,5 +1,7 @@
 package rabbit.sql.connsole.test;
 
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.sql.Args;
@@ -13,12 +15,14 @@ import org.junit.Test;
 import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -30,10 +34,10 @@ public class STests {
 //                .limit(10006093)
                 .limit(906093)
                 .map(i -> DataRow.fromPair("id", i, "name", "cyx", "address", "昆明市西山区", "age", 27));
-//        FileHelper.writeJSON(rowStream, "/Users/chengyuxing/Downloads/big.json");
+        FileHelper.writeJSON(rowStream, "/Users/chengyuxing/Downloads/big.json");
 //        FileHelper.writeDSV(rowStream, new AtomicReference<>(View.TSV), "/Users/chengyuxing/Downloads/big.tsv");
 //        FileHelper.writeExcel(rowStream, "/Users/chengyuxing/Downloads/big.xlsx");
-        FileHelper.writeInsertSqlFile(rowStream, "/Users/chengyuxing/Downloads/test.big.sql");
+//        FileHelper.writeInsertSqlFile(rowStream, "/Users/chengyuxing/Downloads/test.big.sql");
 //        ObjectMapper mapper = new ObjectMapper();
 //        SequenceWriter writer = mapper.writer().withDefaultPrettyPrinter().writeValuesAsArray(Files.newOutputStream(Paths.get("/Users/chengyuxing/Downloads/big.json")));
 //        rowStream.forEach(d->{
@@ -138,7 +142,8 @@ public class STests {
         try {
             catchError();
         } catch (Exception e) {
-            System.out.println(ExceptionUtil.getCauseMessage(e));;
+            System.out.println(ExceptionUtil.getCauseMessage(e));
+            ;
         }
     }
 
@@ -158,15 +163,84 @@ public class STests {
 
     @Test
     public void testArgs() throws Exception {
-        System.out.println(new Arguments("-nchengyuxing", "-p").toMap().get("-p"));
-        for (int i = 5; i >= 0; i--) {
-            System.out.println(i);
-        }
+        System.out.println(new Arguments("-nchengyuxing", "-p","-header-10").toMap());
     }
 
     @Test
-    public void testNum() throws Exception{
+    public void testNum() throws Exception {
         Integer i = 2147483647;
         System.out.println(Integer.parseInt("2147483649"));
+    }
+
+    @Test
+    public void testjacksonRead() throws Exception {
+
+    }
+
+    @Test
+    public void testJson() throws Exception {
+        String json = "[{\n" +
+                "  \"name\": \"cyx\",\n" +
+                "  \"age\": 28,\n" +
+                "  \"address\": \"昆明市西山区\"\n" +
+                "},{\n" +
+                "\"name\": \"cyx\",\n" +
+                "\"age\": 28,\n" +
+                "\"address\": \"昆明市西山区\"\n" +
+                "},{\n" +
+                "\"name\": \"cyx\",\n" +
+                "\"age\": 28,\n" +
+                "\"address\": \"昆明市西山区\"\n" +
+                "},{\n" +
+                "\"name\": \"cyx\",\n" +
+                "\"age\": 28,\n" +
+                "\"address\": \"昆明市西山区\"\n" +
+                "},{\n" +
+                "\"name\": \"cyx\",\n" +
+                "\"age\": 28,\n" +
+                "\"address\": \"昆明市西山区\"\n" +
+                "}]";
+
+        String[] jsonLine = json.split("\n");
+
+        // json中字符串是不跨行的，
+        // 查找 json是是否有转义 \"
+        // 转义的 \" 替换为别的特殊字符，
+        // 在将字符串字段 "" 里的内容临时存起来（避免字符串内有括号造成解析异常），找完括号在将其还原回来
+
+        if (json.startsWith("[")) {
+            for (int i = 0; i < jsonLine.length; i++) {
+                String line = jsonLine[i];
+                int start = line.indexOf("{");
+                if (start != -1) {
+                    StringJoiner jsonObj = new StringJoiner("\n");
+                    jsonObj.add(line.substring(start));
+                    int count = 1;
+                    while (true) {
+                        String next = jsonLine[++i];
+                        int nextStartIdx = next.indexOf("{");
+                        int nextEndIdx = next.indexOf("}");
+                        if (nextEndIdx != -1) {
+                            count--;
+                            if (count == 0) {
+                                jsonObj.add(next.substring(0, nextEndIdx + 1));
+                                // },{
+                                if (nextStartIdx != -1) {
+                                    --i;
+                                }
+                                break;
+                            }
+                        }
+                        if (nextStartIdx != -1) {
+                            count++;
+                        }
+                        if (count != 0) {
+                            jsonObj.add(next);
+                        }
+                    }
+                    System.out.println(jsonObj);
+                }
+            }
+        }
     }
 }

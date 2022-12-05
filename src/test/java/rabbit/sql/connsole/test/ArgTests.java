@@ -10,7 +10,7 @@ public class ArgTests {
     String help;
     @Parameter(names = {"-v", "--version"}, description = "1.0.3")
     String version;
-    @Parameter(names = "-u", description = "jdbc url, e.g.: -ujdbc:postgresql://...", order = 1)
+    @Parameter(names = "-u", description = "jdbc url, e.g: -ujdbc:postgresql://...", order = 1)
     String url;
     @Parameter(names = "-n", description = "database username.", order = 2)
     String username;

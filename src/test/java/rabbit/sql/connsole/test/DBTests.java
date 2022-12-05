@@ -9,6 +9,8 @@ import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
+import com.github.chengyuxing.sql.terminal.core.BatchInsertHelper;
+import com.github.chengyuxing.sql.terminal.core.SingleBaki;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.Test;
@@ -17,6 +19,7 @@ import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +43,13 @@ public class DBTests {
     @Test
     public void test1() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
-        Baki baki = loader.getBaki();
+        loader.setUsername("chengyuxing");
+        loader.init();
+        SingleBaki baki = loader.getBaki();
+
+        BatchInsertHelper.readDSV4batch(baki, Paths.get("/Users/chengyuxing/Downloads/big.tsv"), "big", "\t", -9);
+
+
     }
 
     @Test
