@@ -12,6 +12,8 @@ import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import org.jline.reader.LineReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.List;
@@ -26,6 +28,8 @@ import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.getJson;
 import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.wrapObjectForSerialized;
 
 public final class PrintHelper {
+    private static final Logger log = LoggerFactory.getLogger(PrintHelper.class);
+
     public static void printQueryResult(Stream<DataRow> s, Consumer<DataRow> eachRowFunc) {
         AtomicBoolean first = new AtomicBoolean(true);
         switch (StatusManager.viewMode.get()) {
@@ -131,7 +135,6 @@ public final class PrintHelper {
                 throw new RuntimeException(e);
             }
         });
-
     }
 
     public static void printlnHighlightSql(String sql) {
@@ -140,11 +143,7 @@ public final class PrintHelper {
     }
 
     public static void printlnError(Throwable e) {
-        printlnError(e, false);
-    }
-
-    public static void printlnError(Throwable e, boolean full) {
-        if (full) {
+        if (log.isDebugEnabled()) {
             try (ByteArrayOutputStream out = new ByteArrayOutputStream();
                  PrintWriter writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(out)), true)) {
                 writer.println(new Object() {
@@ -162,7 +161,8 @@ public final class PrintHelper {
                 printlnDanger(ioException.toString());
             }
         } else {
-            printlnDanger(ExceptionUtil.getCauseMessage(e));
+            ExceptionUtil.getCauseMessages(e).forEach(PrintHelper::printlnDanger);
+//            PrintHelper.printlnDanger(ExceptionUtil.getCauseMessage(e));
         }
     }
 
