@@ -57,7 +57,7 @@ public class App {
                 System.out.println("-h to get some help.");
                 System.exit(0);
             }
-            Map<String, String> argMap = new Arguments(args).toMap();
+            Arguments argMap = new Arguments(args);
             if (argMap.containsKey("-u")) {
                 DataSourceLoader.loadDrivers("drivers");
                 DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"));
@@ -119,8 +119,7 @@ public class App {
 
                 // 如果有-e参数，就执行命令模式
                 if (argMap.containsKey("-e")) {
-                    int headerIdx = Integer.parseInt(argMap.getOrDefault("-header", "0"));
-                    startCommandMode(dsLoader, argMap.get("-e"), headerIdx);
+                    startCommandMode(dsLoader, argMap.get("-e"), argMap);
                     return;
                 }
                 // 进入交互模式
@@ -133,7 +132,7 @@ public class App {
         }
     }
 
-    public static void startCommandMode(DataSourceLoader dataSourceLoader, String execute, int headerIdx) throws Exception {
+    public static void startCommandMode(DataSourceLoader dataSourceLoader, String execute, Arguments args) throws Exception {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             dataSourceLoader.release();
             System.out.println("Bye bye :(");
@@ -141,10 +140,22 @@ public class App {
         SingleBaki baki = dataSourceLoader.getBaki();
         baki.metaData();
         String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(execute);
+        boolean usingTx = args.containsKey("--with-tx");
         // just execute batch insert
         if (sql.startsWith("@")) {
+            int headerIdx = Integer.parseInt(args.getIfBlank("-header", "0"));
             String filePath = sql.substring(1).trim();
-            BatchInsertHelper.readFile4batch(baki, filePath, headerIdx);
+            if (usingTx) {
+                Tx.using(() -> {
+                    try {
+                        BatchInsertHelper.readFile4batch(baki, filePath, headerIdx);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            } else {
+                BatchInsertHelper.readFile4batch(baki, filePath, headerIdx);
+            }
             return;
         }
 
@@ -156,7 +167,17 @@ public class App {
             LineReader reader = lb.completer(new Completers.FilesCompleter(CURRENT_DIR)).build();
             Executor executor = new Executor(baki, sql);
             try {
-                executor.exec(reader);
+                if (usingTx) {
+                    Tx.using(() -> {
+                        try {
+                            executor.exec(reader);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                } else {
+                    executor.exec(reader);
+                }
             } catch (UserInterruptException | EndOfFileException e) {
                 System.out.println("canceled.");
             } catch (Exception e) {

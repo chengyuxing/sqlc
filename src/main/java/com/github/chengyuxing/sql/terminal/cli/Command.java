@@ -21,8 +21,10 @@ public class Command {
         put("-p[password]", "database password.");
         put("-e\"[sql|path[&> output]]\"", "execute sql or redirect single query result to \nfile(if ends with '.sql', will ignore -f and \ngenerate insert sql script and file name will \nas table name) with format(-f).");
         put("-e\"[@path]\"", "read a multi-line file for execute batch insert, \nfile type:\n.sql: delimiter default ';'\n.csv|.tsv: default header-index is 0, it means \nfirst line is fields, -1 means no fields, 5 means \nfields at 5th line and start read from 5th line.");
-        put("-d\"[delimiter]\"", "delimiter for multi-sql, default ';'(single \nsemicolon)");
-        put("-f[tsv|csv|json|excel]", "format of query result which will be executed.\n(default tsv)");
+        put("-header[index]", "set header-index for -e\"[@path]\" command, \ndefault -header0(first line is fields).");
+        put("-d\"[delimiter]\"", "delimiter for multi-sql, default ';'(single \nsemicolon).");
+        put("-f[tsv|csv|json|excel]", "format of query result which will be executed\n(default tsv).");
+        put("--with-tx", "using transaction wrapper for -e command.");
         put("-v", "version");
         put("-h[elp]", "get some help.");
     }};
