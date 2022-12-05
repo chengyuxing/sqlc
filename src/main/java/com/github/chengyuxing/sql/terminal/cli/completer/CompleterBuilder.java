@@ -42,9 +42,14 @@ public class CompleterBuilder {
     public static CompleterBuilder builtins = new CompleterBuilder() {
         {
             add(CliCompleters.readQuery(":exec"), "read a sql file for execute query, and redirect query result to ",
-                    Arrays.asList("file optional.", "e.g:", ":exec /query.sql", ":exec /query.sql " + Constants.REDIRECT_SYMBOL + " /path/result.[sql|tsv|csv|excel|json]"),
+                    Arrays.asList("file optional.", "e.g:", ":exec /query.sql", ":exec /query.sql " + Constants.REDIRECT_SYMBOL + " /path/result.[sql|tsv|csv|xlsx|json]"),
                     "[sql-file]", "[" + Constants.REDIRECT_SYMBOL + " output]");
-            add(CliCompleters.read4Batch(":exec@"), "read a multi-line file(sql(delimiter default ';')|json) for ", Collections.singletonList("execute batch insert."), "[sql|json]");
+            add(CliCompleters.read4Batch(":exec@"), "read a multi-line file for execute batch insert, file type:", Arrays.asList(
+                    ".sql: delimiter default ';'",
+                    ".csv|.tsv: default header-index is 0, it means first line is ",
+                    "fields, -1 means no fields, 5 means fields at 5th line and ",
+                    "start read from 5th line."
+            ), "[input-file] [header-index]");
             add(CliCompleters.cmdBuilder(":exec&",
                             xqlNameCompleter,
                             NullCompleter.INSTANCE),
