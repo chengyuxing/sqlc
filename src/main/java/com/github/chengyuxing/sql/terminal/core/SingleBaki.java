@@ -35,6 +35,11 @@ public class SingleBaki extends BakiDao {
         return connection;
     }
 
+    @Override
+    protected List<String> getTableFields(String tableName) {
+        return super.getTableFields(tableName);
+    }
+
     public void initDbConfig(Connection connection) {
         try {
             boolean firstLoad = StatusManager.bakiFirstLoad.get();
