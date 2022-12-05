@@ -1,7 +1,6 @@
 package com.github.chengyuxing.sql.terminal.util;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 
 public class ExceptionUtil {
     public static String getCauseMessage(Throwable throwable) {
@@ -15,15 +14,23 @@ public class ExceptionUtil {
         return "";
     }
 
-    public static Set<String> getCauseMessages(Throwable throwable) {
-        Set<String> messages = new LinkedHashSet<>();
+    public static List<String> getCauseMessages(Throwable throwable) {
+        List<String> messages = new ArrayList<>();
         while (throwable != null) {
             Throwable cause = throwable.getCause();
+            String msg;
             if (cause == null) {
-                messages.add(throwable.toString());
+                msg = throwable.toString();
             } else {
-                messages.add(cause.toString());
+                msg = cause.toString();
             }
+            if (!messages.isEmpty()) {
+                int last = messages.size() - 1;
+                if (messages.get(last).contains(msg)) {
+                    messages.remove(last);
+                }
+            }
+            messages.add(msg);
             throwable = cause;
         }
         return messages;
