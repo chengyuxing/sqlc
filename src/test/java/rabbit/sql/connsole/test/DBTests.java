@@ -116,7 +116,7 @@ public class DBTests {
                 "test.user\"",
                 "-texcel",
         };
-        Map<String, String> map = new Arguments(args).toMap();
+        Arguments map = new Arguments(args);
         System.out.println(map);
     }
 

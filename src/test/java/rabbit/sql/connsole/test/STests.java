@@ -16,9 +16,11 @@ import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -162,8 +164,19 @@ public class STests {
     }
 
     @Test
+    public void testArr() throws Exception {
+        List<String> strings = new ArrayList<>();
+        strings.add("abcde");
+        strings.add("abc");
+        strings.add("bc");
+        System.out.println(strings);
+    }
+
+    @Test
     public void testArgs() throws Exception {
-        System.out.println(new Arguments("-nchengyuxing", "-p","-header-10").toMap());
+        Arguments args = new Arguments("-nchengyuxing", "-p", "-header-10", "--with-tx");
+        System.out.println(args);
+        System.out.println(args.getIfBlank("-vp", "10"));
     }
 
     @Test
@@ -242,5 +255,19 @@ public class STests {
                 }
             }
         }
+    }
+
+    @Test
+    public void testGetSqlTypes() throws Exception {
+        Class<?> clazz = Types.class;
+        Field[] fields = clazz.getDeclaredFields();
+        Stream.of(fields)
+                .forEach(f -> {
+                    try {
+                        System.out.println(f.getName() + "(" + f.get(null) + ")");
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 }
