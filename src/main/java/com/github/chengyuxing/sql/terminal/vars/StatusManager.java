@@ -41,7 +41,7 @@ public abstract class StatusManager {
     public static void setTxActive(boolean active) {
         txActive.set(active);
         if (promptReference.get() != null) {
-            Color color = active ? Color.DARK_YELLOW : Color.PURPLE;
+            Color color = active ? Color.YELLOW : Color.PURPLE;
             promptReference.get().setColor(color);
         }
     }
