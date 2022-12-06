@@ -118,7 +118,8 @@ public final class PrintHelper {
         } else if (sqlType == SqlType.OTHER) {
             printQueryResult(executedRow2Stream(baki, sqlOrAddress, args));
         } else if (sqlType == SqlType.FUNCTION) {
-            throw new UnsupportedOperationException("function not support now");
+            ProcedureExecutor procedureExecutor = new ProcedureExecutor(baki, tempString);
+            procedureExecutor.exec(SqlUtil.toInOutParam(args));
         }
     }
 
@@ -162,7 +163,7 @@ public final class PrintHelper {
             }
         } else {
             ExceptionUtil.getCauseMessages(e).forEach(PrintHelper::printlnDanger);
-//            PrintHelper.printlnDanger(ExceptionUtil.getCauseMessage(e));
+            // PrintHelper.printlnDanger(ExceptionUtil.getCauseMessage(e));
         }
     }
 
@@ -172,6 +173,10 @@ public final class PrintHelper {
 
     public static void printlnWarning(String msg) {
         TerminalColor.println(msg, Color.YELLOW);
+    }
+
+    public static void printlnDarkWarning(String msg) {
+        TerminalColor.println(msg, Color.DARK_YELLOW);
     }
 
     public static void printlnInfo(String msg) {
@@ -214,10 +219,10 @@ public final class PrintHelper {
                         }
                         return v.substring(idx + 1);
                     }).collect(Collectors.joining(d, "[", "]"));
-            TerminalColor.println(typesLine, Color.YELLOW);
+            TerminalColor.println(typesLine, Color.DARK_CYAN);
             String namesLine = data.keySet().stream()
                     .collect(Collectors.joining(d, "[", "]"));
-            TerminalColor.println(namesLine, Color.YELLOW);
+            TerminalColor.println(namesLine, Color.DARK_CYAN);
             firstLine.set(false);
         }
         String valuesLine = data.values().stream().map(v -> {
