@@ -183,7 +183,7 @@ public final class FileHelper {
     }
 
     public static void writeInsertSqlFile(Stream<DataRow> stream, String outputPath) {
-        // e.g. /usr/local/qbpt_deve.pinyin_ch.sql
+        // e.g: /usr/local/qbpt_deve.pinyin_ch.sql
         Path path = Paths.get(outputPath);
         String currentDir = path.getParent().toString();
         // qbpt_deve.pinyin_ch.sql
@@ -191,7 +191,7 @@ public final class FileHelper {
         // qbpt_deve.pinyin_ch
         String tableName = fileName.substring(0, fileName.lastIndexOf("."));
         PrintHelper.printlnWarning("Ignore view mode, output file name will as the insert sql script target table name!!!");
-        PrintHelper.printlnWarning("e.g. " + fileName + " --> insert into " + tableName + " (...) values (...);");
+        PrintHelper.printlnWarning("e.g: " + fileName + " --> insert into " + tableName + " (...) values (...);");
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         ProgressPrinter pp = ProgressPrinter.of("", " rows has written.");
         try {

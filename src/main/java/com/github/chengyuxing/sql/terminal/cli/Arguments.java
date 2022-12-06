@@ -13,7 +13,7 @@ public class Arguments {
             "-n",   //name
             "-f",   //format
             "-e",   //sql string or sql file
-            "-d",    //multi sql block delimiter};
+            "-d",    //multi sql block delimiter;
             "-header",   // tsv,csv，excel header index
             "--with-tx"   //using transaction wrapper
     };
