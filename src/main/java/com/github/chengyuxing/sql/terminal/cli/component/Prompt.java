@@ -12,6 +12,7 @@ public class Prompt {
     private static final String DEFAULT = "sqlc> ";
     private static final String APPEND = ">> ";
     private Color color = Color.PURPLE;
+    private Status status = Status.NEWLINE;
 
     public Prompt(String jdbcUrl) {
         Pattern p = Pattern.compile("(?<host>\\d{1,3}(\\.\\d{1,3}){3}:\\d{1,5})");
@@ -26,14 +27,17 @@ public class Prompt {
 
     public void newLine() {
         this.value = host;
+        this.status = Status.NEWLINE;
     }
 
     public void append() {
         this.value = APPEND;
+        this.status = Status.APPEND;
     }
 
     public void custom(String content) {
         this.value = content;
+        this.status = Status.CUSTOM;
     }
 
     public String getValue() {
@@ -42,5 +46,15 @@ public class Prompt {
 
     public void setColor(Color color) {
         this.color = color;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public static enum Status {
+        NEWLINE,
+        APPEND,
+        CUSTOM
     }
 }
