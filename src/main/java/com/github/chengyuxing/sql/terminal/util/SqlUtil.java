@@ -1,20 +1,27 @@
 package com.github.chengyuxing.sql.terminal.util;
 
 import com.github.chengyuxing.common.DateTimes;
+import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
+import com.github.chengyuxing.sql.terminal.core.PrintHelper;
+import com.github.chengyuxing.sql.terminal.core.ProcedureExecutor;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
+import com.github.chengyuxing.sql.types.Param;
 import com.github.chengyuxing.sql.utils.SqlTranslator;
 import org.jline.reader.LineReader;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Types;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -146,14 +153,62 @@ public class SqlUtil {
         if (pNames.isEmpty()) {
             return Collections.emptyMap();
         }
-        Set<String> distinctArgs = new LinkedHashSet<>(pSql.getItem2());
+        Set<String> distinctArgs = new LinkedHashSet<>(pNames);
         Map<String, Object> args = new HashMap<>();
-        for (String name : distinctArgs) {
-            StatusManager.promptReference.get().custom(name + " = ");
-            Object value = SqlUtil.stringValue2Object(lineReader.readLine(StatusManager.promptReference.get().getValue()).trim());
-            args.put(name, value);
+        SqlType type = getType(sql);
+        if (type == SqlType.FUNCTION) {
+            // OUT formatter: num1 = OUT -2017
+            // IN_OUT formatter: num1 = IN_OUT -5 126
+            // IN formatter: num1 = 180
+            PrintHelper.printlnDarkWarning("OUT param type constants(java.sql.Types):");
+            System.out.println(String.join(", ", getProcedureParamTypes()));
+            PrintHelper.printlnDarkWarning("some db has it's own special constants, e.g: ORACLE_CURSOR(-10), just use it's value.");
+            for (String name : distinctArgs) {
+                StatusManager.promptReference.get().custom(name + " = ");
+                String input = lineReader.readLine(StatusManager.promptReference.get().getValue()).trim();
+                args.put(name, resolveProcedureArgs(input));
+            }
+        } else {
+            for (String name : distinctArgs) {
+                StatusManager.promptReference.get().custom(name + " = ");
+                Object value = SqlUtil.stringValue2Object(lineReader.readLine(StatusManager.promptReference.get().getValue()).trim());
+                args.put(name, value);
+            }
         }
         return args;
+    }
+
+    public static List<String> getProcedureParamTypes() {
+        Field[] fields = Types.class.getDeclaredFields();
+        List<String> types = new ArrayList<>();
+        try {
+            for (Field f : fields) {
+                types.add(TerminalColor.colorful(f.getName() + "(", Color.SILVER) + TerminalColor.colorful(f.get(null).toString(), Color.DARK_CYAN) + TerminalColor.colorful(")", Color.SILVER));
+            }
+            return types;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Map<String, Param> toInOutParam(Map<String, Object> args) {
+        Map<String, Param> inOutParams = new HashMap<>();
+        args.forEach((k, v) -> inOutParams.put(k, (Param) v));
+        return inOutParams;
+    }
+
+    public static Param resolveProcedureArgs(String input) {
+        Matcher outM = Constants.PROCEDURE_OUT_REGEX.matcher(input);
+        if (outM.find()) {
+            return Param.OUT(new ProcedureExecutor.OutParam(Integer.parseInt(outM.group("out"))));
+        }
+        Matcher inOutM = Constants.PROCEDURE_IN_OUT_REGEX.matcher(input);
+        if (inOutM.find()) {
+            String in = inOutM.group("in");
+            String out = inOutM.group("out");
+            return Param.IN_OUT(stringValue2Object(in), new ProcedureExecutor.OutParam(Integer.parseInt(out)));
+        }
+        return Param.IN(stringValue2Object(input));
     }
 
     /**
