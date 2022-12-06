@@ -303,15 +303,18 @@ public class App {
                                     if (xm.find()) {
                                         String sqlName = xm.group("name");
                                         String sql = Data.xqlFileManager.get(sqlName);
-                                        Map<String, Object> argx = SqlUtil.prepareSqlArgIf(sql, lineReader);
                                         PrintHelper.printlnHighlightSql(sql);
+                                        Map<String, Object> argx = SqlUtil.prepareSqlArgIf(sql, lineReader);
                                         PrintHelper.printOneSqlResultByType(baki, "&" + sqlName, sql, argx);
+                                        // prepared sql will change the prompt to arg name, reset to new-line prompt after executed.
+                                        prompt.newLine();
                                         break;
                                     }
 
                                     if (line.startsWith(":exec")) {
                                         ExecExecutor executor = new ExecExecutor(baki, line.substring(5).trim());
                                         executor.exec(lineReader);
+                                        prompt.newLine();
                                         break;
                                     }
 
