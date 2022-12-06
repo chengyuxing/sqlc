@@ -22,7 +22,7 @@ public class ProcedureExecutor {
     public void exec(Map<String, Param> args) {
         DataRow result = WaitingPrinter.waiting(() -> baki.call(procedure, args));
         result.forEach((k, v) -> {
-            PrintHelper.printlnDarkWarning("result[" + k + "]:");
+            PrintHelper.printlnDarkWarning(k + ":");
             PrintHelper.printQueryResult(value2stream(k, v));
         });
     }

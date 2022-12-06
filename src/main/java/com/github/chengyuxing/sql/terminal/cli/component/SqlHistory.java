@@ -15,14 +15,17 @@ public class SqlHistory extends DefaultHistory {
 
     @Override
     public void add(Instant time, String line) {
+        // for remember the prepared sql's args.
         if (StatusManager.promptReference.get().getStatus() == Prompt.Status.CUSTOM) {
             super.add(time, line);
             return;
         }
+        // for command
         if (line.startsWith(":")) {
             super.add(time, line);
             return;
         }
+        // for full sql
         if (line.endsWith(";")) {
             if (sqlBuilder.isEmpty()) {
                 super.add(time, line);
