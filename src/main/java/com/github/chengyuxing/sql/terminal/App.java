@@ -20,6 +20,7 @@ import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
+import com.github.chengyuxing.sql.types.Param;
 import org.apache.log4j.Level;
 import org.jline.builtins.Completers;
 import org.jline.keymap.KeyMap;
@@ -165,7 +166,7 @@ public class App {
         SimpleReadLine.readline(lb -> {
             StatusManager.promptReference.set(new Prompt(""));
             LineReader reader = lb.completer(new Completers.FilesCompleter(CURRENT_DIR)).build();
-            Executor executor = new Executor(baki, sql);
+            ExecExecutor executor = new ExecExecutor(baki, sql);
             try {
                 if (usingTx) {
                     Tx.using(() -> {
@@ -309,7 +310,7 @@ public class App {
                                     }
 
                                     if (line.startsWith(":exec")) {
-                                        Executor executor = new Executor(baki, line.substring(5).trim());
+                                        ExecExecutor executor = new ExecExecutor(baki, line.substring(5).trim());
                                         executor.exec(lineReader);
                                         break;
                                     }
@@ -465,7 +466,7 @@ public class App {
                                                         cache.setArgs(argx);
                                                         Data.queryCaches.put(name, cache);
                                                         Data.cacheNameCompleter.setVarsNames(Data.queryCaches.keySet());
-                                                        PrintHelper.printlnNotice(name + ": added to cache!");
+                                                        PrintHelper.printlnNotice(name + " added to cache!");
                                                     } else {
                                                         PrintHelper.printQueryResult(rowStream);
                                                     }
@@ -473,7 +474,9 @@ public class App {
                                             }
                                             break;
                                         case FUNCTION:
-                                            PrintHelper.printlnWarning("function not support now!");
+                                            Map<String, Param> argx = SqlUtil.toInOutParam(SqlUtil.prepareSqlArgIf(sql, lineReader));
+                                            ProcedureExecutor procedureExecutor = new ProcedureExecutor(baki, sql);
+                                            procedureExecutor.exec(argx);
                                             break;
                                         case OTHER:
                                             if (sql.contains(REDIRECT_SYMBOL)) {
