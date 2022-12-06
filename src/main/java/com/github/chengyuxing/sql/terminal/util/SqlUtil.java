@@ -163,6 +163,7 @@ public class SqlUtil {
             PrintHelper.printlnDarkWarning("OUT param type constants(java.sql.Types):");
             System.out.println(String.join(", ", getProcedureParamTypes()));
             PrintHelper.printlnDarkWarning("some db has it's own special constants, e.g: ORACLE_CURSOR(-10), just use it's value.");
+            PrintHelper.printlnDarkWarning("Param formatter: out [OUT code] | inout [OUT code] [IN value] | [IN value]\ne.g: out -5; inout 2012 abc; abc");
             for (String name : distinctArgs) {
                 StatusManager.promptReference.get().custom(name + " = ");
                 String input = lineReader.readLine(StatusManager.promptReference.get().getValue()).trim();
