@@ -9,7 +9,6 @@ import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import org.jline.reader.LineReader;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -19,11 +18,11 @@ import static com.github.chengyuxing.sql.terminal.vars.Constants.REDIRECT_SYMBOL
 /**
  * exec指令执行器
  */
-public class Executor {
+public class ExecExecutor {
     private final Baki baki;
     private final String execContent;
 
-    public Executor(Baki baki, String execContent) {
+    public ExecExecutor(Baki baki, String execContent) {
         this.baki = baki;
         this.execContent = execContent;
     }
@@ -45,7 +44,7 @@ public class Executor {
             } else if (SqlUtil.getType(sqls.get(0)) == SqlType.QUERY) {
                 PrintHelper.printlnHighlightSql(sqls.get(0));
                 String sql = sqls.get(0);
-                Map<String, Object> argx = reader == null ? Collections.emptyMap() : SqlUtil.prepareSqlArgIf(sql, reader);
+                Map<String, Object> argx = SqlUtil.prepareSqlArgIf(sql, reader);
                 try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...", () -> baki.query(sql).args(argx).stream())) {
                     FileHelper.writeFile(s, pair.getItem2());
                 } catch (Exception e) {
@@ -60,10 +59,7 @@ public class Executor {
                 if (sqls.size() == 1) {
                     String sql = sqls.get(0);
                     PrintHelper.printlnHighlightSql(sql);
-                    Map<String, Object> argx = Collections.emptyMap();
-                    if (reader != null) {
-                        argx = SqlUtil.prepareSqlArgIf(sql, reader);
-                    }
+                    Map<String, Object> argx = SqlUtil.prepareSqlArgIf(sql, reader);
                     PrintHelper.printOneSqlResultByType(baki, sql, sql, argx);
                 } else {
                     PrintHelper.printMultiSqlResult(baki, sqls, reader);
@@ -72,9 +68,5 @@ public class Executor {
                 PrintHelper.printlnDanger("no sql script to execute.");
             }
         }
-    }
-
-    public void exec() throws Exception {
-        exec(null);
     }
 }
