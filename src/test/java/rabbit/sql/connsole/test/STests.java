@@ -270,4 +270,13 @@ public class STests {
                     }
                 });
     }
+
+    @Test
+    public void testXql() throws Exception{
+        XQLFileManager xqlFileManager = new XQLFileManager();
+        xqlFileManager.add("me", "file:/Users/chengyuxing/Downloads/xql_file_manager.xql");
+        xqlFileManager.init();
+        String sql = xqlFileManager.get("me.query_region", Args.create("id", 131, "age", 28));
+        System.out.println(sql);
+    }
 }
