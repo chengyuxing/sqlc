@@ -92,8 +92,4 @@ public class CliCompleters {
     public static Pair<String, Completer> keywordsCmd() {
         return Pair.of("", Data.keywordsCompleter);
     }
-
-    public static Pair<String, Completer> tableNamesCmd() {
-        return Pair.of("", Data.tableNameCompleter);
-    }
 }

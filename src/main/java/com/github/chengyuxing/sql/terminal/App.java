@@ -38,8 +38,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.stream.Stream;
 
@@ -222,10 +224,8 @@ public class App {
             DatabaseMetaData metaData = baki.metaData();
             String dbName = metaData.getDatabaseProductName().toLowerCase();
 
-            // load sql keywords completion
-            Data.keywordsCompleter.setVarsNames(SqlUtil.getSqlKeyWordsWithDefault(dbName));
-            // table name completion
-            Data.tableNameCompleter.setVarsNames(SqlUtil.getTableNames(dbName, dataSourceLoader));
+            Data.keywordsCompleter.addVarsNames(SqlUtil.getSqlKeyWordsWithDefault(dbName));
+            Data.keywordsCompleter.addVarsNames(SqlUtil.getTableNames(dbName, dataSourceLoader));
 
             Prompt prompt = new Prompt(metaData.getURL());
             StatusManager.promptReference.set(prompt);

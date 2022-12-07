@@ -16,8 +16,6 @@ import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.types.Param;
 import com.github.chengyuxing.sql.utils.SqlTranslator;
 import org.jline.reader.LineReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -35,7 +33,6 @@ import java.util.stream.Stream;
 import static com.github.chengyuxing.sql.utils.SqlUtil.quoteFormatValueIfNecessary;
 
 public class SqlUtil {
-    public static final Logger log = LoggerFactory.getLogger(SqlUtil.class);
     public static Pattern p = Pattern.compile("^[(\\s]*((select\\s*)|with\\s+[\\w_]+\\s+as\\s+\\([\\s\\S]+\\)\\s*select)");
     public static Pattern TYPE_PARSE = Pattern.compile("::(?<type>[a-zA-Z]+\\[*)((?<delimiter>[\\s\\S]*)])*$");
     public static final SqlTranslator sqlTranslator = new SqlTranslator(':');
@@ -200,13 +197,13 @@ public class SqlUtil {
             PrintHelper.printlnDarkWarning("Param formatter: out [OUT code] | inout [OUT code] [IN value] | [IN value]\ne.g: out -5; inout 2012 abc; abc");
             for (String name : distinctArgs) {
                 StatusManager.promptReference.get().custom(name + " = ");
-                String input = lineReader.readLine(StatusManager.promptReference.get().getValue()).trim();
-                args.put(name, resolveProcedureArgs(input));
+                Param param = resolveProcedureArgs(lineReader.readLine(StatusManager.promptReference.get().getValue()).trim());
+                args.put(name, param);
             }
         } else {
             for (String name : distinctArgs) {
                 StatusManager.promptReference.get().custom(name + " = ");
-                Object value = SqlUtil.stringValue2Object(lineReader.readLine(StatusManager.promptReference.get().getValue()).trim());
+                Object value = stringValue2Object(lineReader.readLine(StatusManager.promptReference.get().getValue()).trim());
                 args.put(name, value);
             }
         }
@@ -301,15 +298,15 @@ public class SqlUtil {
     public static Set<String> getSqlKeywords(String dbName) {
         Path cnf = Paths.get(Constants.APP_DIR.toString(), "completion", dbName + ".cnf");
         if (!Files.exists(cnf)) {
-            log.warn("cannot find " + dbName + " keywords completion cnf file: ", cnf);
+            PrintHelper.printlnDarkWarning("cannot find " + dbName + " keywords completion cnf file: " + cnf);
             return Collections.emptySet();
         }
         try (Stream<String> lines = Files.lines(cnf)) {
             return lines.map(line -> Arrays.asList(line.split("\\s+")))
                     .flatMap(Collection::stream)
                     .collect(Collectors.toSet());
-        } catch (IOException e) {
-            log.warn("load keywords failed: ", e);
+        } catch (Exception e) {
+            PrintHelper.printlnError(e);
             return Collections.emptySet();
         }
     }

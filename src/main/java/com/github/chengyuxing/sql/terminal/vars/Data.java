@@ -1,9 +1,12 @@
 package com.github.chengyuxing.sql.terminal.vars;
 
+import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.completer.DynamicVarsCompleter;
+import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.types.Cache;
+import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
@@ -32,26 +35,7 @@ public abstract class Data {
     /**
      * sql关键字自动完成
      */
-    public static final DynamicVarsCompleter keywordsCompleter = new DynamicVarsCompleter() {
-        @Override
-        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-            if (!line.line().startsWith(":") && StatusManager.promptReference.get().getStatus() != Prompt.Status.CUSTOM) {
-                super.complete(reader, line, candidates);
-            }
-        }
-    };
-
-    /**
-     * 表名自动完成
-     */
-    public static final DynamicVarsCompleter tableNameCompleter = new DynamicVarsCompleter() {
-        @Override
-        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-            if (!line.line().startsWith(":") && StatusManager.promptReference.get().getStatus() != Prompt.Status.CUSTOM) {
-                super.complete(reader, line, candidates);
-            }
-        }
-    };
+    public static final KeywordsCompleter keywordsCompleter = new KeywordsCompleter();
     /**
      * xql管理器
      */
