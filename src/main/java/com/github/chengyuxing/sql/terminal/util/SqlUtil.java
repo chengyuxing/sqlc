@@ -147,15 +147,44 @@ public class SqlUtil {
         return Pair.of("insert into " + tableName + "(" + f + ") values (" + v + ")", blobKeys);
     }
 
-    public static Map<String, Object> prepareSqlArgIf(String sql, LineReader lineReader) {
-        Pair<String, List<String>> pSql = sqlTranslator.generateSql(sql, Collections.emptyMap(), true);
+    /**
+     * 格式化sql，处理其中的字符串模版
+     *
+     * @param sql        sql字符串
+     * @param lineReader readline
+     * @return 处理后的sql
+     */
+    public static String formatSql(String sql, LineReader lineReader) {
+        List<String> tempNames = getTemplateNames(sql);
+        if (tempNames.isEmpty()) {
+            return sql;
+        }
+        Map<String, Object> templates = new HashMap<>();
+        for (String name : tempNames) {
+            StatusManager.promptReference.get().custom("${" + name + "} = ");
+            String template = lineReader.readLine(StatusManager.promptReference.get().getValue()).trim();
+            templates.put(name, template);
+        }
+        return formatSql(sqlTranslator.formatSql(sql, templates), lineReader);
+    }
+
+    /**
+     * 预编译sql处理构建参数字典
+     *
+     * @param sql        sql字符串
+     * @param lineReader readline
+     * @return 解析完成的sql和参数字典
+     */
+    public static Pair<String, Map<String, Object>> prepareSqlArgIf(String sql, LineReader lineReader) {
+        String fmtSql = formatSql(sql, lineReader);
+        Pair<String, List<String>> pSql = sqlTranslator.generateSql(fmtSql, Collections.emptyMap(), true);
         List<String> pNames = pSql.getItem2();
         if (pNames.isEmpty()) {
-            return Collections.emptyMap();
+            return Pair.of(fmtSql, Collections.emptyMap());
         }
         Set<String> distinctArgs = new LinkedHashSet<>(pNames);
         Map<String, Object> args = new HashMap<>();
-        SqlType type = getType(sql);
+        SqlType type = getType(fmtSql);
         if (type == SqlType.FUNCTION) {
             // OUT formatter: num1 = OUT -2017
             // IN_OUT formatter: num1 = IN_OUT -5 126
@@ -176,7 +205,7 @@ public class SqlUtil {
                 args.put(name, value);
             }
         }
-        return args;
+        return Pair.of(fmtSql, args);
     }
 
     public static List<String> getProcedureParamTypes() {
@@ -230,9 +259,9 @@ public class SqlUtil {
     }
 
     /**
-     * 如果是文件路径就读取文件返回sql
+     * 读取sql文件中的所有sql
      *
-     * @param sqlFilePath sql字符串或路径
+     * @param sqlFilePath sql文件路径
      * @return sql字符串
      * @throws IOException 如果读取文件发生异常或文件不存在
      */
@@ -247,5 +276,14 @@ public class SqlUtil {
     public static Pair<String, String> getSqlAndRedirect(String s) {
         String[] parts = s.split(Constants.REDIRECT_SYMBOL);
         return Pair.of(parts[0].trim(), parts[1].trim());
+    }
+
+    public static List<String> getTemplateNames(String sql) {
+        Matcher m = Constants.SQL_TEMPLATE_ARG_REGEX.matcher(sql);
+        List<String> names = new ArrayList<>();
+        while (m.find()) {
+            names.add(m.group("key"));
+        }
+        return names;
     }
 }

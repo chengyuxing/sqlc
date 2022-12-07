@@ -26,5 +26,6 @@ public class Constants {
     public static final Pattern NAME_QUERY_CACHE_REGEX = Pattern.compile("^(?<prefix>var|val)\\s+(?<name>[\\w._-]+)\\s*=");
     public static final Pattern PROCEDURE_OUT_REGEX = Pattern.compile("^OUT\\s+(?<out>-?(0|[1-9]\\d*))", Pattern.CASE_INSENSITIVE);
     public static final Pattern PROCEDURE_IN_OUT_REGEX = Pattern.compile("^(IN([_/]?|\\s+)OUT)\\s+(?<out>-?(0|[1-9]\\d*))\\s+(?<in>.+)", Pattern.CASE_INSENSITIVE);
+    public static final Pattern SQL_TEMPLATE_ARG_REGEX = Pattern.compile("\\$\\{\\s*:?(?<key>[\\w._-]+)\\s*}");
 
 }

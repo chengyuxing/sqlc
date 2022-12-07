@@ -3,6 +3,7 @@ package com.github.chengyuxing.sql.terminal.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
+import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
@@ -128,8 +129,8 @@ public final class PrintHelper {
         sqls.forEach(sql -> {
             try {
                 printlnHighlightSql(sql);
-                Map<String, Object> args = SqlUtil.prepareSqlArgIf(sql, reader);
-                printQueryResult(executedRow2Stream(baki, sql, args));
+                Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(sql, reader);
+                printQueryResult(executedRow2Stream(baki, pair.getItem1(), pair.getItem2()));
                 success.incrementAndGet();
             } catch (Exception e) {
                 printlnNotice("Execute " + success + "/" + sqls.size() + " finished.");

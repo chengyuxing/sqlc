@@ -44,8 +44,8 @@ public class ExecExecutor {
             } else if (SqlUtil.getType(sqls.get(0)) == SqlType.QUERY) {
                 PrintHelper.printlnHighlightSql(sqls.get(0));
                 String sql = sqls.get(0);
-                Map<String, Object> argx = SqlUtil.prepareSqlArgIf(sql, reader);
-                try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...", () -> baki.query(sql).args(argx).stream())) {
+                Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlArgIf(sql, reader);
+                try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...", () -> baki.query(sqlAndArgs.getItem1()).args(sqlAndArgs.getItem2()).stream())) {
                     FileHelper.writeFile(s, pair.getItem2());
                 } catch (Exception e) {
                     throw new RuntimeException("an error when waiting execute: " + sql, e);
@@ -59,8 +59,8 @@ public class ExecExecutor {
                 if (sqls.size() == 1) {
                     String sql = sqls.get(0);
                     PrintHelper.printlnHighlightSql(sql);
-                    Map<String, Object> argx = SqlUtil.prepareSqlArgIf(sql, reader);
-                    PrintHelper.printOneSqlResultByType(baki, sql, sql, argx);
+                    Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(sql, reader);
+                    PrintHelper.printOneSqlResultByType(baki, pair.getItem1(), pair.getItem1(), pair.getItem2());
                 } else {
                     PrintHelper.printMultiSqlResult(baki, sqls, reader);
                 }

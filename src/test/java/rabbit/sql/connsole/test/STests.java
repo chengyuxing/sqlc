@@ -10,6 +10,7 @@ import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Command;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import org.junit.Test;
 import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
@@ -278,5 +279,10 @@ public class STests {
         xqlFileManager.init();
         String sql = xqlFileManager.get("me.query_region", Args.create("id", 131, "age", 28));
         System.out.println(sql);
+    }
+
+    @Test
+    public void testSqlTemp() throws Exception{
+
     }
 }

@@ -304,8 +304,8 @@ public class App {
                                         String sqlName = xm.group("name");
                                         String sql = Data.xqlFileManager.get(sqlName);
                                         PrintHelper.printlnHighlightSql(sql);
-                                        Map<String, Object> argx = SqlUtil.prepareSqlArgIf(sql, lineReader);
-                                        PrintHelper.printOneSqlResultByType(baki, "&" + sqlName, sql, argx);
+                                        Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(sql, lineReader);
+                                        PrintHelper.printOneSqlResultByType(baki, "&" + sqlName, pair.getItem1(), pair.getItem2());
                                         // prepared sql will change the prompt to arg name, reset to new-line prompt after executed.
                                         prompt.newLine();
                                         break;
@@ -439,8 +439,8 @@ public class App {
                                         case QUERY:
                                             if (sql.contains(REDIRECT_SYMBOL)) {
                                                 Pair<String, String> pair = SqlUtil.getSqlAndRedirect(sql);
-                                                Map<String, Object> argx = SqlUtil.prepareSqlArgIf(pair.getItem1(), lineReader);
-                                                try (Stream<DataRow> rowStream = WaitingPrinter.waiting("preparing...", () -> baki.query(pair.getItem1()).args(argx).stream())) {
+                                                Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlArgIf(pair.getItem1(), lineReader);
+                                                try (Stream<DataRow> rowStream = WaitingPrinter.waiting("preparing...", () -> baki.query(sqlAndArgs.getItem1()).args(sqlAndArgs.getItem2()).stream())) {
                                                     PrintHelper.printlnNotice("redirect query to file...");
                                                     FileHelper.writeFile(rowStream, pair.getItem2());
                                                 }
@@ -456,8 +456,9 @@ public class App {
                                                     name = ncm.group("name");
                                                 }
                                                 final String query = sql;
-                                                Map<String, Object> argx = SqlUtil.prepareSqlArgIf(query, lineReader);
-                                                try (Stream<DataRow> rowStream = WaitingPrinter.waiting(() -> baki.query(query).args(argx).stream())) {
+                                                Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(query, lineReader);
+                                                Map<String, Object> argx = pair.getItem2();
+                                                try (Stream<DataRow> rowStream = WaitingPrinter.waiting(() -> baki.query(pair.getItem1()).args(argx).stream())) {
                                                     // 查询缓存结果
                                                     if (StatusManager.enableCache.get()) {
                                                         if (!hasName) {
@@ -477,15 +478,17 @@ public class App {
                                             }
                                             break;
                                         case FUNCTION:
-                                            Map<String, Param> argx = SqlUtil.toInOutParam(SqlUtil.prepareSqlArgIf(sql, lineReader));
-                                            ProcedureExecutor procedureExecutor = new ProcedureExecutor(baki, sql);
+                                            Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(sql, lineReader);
+                                            Map<String, Param> argx = SqlUtil.toInOutParam(pair.getItem2());
+                                            ProcedureExecutor procedureExecutor = new ProcedureExecutor(baki, pair.getItem1());
                                             procedureExecutor.exec(argx);
                                             break;
                                         case OTHER:
                                             if (sql.contains(REDIRECT_SYMBOL)) {
                                                 PrintHelper.printlnWarning("only query support redirect operation!");
                                             } else {
-                                                PrintHelper.printQueryResult(PrintHelper.executedRow2Stream(baki, sql, SqlUtil.prepareSqlArgIf(sql, lineReader)));
+                                                Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlArgIf(sql, lineReader);
+                                                PrintHelper.printQueryResult(PrintHelper.executedRow2Stream(baki, sqlAndArgs.getItem1(), sqlAndArgs.getItem2()));
                                             }
                                             break;
                                         default:
