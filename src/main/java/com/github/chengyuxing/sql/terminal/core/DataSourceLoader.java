@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -59,8 +60,11 @@ public class DataSourceLoader {
      * @param path 路径
      * @throws NoSuchMethodException exp
      */
-    public static void loadDrivers(String path) throws NoSuchMethodException {
-        File driverDir = new File(Constants.APP_DIR + File.separator + path);
+    public static void loadDrivers(String path) throws NoSuchMethodException, FileNotFoundException {
+        File driverDir = new File(Constants.APP_DIR.getParent() + File.separator + path);
+        if (!driverDir.exists()) {
+            throw new FileNotFoundException("jdbc driver folder not exists: " + driverDir);
+        }
         URLClassLoader loader = (URLClassLoader) ClassLoader.getSystemClassLoader();
         Method add = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
         add.setAccessible(true);

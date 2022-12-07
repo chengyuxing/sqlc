@@ -296,7 +296,7 @@ public class SqlUtil {
     }
 
     public static Set<String> getSqlKeywords(String dbName) {
-        Path cnf = Paths.get(Constants.APP_DIR.toString(), "completion", dbName + ".cnf");
+        Path cnf = Paths.get(Constants.APP_DIR.getParent().toString(), "completion", dbName + ".cnf");
         if (!Files.exists(cnf)) {
             PrintHelper.printlnDarkWarning("cannot find " + dbName + " keywords completion cnf file: " + cnf);
             return Collections.emptySet();

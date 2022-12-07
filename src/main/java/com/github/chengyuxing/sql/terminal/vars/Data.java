@@ -1,17 +1,12 @@
 package com.github.chengyuxing.sql.terminal.vars;
 
-import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.completer.DynamicVarsCompleter;
 import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
-import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.types.Cache;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
-import org.jline.reader.Candidate;
-import org.jline.reader.LineReader;
-import org.jline.reader.ParsedLine;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class Data {
