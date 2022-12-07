@@ -268,4 +268,9 @@ public final class FileHelper {
             return lr.getLineNumber() + 1;
         }
     }
+
+    public static boolean isFilePath(String s) {
+        String sep = File.separator;
+        return s.startsWith(sep) || s.startsWith("." + sep) || s.startsWith(".." + sep);
+    }
 }

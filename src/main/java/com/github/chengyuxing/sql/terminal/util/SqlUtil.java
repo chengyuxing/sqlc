@@ -5,6 +5,7 @@ import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
+import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.core.ProcedureExecutor;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
@@ -14,7 +15,6 @@ import com.github.chengyuxing.sql.types.Param;
 import com.github.chengyuxing.sql.utils.SqlTranslator;
 import org.jline.reader.LineReader;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -124,7 +124,7 @@ public class SqlUtil {
         if (StringUtil.equalsAnyIgnoreCase(value, "null")) {
             return null;
         }
-        if (StringUtil.startsWiths(value, File.separator, "." + File.separator, ".." + File.separator)) {
+        if (FileHelper.isFilePath(value)) {
             return Paths.get(value).toFile();
         }
         return value;
@@ -220,7 +220,10 @@ public class SqlUtil {
      * @throws IOException 如果读取文件发生异常或文件不存在
      */
     public static List<String> multiSqlList(String multiSqlOrFilePath) throws IOException {
-        String sqls = getSqlByFileIf(multiSqlOrFilePath);
+        String sqls = multiSqlOrFilePath;
+        if (FileHelper.isFilePath(multiSqlOrFilePath)) {
+            sqls = getSqlsByFile(multiSqlOrFilePath);
+        }
         return Stream.of(sqls.split(StatusManager.sqlDelimiter.get()))
                 .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
                 .collect(Collectors.toList());
@@ -229,19 +232,16 @@ public class SqlUtil {
     /**
      * 如果是文件路径就读取文件返回sql
      *
-     * @param sqlOrPath sql字符串或路径
+     * @param sqlFilePath sql字符串或路径
      * @return sql字符串
      * @throws IOException 如果读取文件发生异常或文件不存在
      */
-    public static String getSqlByFileIf(String sqlOrPath) throws IOException {
-        if (sqlOrPath.startsWith(File.separator) || sqlOrPath.startsWith("." + File.separator)) {
-            Path path = Paths.get(sqlOrPath).toAbsolutePath();
-            if (!Files.exists(path)) {
-                throw new FileNotFoundException("sql file [" + sqlOrPath + "] not exists.");
-            }
-            return String.join("\n", Files.readAllLines(path));
+    public static String getSqlsByFile(String sqlFilePath) throws IOException {
+        Path path = Paths.get(sqlFilePath).toAbsolutePath();
+        if (!Files.exists(path)) {
+            throw new FileNotFoundException("sql file [" + sqlFilePath + "] not exists.");
         }
-        return sqlOrPath;
+        return String.join("\n", Files.readAllLines(path));
     }
 
     public static Pair<String, String> getSqlAndRedirect(String s) {
