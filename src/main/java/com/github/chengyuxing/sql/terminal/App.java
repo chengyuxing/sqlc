@@ -219,10 +219,13 @@ public class App {
             suggest.enable();
 
             SingleBaki baki = dataSourceLoader.getBaki();
-
             DatabaseMetaData metaData = baki.metaData();
+            String dbName = metaData.getDatabaseProductName().toLowerCase();
 
-            Data.keywordsCompleter.setVarsNames(SqlUtil.getSqlKeywords(metaData.getDatabaseProductName().toLowerCase()));
+            // load sql keywords completion
+            Data.keywordsCompleter.setVarsNames(SqlUtil.getSqlKeyWordsWithDefault(dbName));
+            // table name completion
+            Data.tableNameCompleter.setVarsNames(SqlUtil.getTableNames(dbName, dataSourceLoader));
 
             Prompt prompt = new Prompt(metaData.getURL());
             StatusManager.promptReference.set(prompt);

@@ -20,6 +20,7 @@ import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -50,6 +51,15 @@ public class DBTests {
         BatchInsertHelper.readDSV4batch(baki, Paths.get("/Users/chengyuxing/Downloads/big.tsv"), "big", "\t", -9);
 
 
+    }
+
+    @Test
+    public void testMysql() throws Exception{
+        DataSourceLoader loader = DataSourceLoader.of("jdbc:mysql://139.198.19.116:3306/test");
+        loader.setUsername("remote");
+        loader.setPassword("8id_439O");
+        loader.init();
+        SqlUtil.getTableNames("mysql", loader).forEach(System.out::println);
     }
 
     @Test

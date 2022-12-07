@@ -1,7 +1,6 @@
 package com.github.chengyuxing.sql.terminal.cli.completer;
 
 import com.github.chengyuxing.common.tuple.Pair;
-import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
@@ -92,5 +91,9 @@ public class CliCompleters {
 
     public static Pair<String, Completer> keywordsCmd() {
         return Pair.of("", Data.keywordsCompleter);
+    }
+
+    public static Pair<String, Completer> tableNamesCmd() {
+        return Pair.of("", Data.tableNameCompleter);
     }
 }

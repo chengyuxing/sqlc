@@ -1,10 +1,12 @@
 package com.github.chengyuxing.sql.terminal.util;
 
+import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.DateTimes;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
+import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.core.ProcedureExecutor;
@@ -290,6 +292,12 @@ public class SqlUtil {
         return names;
     }
 
+    public static Set<String> getSqlKeyWordsWithDefault(String dbName) {
+        Set<String> keywords = getSqlKeywords("default");
+        keywords.addAll(getSqlKeywords(dbName));
+        return keywords;
+    }
+
     public static Set<String> getSqlKeywords(String dbName) {
         Path cnf = Paths.get(Constants.APP_DIR.toString(), "completion", dbName + ".cnf");
         if (!Files.exists(cnf)) {
@@ -304,5 +312,18 @@ public class SqlUtil {
             log.warn("load keywords failed: ", e);
             return Collections.emptySet();
         }
+    }
+
+    public static List<String> getTableNames(String dbName, DataSourceLoader dataSourceLoader) {
+        if (Constants.DB_QUERY_TABLE_DIC.containsKey(dbName)) {
+            Pair<String, Map<String, Object>> pair = Constants.DB_QUERY_TABLE_DIC.get(dbName).apply(dataSourceLoader);
+            String sql = pair.getItem1();
+            if (!sql.equals("")) {
+                try (Stream<DataRow> s = dataSourceLoader.getBaki().query(sql).args(pair.getItem2()).stream()) {
+                    return s.map(d -> d.getString(0)).collect(Collectors.toList());
+                }
+            }
+        }
+        return Collections.emptyList();
     }
 }

@@ -22,12 +22,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -283,6 +281,17 @@ public class STests {
 
     @Test
     public void testSqlTemp() throws Exception{
-        System.out.println(Files.exists(Paths.get("/Users/chengyuxing/IdeaProjects/sqlc/build/./completion/postgresql.cnf")));
+        Path path = Paths.get("/Users/chengyuxing/IdeaProjects/sqlc/build/./completion/mysql.cnf");
+        try (Stream<String> lines = Files.lines(path)) {
+             lines.map(line -> Arrays.asList(line.split("\\s+")))
+                    .flatMap(Collection::stream)
+                    .forEach(System.out::println);
+        } catch (IOException e) {
+        }
+    }
+
+    @Test
+    public void testM() throws Exception{
+        SqlUtil.getSqlKeywords("mysql").forEach(System.out::println);
     }
 }

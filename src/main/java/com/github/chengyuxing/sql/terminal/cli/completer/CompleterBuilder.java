@@ -80,6 +80,7 @@ public class CompleterBuilder {
             add(CliCompleters.singleCmd(":help"), "get some help.");
             add(CliCompleters.directoriesCmd(Constants.CURRENT_DIR), "redirect to file symbol.");
             add(CliCompleters.keywordsCmd(), "sql keywords.");
+            add(CliCompleters.tableNamesCmd(), "table names of current user/schema.");
         }
     };
 }

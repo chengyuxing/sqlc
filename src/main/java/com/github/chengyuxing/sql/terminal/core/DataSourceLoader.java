@@ -17,10 +17,12 @@ public class DataSourceLoader {
     private final HikariConfig config = new HikariConfig();
     private HikariDataSource dataSource;
     private SingleBaki baki;
+    private final String jdbcUrl;
     private String username = "";
     private String password = "";
 
     DataSourceLoader(String jdbcUrl) {
+        this.jdbcUrl = jdbcUrl;
         this.config.setJdbcUrl(jdbcUrl);
     }
 
@@ -30,6 +32,10 @@ public class DataSourceLoader {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getJdbcUrl() {
+        return jdbcUrl;
     }
 
     public void setUsername(String username) {

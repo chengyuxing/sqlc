@@ -1,6 +1,0 @@
-select insert into values update set from where
-inner join left right group by order desc asc on
-having count count delete with sum over
-union all as true false and or like not is null
-partition row_number
-alter truncate drop table

@@ -28,6 +28,7 @@ public abstract class Data {
      * xql名字自动完成数据
      */
     public static final DynamicVarsCompleter xqlNameCompleter = new DynamicVarsCompleter();
+
     /**
      * sql关键字自动完成
      */
@@ -39,10 +40,18 @@ public abstract class Data {
             }
         }
     };
+
     /**
      * 表名自动完成
      */
-    public static final DynamicVarsCompleter tableNameCompleter = new DynamicVarsCompleter();
+    public static final DynamicVarsCompleter tableNameCompleter = new DynamicVarsCompleter() {
+        @Override
+        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+            if (!line.line().startsWith(":") && StatusManager.promptReference.get().getStatus() != Prompt.Status.CUSTOM) {
+                super.complete(reader, line, candidates);
+            }
+        }
+    };
     /**
      * xql管理器
      */
