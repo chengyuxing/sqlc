@@ -283,6 +283,6 @@ public class STests {
 
     @Test
     public void testSqlTemp() throws Exception{
-
+        System.out.println(Files.exists(Paths.get("/Users/chengyuxing/IdeaProjects/sqlc/build/./completion/postgresql.cnf")));
     }
 }

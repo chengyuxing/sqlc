@@ -36,11 +36,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.stream.Stream;
 
@@ -221,7 +220,11 @@ public class App {
 
             SingleBaki baki = dataSourceLoader.getBaki();
 
-            Prompt prompt = new Prompt(baki.metaData().getURL());
+            DatabaseMetaData metaData = baki.metaData();
+
+            Data.keywordsCompleter.setVarsNames(SqlUtil.getSqlKeywords(metaData.getDatabaseProductName().toLowerCase()));
+
+            Prompt prompt = new Prompt(metaData.getURL());
             StatusManager.promptReference.set(prompt);
 
             log.info("Type in command or sql script to execute query, ddl, dml..., or try :help.");

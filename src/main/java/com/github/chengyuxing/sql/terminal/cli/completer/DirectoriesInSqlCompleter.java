@@ -1,6 +1,8 @@
 package com.github.chengyuxing.sql.terminal.cli.completer;
 
 import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.sql.terminal.core.FileHelper;
+import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import org.jline.builtins.Completers;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
@@ -20,7 +22,7 @@ public class DirectoriesInSqlCompleter extends Completers.DirectoriesCompleter {
     public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
         if (!commandLine.line().startsWith(":")) {
             String word = commandLine.word();
-            if (StringUtil.startsWiths(word, File.separator, "." + File.separator, ".." + File.separator)) {
+            if (FileHelper.isFilePath(word)) {
                 super.complete(reader, commandLine, candidates);
             }
         }

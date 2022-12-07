@@ -45,7 +45,6 @@ public class DataSourceLoader {
         config.setUsername(username);
         config.setPassword(password);
         dataSource = new HikariDataSource(config);
-
     }
 
     /**
@@ -55,9 +54,7 @@ public class DataSourceLoader {
      * @throws NoSuchMethodException exp
      */
     public static void loadDrivers(String path) throws NoSuchMethodException {
-        String classPath = System.getProperty("java.class.path");
-        String absolutePath = classPath.substring(0, classPath.lastIndexOf(File.separator));
-        File driverDir = new File(absolutePath + File.separator + path);
+        File driverDir = new File(Constants.APP_DIR + File.separator + path);
         URLClassLoader loader = (URLClassLoader) ClassLoader.getSystemClassLoader();
         Method add = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
         add.setAccessible(true);

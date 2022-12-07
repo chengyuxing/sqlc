@@ -79,6 +79,7 @@ public class CompleterBuilder {
             add(CliCompleters.singleCmd(":q"), "quit.");
             add(CliCompleters.singleCmd(":help"), "get some help.");
             add(CliCompleters.directoriesCmd(Constants.CURRENT_DIR), "redirect to file symbol.");
+            add(CliCompleters.keywordsCmd(), "sql keywords.");
         }
     };
 }

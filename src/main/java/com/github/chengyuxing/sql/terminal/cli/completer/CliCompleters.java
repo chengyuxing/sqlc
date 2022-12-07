@@ -1,6 +1,8 @@
 package com.github.chengyuxing.sql.terminal.cli.completer;
 
 import com.github.chengyuxing.common.tuple.Pair;
+import com.github.chengyuxing.sql.terminal.vars.Constants;
+import com.github.chengyuxing.sql.terminal.vars.Data;
 import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.ArgumentCompleter;
@@ -86,5 +88,9 @@ public class CliCompleters {
 
     public static Pair<String, Completer> directoriesCmd(Path path) {
         return Pair.of("", new DirectoriesInSqlCompleter(path));
+    }
+
+    public static Pair<String, Completer> keywordsCmd() {
+        return Pair.of("", Data.keywordsCompleter);
     }
 }

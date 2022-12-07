@@ -12,6 +12,8 @@ public class Constants {
     public static final Path ROOT_DIR = Paths.get(File.separator);
     public static final Path USER_HOME = Paths.get(System.getProperty("user.home"));
     public static final Path CURRENT_DIR = Paths.get(System.getProperty("user.dir"));
+    public static final Path CLASS_PATH = Paths.get(System.getProperty("java.class.path"));
+    public static final Path APP_DIR = CLASS_PATH.getParent();
     public static final String TERM = System.getenv("TERM");
     public static final boolean IS_XTERM = TERM != null && TERM.startsWith("xterm");
     public static final DefaultParser cliParser = new DefaultParser().regexCommand(":?[a-zA-Z]+[a-zA-Z0-9_\\-@&]*!?");
