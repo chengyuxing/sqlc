@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-DIRNAME=$0
-if [ "${DIRNAME:0:1}" = "/" ]; then
-  CURDIR=$(dirname "$DIRNAME")
-else
-  CURDIR="$(pwd)"/"$(dirname "$DIRNAME")"
-fi
-java -jar "$CURDIR"/lib/sqlc.jar "$@"
