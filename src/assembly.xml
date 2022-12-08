@@ -5,27 +5,27 @@
 
     <id>distribution</id>
 
-    <!--输出格式 zip 最终结果生成zip -->
     <formats>
         <format>tar.gz</format>
+        <format>zip</format>
     </formats>
 
     <includeBaseDirectory>true</includeBaseDirectory>
 
-    <!--设置需要输出文件 -->
     <fileSets>
         <fileSet>
             <directory>src/bin</directory>
             <outputDirectory>/</outputDirectory>
+            <filtered>true</filtered>
             <fileMode>0755</fileMode>
         </fileSet>
         <fileSet>
-            <directory>src/completion/</directory>
+            <directory>src/completion</directory>
             <outputDirectory>/completion</outputDirectory>
             <fileMode>0644</fileMode>
         </fileSet>
         <fileSet>
-            <directory>src/drivers/</directory>
+            <directory>src/drivers</directory>
             <outputDirectory>/drivers</outputDirectory>
             <fileMode>0644</fileMode>
         </fileSet>
@@ -33,7 +33,6 @@
 
     <dependencySets>
         <dependencySet>
-            <!--依赖包的输出目录 -->
             <outputDirectory>/lib</outputDirectory>
             <scope>runtime</scope>
         </dependencySet>
