@@ -14,7 +14,7 @@
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <output.dir>${project.basedir}/build/sqlc-v${version}</output.dir>
+        <output.dir>${project.basedir}/build/${name}-v${version}</output.dir>
     </properties>
 
     <dependencies>
@@ -191,6 +191,7 @@
                     <descriptors>
                         <descriptor>src/assembly.xml</descriptor>
                     </descriptors>
+                    <finalName>${name}-v${version}</finalName>
                     <outputDirectory>${project.basedir}/build</outputDirectory>
                 </configuration>
                 <executions>
