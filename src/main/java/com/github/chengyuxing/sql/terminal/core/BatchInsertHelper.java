@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.Lines;
 import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.excel.Excels;
+import com.github.chengyuxing.excel.io.ExcelReader;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
@@ -52,7 +54,11 @@ public class BatchInsertHelper {
                         readDSV4batch(baki, file, tableName, "\t", headerIdx);
                         break;
                     case ".xlsx":
+                    case ".xls":
+                        readExcel4batch(baki, file, tableName, headerIdx);
                         break;
+                    default:
+                        throw new UnsupportedOperationException("extension'" + ext + "' file type not support.");
                 }
             }
         } else {
@@ -60,7 +66,7 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void readInsertSqlScriptBatchExecute(SingleBaki baki, Path path) throws IOException {
+    public static void readInsertSqlScriptBatchExecute(SingleBaki baki, Path path) {
         String delimiter = StatusManager.sqlDelimiter.get();
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
@@ -120,7 +126,7 @@ public class BatchInsertHelper {
             pp.stop();
         } catch (Exception e) {
             pp.interrupt();
-            throw e;
+            throw new RuntimeException(e);
         }
     }
 
@@ -145,7 +151,7 @@ public class BatchInsertHelper {
     }
 
 
-    public static void readJson4batch(SingleBaki baki, Path path, String tableName) throws IOException {
+    public static void readJson4batch(SingleBaki baki, Path path, String tableName) {
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         ProgressPrinter pp = new ProgressPrinter();
@@ -172,11 +178,11 @@ public class BatchInsertHelper {
             pp.stop();
         } catch (Exception e) {
             pp.interrupt();
-            throw e;
+            throw new RuntimeException(e);
         }
     }
 
-    public static void readDSV4batch(SingleBaki baki, Path path, String tableName, String delimiter, int headerIdx) throws IOException {
+    public static void readDSV4batch(SingleBaki baki, Path path, String tableName, String delimiter, int headerIdx) {
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         ProgressPrinter pp = new ProgressPrinter();
@@ -221,7 +227,53 @@ public class BatchInsertHelper {
             pp.stop();
         } catch (Exception e) {
             pp.interrupt();
-            throw e;
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void readExcel4batch(SingleBaki baki, Path path, String tableName, int headerIdx) {
+        FastList<String> chunk = new FastList<>(String.class);
+        AtomicReference<String> example = new AtomicReference<>("");
+        ProgressPrinter pp = new ProgressPrinter();
+        pp.setStep(2);
+        pp.setFormatter(formatter("rows", "inserted"));
+        pp.whenStopped(whenStoppedFunc(chunk, example, "rows", "insert")).start();
+        try {
+            ExcelReader reader = Excels.reader(path);
+            int skip = 0;
+            if (headerIdx >= 0) {
+                reader.namedHeaderAt(headerIdx,true);
+                skip = 1;
+            } else {
+                reader.namedHeaderAt(-1, true);
+                reader.fieldMap(baki.getTableFields(tableName).toArray(new String[0]));
+            }
+            try (Stream<DataRow> s = reader.stream()) {
+                s.skip(skip)
+                        .peek(d -> d.removeIf((k, v) -> k == null || k.trim().equals("")))
+                        .peek(d -> d.removeIf((k, v) -> v == null || v.toString().equals("")))
+                        .filter(d -> !d.isEmpty())
+                        .map(d -> SqlUtil.sqlTranslator.generateInsert(tableName, d, Collections.emptyList()))
+                        .forEach(insert -> {
+                            chunk.add(insert);
+                            if (example.get().equals("")) {
+                                example.set(chunk.get(0));
+                            }
+                            if (chunk.size() == 999) {
+                                baki.batchExecute(chunk);
+                                chunk.clear();
+                                pp.increment();
+                            }
+                        });
+                if (!chunk.isEmpty()) {
+                    baki.batchExecute(chunk);
+                    pp.increment();
+                }
+                pp.stop();
+            }
+        } catch (Exception e) {
+            pp.interrupt();
+            throw new RuntimeException(e);
         }
     }
 

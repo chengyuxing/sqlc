@@ -42,12 +42,12 @@ public class CompleterBuilder {
     public static CompleterBuilder builtins = new CompleterBuilder() {
         {
             add(CliCompleters.readQuery(":exec"), "read a sql file for execute query, and redirect query result to ",
-                    Arrays.asList("file optional.", "e.g:", ":exec /query.sql", ":exec /query.sql " + Constants.REDIRECT_SYMBOL + " /path/result.[sql|tsv|csv|xlsx|json]"),
+                    Arrays.asList("file( depends on '-f') optional.", "e.g:", ":exec /query.sql", ":exec /query.sql " + Constants.REDIRECT_SYMBOL + " /path/result.[sql|tsv|csv|xlsx|json]"),
                     "[sql-file]", "[" + Constants.REDIRECT_SYMBOL + " output]");
             add(CliCompleters.read4Batch(":exec@"), "read a multi-line file for execute batch insert, file type:", Arrays.asList(
                     ".sql: delimiter default ';'",
-                    ".csv|.tsv: default header-index is 0, it means first line is ",
-                    "fields, -1 means no fields, 5 means fields at 5th line and ",
+                    ".csv|.tsv|.xls(x): default header-index is 0, it means first line ",
+                    "is fields, -1 means no fields, 5 means fields at 5th line and ",
                     "start read from 5th line."
             ), "[input-file] [header-index]");
             add(CliCompleters.cmdBuilder(":exec&",
@@ -70,7 +70,7 @@ public class CompleterBuilder {
                             new Completers.DirectoriesCompleter(Paths.get(File.separator)),
                             NullCompleter.INSTANCE),
                     "get cache by key [redirect to file].",
-                    Arrays.asList("e.g: ", ":get res0", ":get res0 " + Constants.REDIRECT_SYMBOL + " /result.[sql|tsv|csv|excel|json]"),
+                    Arrays.asList("e.g: ", ":get res0", ":get res0 " + Constants.REDIRECT_SYMBOL + " /result.[sql|tsv|csv|xlsx|json]"),
                     "[key]", "[" + Constants.REDIRECT_SYMBOL + " output]");
             add(CliCompleters.cmdBuilder(":rm", cacheNameCompleter, NullCompleter.INSTANCE), "remove the cache by key.", "[key]");
             add(CliCompleters.transaction(":tx"), "use transaction.", "[begin|commit|rollback]");
