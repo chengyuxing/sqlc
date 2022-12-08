@@ -36,7 +36,7 @@ public class CliCompleters {
     public static Pair<String, Completer> read4Batch(String mainCmd) {
         ArgumentCompleter completer = new ArgumentCompleter(
                 new StringsCompleter(mainCmd),
-                new Completers.FilesCompleter(CURRENT_DIR, "*.sql|*.json|*.csv|*.tsv|*.xlsx"),
+                new Completers.FilesCompleter(CURRENT_DIR, "*.sql|*.json|*.csv|*.tsv|*.xlsx|*.xls"),
                 NullCompleter.INSTANCE
         );
         return Pair.of(mainCmd, completer);

@@ -48,8 +48,9 @@ public class CompleterBuilder {
                     ".sql: delimiter default ';'",
                     ".csv|.tsv|.xls(x): default header-index is 0, it means first line ",
                     "is fields, -1 means no fields, 5 means fields at 5th line and ",
-                    "start read from 5th line."
-            ), "[input-file] [header-index]");
+                    "start read from 5th line.",
+                    "xls(x) sheet index default is 0."
+            ), "[input-file] [sheet-index] [header-index]");
             add(CliCompleters.cmdBuilder(":exec&",
                             xqlNameCompleter,
                             NullCompleter.INSTANCE),

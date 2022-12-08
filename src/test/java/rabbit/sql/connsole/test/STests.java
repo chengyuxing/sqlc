@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.FileResource;
+import com.github.chengyuxing.excel.Excels;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
@@ -271,7 +272,7 @@ public class STests {
     }
 
     @Test
-    public void testXql() throws Exception{
+    public void testXql() throws Exception {
         XQLFileManager xqlFileManager = new XQLFileManager();
         xqlFileManager.add("me", "file:/Users/chengyuxing/Downloads/xql_file_manager.xql");
         xqlFileManager.init();
@@ -280,10 +281,10 @@ public class STests {
     }
 
     @Test
-    public void testSqlTemp() throws Exception{
+    public void testSqlTemp() throws Exception {
         Path path = Paths.get("/Users/chengyuxing/IdeaProjects/sqlc/build/./completion/mysql.cnf");
         try (Stream<String> lines = Files.lines(path)) {
-             lines.map(line -> Arrays.asList(line.split("\\s+")))
+            lines.map(line -> Arrays.asList(line.split("\\s+")))
                     .flatMap(Collection::stream)
                     .forEach(System.out::println);
         } catch (IOException e) {
@@ -291,7 +292,20 @@ public class STests {
     }
 
     @Test
-    public void testM() throws Exception{
+    public void testM() throws Exception {
         SqlUtil.getSqlKeywords("mysql").forEach(System.out::println);
+    }
+
+    @Test
+    public void testExcel() throws Exception {
+        Excels.reader(Paths.get("/Users/chengyuxing/Downloads/big.xlsx"))
+                .namedHeaderAt(-1)
+                .fieldMap(new String[]{"id", "name", "address", "age"})
+                .stream()
+                .skip(0)
+                .peek(d -> d.removeIf((k, v) -> k == null || k.trim().equals("")))
+                .peek(d -> d.removeIf((k, v) -> v == null || v.toString().equals("")))
+                .filter(d -> !d.isEmpty())
+                .forEach(System.out::println);
     }
 }

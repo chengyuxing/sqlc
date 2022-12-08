@@ -31,8 +31,8 @@ import java.util.stream.Stream;
 public class BatchInsertHelper {
     static final ObjectMapper JSON = new ObjectMapper();
 
-    public static void readFile4batch(SingleBaki baki, String filePath, int headerIdx) throws Exception {
-        Path file = Paths.get(filePath);
+    public static void readFile4batch(SingleBaki baki, String filePath, int sheetIdx, int headerIdx) throws Exception {
+        Path file = Paths.get(filePath.trim());
         if (Files.exists(file)) {
             String fileName = file.getFileName().toString();
             int dotIdx = fileName.lastIndexOf(".");
@@ -55,7 +55,7 @@ public class BatchInsertHelper {
                         break;
                     case ".xlsx":
                     case ".xls":
-                        readExcel4batch(baki, file, tableName, headerIdx);
+                        readExcel4batch(baki, file, tableName, sheetIdx, headerIdx);
                         break;
                     default:
                         throw new UnsupportedOperationException("extension'" + ext + "' file type not support.");
@@ -64,6 +64,14 @@ public class BatchInsertHelper {
         } else {
             throw new FileNotFoundException("file [ " + file + " ] does not exists.");
         }
+    }
+
+    public static void readFile4batch(SingleBaki baki, String filePath, int headerIdx) throws Exception {
+        readFile4batch(baki, filePath, 0, headerIdx);
+    }
+
+    public static void readFile4batch(SingleBaki baki, String filePath) throws Exception {
+        readFile4batch(baki, filePath, 0);
     }
 
     public static void readInsertSqlScriptBatchExecute(SingleBaki baki, Path path) {
@@ -231,7 +239,7 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void readExcel4batch(SingleBaki baki, Path path, String tableName, int headerIdx) {
+    public static void readExcel4batch(SingleBaki baki, Path path, String tableName, int sheetIdx, int headerIdx) {
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         ProgressPrinter pp = new ProgressPrinter();
@@ -239,10 +247,10 @@ public class BatchInsertHelper {
         pp.setFormatter(formatter("rows", "inserted"));
         pp.whenStopped(whenStoppedFunc(chunk, example, "rows", "insert")).start();
         try {
-            ExcelReader reader = Excels.reader(path);
+            ExcelReader reader = Excels.reader(path).sheetAt(sheetIdx);
             int skip = 0;
             if (headerIdx >= 0) {
-                reader.namedHeaderAt(headerIdx,true);
+                reader.namedHeaderAt(headerIdx, true);
                 skip = 1;
             } else {
                 reader.namedHeaderAt(-1, true);

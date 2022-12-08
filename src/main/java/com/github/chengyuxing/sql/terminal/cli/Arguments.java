@@ -15,6 +15,7 @@ public class Arguments {
             "-e",   //sql string or sql file
             "-d",    //multi sql block delimiter;
             "-header",   // tsv,csv，excel header index
+            "-sheet",   // excel sheet index
             "--with-tx"   //using transaction wrapper
     };
     private final String[] args;

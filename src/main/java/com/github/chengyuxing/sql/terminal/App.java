@@ -145,18 +145,19 @@ public class App {
         boolean usingTx = args.containsKey("--with-tx");
         // just execute batch insert
         if (sql.startsWith("@")) {
+            int sheetIdx = Integer.parseInt(args.getIfBlank("-sheet", "0"));
             int headerIdx = Integer.parseInt(args.getIfBlank("-header", "0"));
             String filePath = sql.substring(1).trim();
             if (usingTx) {
                 Tx.using(() -> {
                     try {
-                        BatchInsertHelper.readFile4batch(baki, filePath, headerIdx);
+                        BatchInsertHelper.readFile4batch(baki, filePath, sheetIdx, headerIdx);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 });
             } else {
-                BatchInsertHelper.readFile4batch(baki, filePath, headerIdx);
+                BatchInsertHelper.readFile4batch(baki, filePath, sheetIdx, headerIdx);
             }
             return;
         }
@@ -290,6 +291,14 @@ public class App {
                                     }
                                     break;
                                 default:
+                                    Matcher bmeh = EXEC_BATCH_EXCEL_REGEX.matcher(line);
+                                    if (bmeh.find()) {
+                                        String file = bmeh.group("input");
+                                        int sheetIdx = Integer.parseInt(bmeh.group("sheetIdx"));
+                                        int headerIdx = Integer.parseInt(bmeh.group("headerIdx"));
+                                        BatchInsertHelper.readFile4batch(baki, file, sheetIdx, headerIdx);
+                                        break;
+                                    }
                                     Matcher bmh = EXEC_BATCH_WITH_HEADER_REGEX.matcher(line);
                                     if (bmh.find()) {
                                         String file = bmh.group("input");
@@ -301,7 +310,7 @@ public class App {
                                     Matcher bm = EXEC_BATCH_REGEX.matcher(line);
                                     if (bm.find()) {
                                         String file = bm.group("input");
-                                        BatchInsertHelper.readFile4batch(baki, file, 0);
+                                        BatchInsertHelper.readFile4batch(baki, file);
                                         break;
                                     }
 
