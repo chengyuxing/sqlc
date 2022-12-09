@@ -174,3 +174,6 @@
 
 ## 截图
 
+命令模式执行预编译sql
+
+![](/Users/chengyuxing/Desktop/command_prepare_query.gif)
