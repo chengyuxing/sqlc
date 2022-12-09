@@ -15,7 +15,7 @@ public class Prompt {
     private Status status = Status.NEWLINE;
 
     public Prompt(String jdbcUrl) {
-        Pattern p = Pattern.compile("(?<host>\\d{1,3}(\\.\\d{1,3}){3}:\\d{1,5})");
+        Pattern p = Pattern.compile("(?<host>\\d{1,3}(\\.\\d{1,3}){3}(:\\d{1,5})?)");
         Matcher m = p.matcher(jdbcUrl);
         if (m.find()) {
             this.host = m.group("host") + "> ";
