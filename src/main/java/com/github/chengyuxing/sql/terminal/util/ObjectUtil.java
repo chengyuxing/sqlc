@@ -2,6 +2,7 @@ package com.github.chengyuxing.sql.terminal.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.utils.StringUtil;
 
@@ -9,6 +10,7 @@ import java.util.Arrays;
 
 public class ObjectUtil {
     public final static ObjectMapper JSON = new ObjectMapper();
+    public final static ObjectWriter PRETTY_JSON = JSON.writerWithDefaultPrettyPrinter();
 
     public static String getJson(DataRow row) throws JsonProcessingException {
         for (String name : row.keySet()) {
@@ -17,7 +19,7 @@ public class ObjectUtil {
                 row.put(name, wrapObjectForSerialized(v));
             }
         }
-        return JSON.writerWithDefaultPrettyPrinter().writeValueAsString(row);
+        return PRETTY_JSON.writeValueAsString(row);
     }
 
     public static Object wrapObjectForSerialized(Object obj) {

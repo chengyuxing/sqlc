@@ -210,7 +210,7 @@ public class App {
                     .terminal(terminal)
                     .parser(cliParser)
                     .completer(new AggregateCompleter(CompleterBuilder.builtins.getCompleters()))
-                    .variable(LineReader.HISTORY_FILE, Paths.get(Constants.USER_HOME.toString(), "sqlc.new.history"))
+                    .variable(LineReader.HISTORY_FILE, Paths.get(Constants.USER_HOME.toString(), ".sqlc_history"))
                     .history(new SqlHistory(sqlBuilder))
                     .build();
 

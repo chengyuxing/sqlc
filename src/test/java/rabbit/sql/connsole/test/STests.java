@@ -308,4 +308,10 @@ public class STests {
                 .filter(d -> !d.isEmpty())
                 .forEach(System.out::println);
     }
+
+    @Test
+    public void testTemp() throws Exception{
+        System.out.println(SqlUtil.getTemplateNames("select * from big where ${cnd}"));
+
+    }
 }
