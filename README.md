@@ -176,4 +176,4 @@
 
 命令模式执行预编译sql
 
-![](/Users/chengyuxing/Desktop/command_prepare_query.gif)
+![](screen_shot/command_prepare_query.gif)
