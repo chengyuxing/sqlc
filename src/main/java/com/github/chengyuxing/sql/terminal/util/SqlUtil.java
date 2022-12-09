@@ -179,6 +179,9 @@ public class SqlUtil {
      */
     public static Pair<String, Map<String, Object>> prepareSqlArgIf(String sql, LineReader lineReader) {
         String fmtSql = formatSql(sql, lineReader);
+        if (!sql.equals(fmtSql)) {
+            PrintHelper.printlnHighlightSql(fmtSql);
+        }
         Pair<String, List<String>> pSql = sqlTranslator.generateSql(fmtSql, Collections.emptyMap(), true);
         List<String> pNames = pSql.getItem2();
         if (pNames.isEmpty()) {
