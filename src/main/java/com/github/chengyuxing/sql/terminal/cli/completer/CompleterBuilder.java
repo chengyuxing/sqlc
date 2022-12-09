@@ -63,6 +63,7 @@ public class CompleterBuilder {
             add(CliCompleters.singleCmd(":c"), "enable cache query results.");
             add(CliCompleters.singleCmd(":C"), "disable cache query results.");
             add(CliCompleters.singleCmd(":C!"), "disable and clean cache query results.");
+            add(CliCompleters.singleCmd(":paste"), "paste block of sql to execute(Ctrl+o,enter,Ctrl+x).");
             add(CliCompleters.singleCmd(":ls"), "list all of cache.");
             add(CliCompleters.singleCmd(":status"), "show current status.");
             add(CliCompleters.cmdBuilder(":get",

@@ -23,6 +23,10 @@ import com.github.chengyuxing.sql.transaction.Tx;
 import com.github.chengyuxing.sql.types.Param;
 import org.apache.log4j.Level;
 import org.jline.builtins.Completers;
+import org.jline.builtins.ConfigurationPath;
+import org.jline.console.CommandRegistry;
+import org.jline.console.impl.Builtins;
+import org.jline.console.impl.JlineCommandRegistry;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.completer.AggregateCompleter;
@@ -34,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.DatabaseMetaData;
@@ -204,6 +209,8 @@ public class App {
                 .system(true)
                 .build()) {
 
+            CommandRegistry.CommandSession session = new CommandRegistry.CommandSession(terminal);
+
             final List<String> sqlBuilder = new ArrayList<>();
 
             LineReader lineReader = LineReaderBuilder.builder()
@@ -220,6 +227,8 @@ public class App {
             // 使用ctrl+o自动跳转到下一个单词
             suggest.getKeyMap().bind(new Reference(LineReader.FORWARD_WORD), KeyMap.ctrl('o'));
             suggest.enable();
+
+            JlineCommandRegistry commandRegistry = new Builtins(CURRENT_DIR, new ConfigurationPath(APP_DIR, USER_HOME), s -> lineReader.getBuiltinWidgets().get(s));
 
             SingleBaki baki = dataSourceLoader.getBaki();
             DatabaseMetaData metaData = baki.metaData();
@@ -288,6 +297,23 @@ public class App {
                                     } else {
                                         Tx.begin();
                                         StatusManager.setTxActive(true);
+                                    }
+                                    break;
+                                case ":paste":
+                                    String temp = ".sqlc_paste_" + System.currentTimeMillis() + "_temp";
+                                    Path path = Paths.get(CURRENT_DIR.toString(), temp);
+                                    try {
+                                        commandRegistry.invoke(session, "nano", temp);
+                                        if (Files.exists(path)) {
+                                            String sqlContent = String.join("\n", Files.readAllLines(path)).trim();
+                                            if (!sqlContent.equals("")) {
+                                                ExecExecutor executor = new ExecExecutor(baki, sqlContent);
+                                                executor.exec(lineReader);
+                                                prompt.newLine();
+                                            }
+                                        }
+                                    } finally {
+                                        Files.deleteIfExists(path);
                                     }
                                     break;
                                 default:
