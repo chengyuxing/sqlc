@@ -172,7 +172,7 @@
   select * from big &> /Users/chengyuxing/Downloads/big;
   ```
 
-## 截图
+## 视频示例
 
 命令模式执行预编译sql
 
@@ -204,4 +204,4 @@
 
 编辑存储过程
 
-![](screen_shot/edit.gif)
+![](screen_shot/edit.mov)
