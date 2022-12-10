@@ -202,6 +202,6 @@
 
 ![](screen_shot/procedure.gif)
 
-编辑存储过程
 
-![](screen_shot/edit.mov)
+
+[编辑存储过程](screen_shot/edit.mov)
