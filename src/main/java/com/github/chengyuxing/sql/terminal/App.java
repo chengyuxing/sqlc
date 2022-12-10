@@ -245,7 +245,9 @@ public class App {
 
             Data.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
             Data.keywordsCompleter.addVarsNames(dataBaseResource.getUserTableNames());
-            Data.procedureNameCompleter.setVarsNames(dataBaseResource.getUserProcedures());
+            List<String> procedures = dataBaseResource.getUserProcedures();
+            Data.keywordsCompleter.addVarsNames(procedures);
+            Data.procedureNameCompleter.setVarsNames(procedures);
 
             Prompt prompt = new Prompt(metaData.getURL());
             StatusManager.promptReference.set(prompt);
