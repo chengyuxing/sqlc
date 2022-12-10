@@ -172,36 +172,12 @@
   select * from big &> /Users/chengyuxing/Downloads/big;
   ```
 
-## 视频示例
-
-命令模式执行预编译sql
-
-![](screen_shot/command_prepare_query.gif)
-
-切换结果打印视图
-
-![](screen_shot/change_view.gif)
-
-加载xql文件执行动态sql
-
-![](screen_shot/xql.gif)
-
-查询结果重定向到文件
-
-![](screen_shot/redirect_to_file.gif)
-
-批量导入数据
-
-![](screen_shot/exec@.gif)
-
-插入文件
-
-![](screen_shot/insert_blob.gif)
-
-执行存储过程
-
-![](screen_shot/procedure.gif)
-
-
-
-[编辑存储过程](screen_shot/edit.mov)
+## 截图
+[命令模式执行预编译sql](screen_shot/command_prepare_query.gif)
+[切换结果打印视图](screen_shot/change_view.gif)
+[加载xql文件执行动态sql](screen_shot/xql.gif)
+[查询结果重定向到文件](screen_shot/redirect_to_file.gif)
+[批量导入数据](screen_shot/exec@.gif)
+[插入文件](screen_shot/insert_blob.gif)
+[执行存储过程](screen_shot/procedure.gif)
+[编辑存储过程](screen_shot/edit.gif)
