@@ -1,4 +1,4 @@
-# 关于SQLC 2.0
+# 关于SQLC 2.x
 
 基于jdk8，支持：Linux | macOS | Windows
 
