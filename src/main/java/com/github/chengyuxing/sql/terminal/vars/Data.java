@@ -5,7 +5,10 @@ import com.github.chengyuxing.sql.terminal.cli.completer.DynamicVarsCompleter;
 import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 import com.github.chengyuxing.sql.terminal.types.Cache;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,7 +29,10 @@ public abstract class Data {
      * xql名字自动完成数据
      */
     public static final DynamicVarsCompleter xqlNameCompleter = new DynamicVarsCompleter();
-
+    /**
+     * 存储过程名字自动完成
+     */
+    public static final DynamicVarsCompleter procedureNameCompleter = new DynamicVarsCompleter();
     /**
      * sql关键字自动完成
      */
@@ -37,4 +43,8 @@ public abstract class Data {
     public static final XQLFileManager xqlFileManager = new XQLFileManager() {{
         setHighlightSql(Constants.IS_XTERM);
     }};
+    /**
+     * 临时文件缓存
+     */
+    public static final List<Path> tempFiles = new ArrayList<>();
 }

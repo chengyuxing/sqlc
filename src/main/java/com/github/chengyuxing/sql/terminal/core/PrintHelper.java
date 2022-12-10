@@ -116,11 +116,11 @@ public final class PrintHelper {
             try (Stream<DataRow> s = WaitingPrinter.waiting(() -> baki.query(sqlOrAddress).args(args).stream())) {
                 printQueryResult(s);
             }
-        } else if (sqlType == SqlType.OTHER) {
-            printQueryResult(executedRow2Stream(baki, sqlOrAddress, args));
         } else if (sqlType == SqlType.FUNCTION) {
             ProcedureExecutor procedureExecutor = new ProcedureExecutor(baki, tempString);
             procedureExecutor.exec(SqlUtil.toInOutParam(args));
+        } else if (sqlType == SqlType.OTHER) {
+            printQueryResult(executedRow2Stream(baki, sqlOrAddress, args));
         }
     }
 

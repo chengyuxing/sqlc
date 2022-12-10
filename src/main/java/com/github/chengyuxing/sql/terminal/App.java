@@ -200,6 +200,13 @@ public class App {
                 Tx.rollback();
             }
             dataSourceLoader.release();
+            Data.tempFiles.forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (Exception e) {
+                    PrintHelper.printlnError(e);
+                }
+            });
             System.out.println("Bye bye :(");
         }));
 
@@ -234,8 +241,11 @@ public class App {
             DatabaseMetaData metaData = baki.metaData();
             String dbName = metaData.getDatabaseProductName().toLowerCase();
 
-            Data.keywordsCompleter.addVarsNames(SqlUtil.getSqlKeyWordsWithDefault(dbName));
-            Data.keywordsCompleter.addVarsNames(SqlUtil.getTableNames(dbName, dataSourceLoader));
+            DataBaseResource dataBaseResource = new DataBaseResource(dbName, dataSourceLoader);
+
+            Data.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
+            Data.keywordsCompleter.addVarsNames(dataBaseResource.getUserTableNames());
+            Data.procedureNameCompleter.setVarsNames(dataBaseResource.getUserProcedures());
 
             Prompt prompt = new Prompt(metaData.getURL());
             StatusManager.promptReference.set(prompt);
@@ -300,8 +310,9 @@ public class App {
                                     }
                                     break;
                                 case ":paste":
-                                    String temp = ".sqlc_paste_" + System.currentTimeMillis() + "_temp";
+                                    String temp = "paste_panel_" + System.currentTimeMillis();
                                     Path path = Paths.get(CURRENT_DIR.toString(), temp);
+                                    Data.tempFiles.add(path);
                                     try {
                                         commandRegistry.invoke(session, "nano", temp);
                                         if (Files.exists(path)) {
@@ -378,6 +389,35 @@ public class App {
                                         Data.xqlNameCompleter.setVarsNames(Data.xqlFileManager.names());
                                         PrintHelper.printlnInfo("XQLFileManager enabled, input command: ':exec& your_sql_name' to execute!");
                                         break;
+                                    }
+
+                                    if (line.startsWith(":edit")) {
+                                        String name = line.substring(5).trim();
+                                        switch (dbName) {
+                                            case "postgresql":
+                                                String def = dataBaseResource.getProcedureDefinition(name);
+                                                if (def.trim().equals("")) {
+                                                    throw new RuntimeException("procedure definition is empty.");
+                                                }
+                                                String procedureTemp = name + "_" + System.currentTimeMillis();
+                                                Path procedurePath = Paths.get(CURRENT_DIR.toString(), procedureTemp);
+                                                Data.tempFiles.add(procedurePath);
+                                                try {
+                                                    Files.write(procedurePath, def.getBytes(StandardCharsets.UTF_8));
+                                                    commandRegistry.invoke(session, "nano", procedureTemp);
+                                                    String newDef = String.join("\n", Files.readAllLines(procedurePath));
+                                                    if (!def.trim().equals(newDef.trim())) {
+                                                        baki.execute(newDef);
+                                                        PrintHelper.printlnNotice(name + " submitted!");
+                                                    }
+                                                } finally {
+                                                    Files.deleteIfExists(procedurePath);
+                                                }
+                                                break label;
+                                            default:
+                                                PrintHelper.printlnDarkWarning(":edit not support " + dbName + " currently.");
+                                                break label;
+                                        }
                                     }
 
                                     if (line.startsWith(":get")) {

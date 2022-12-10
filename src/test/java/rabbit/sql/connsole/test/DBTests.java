@@ -6,21 +6,13 @@ import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
-import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
-import com.github.chengyuxing.sql.terminal.core.BatchInsertHelper;
-import com.github.chengyuxing.sql.terminal.core.SingleBaki;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
+import com.github.chengyuxing.sql.terminal.core.*;
 import org.junit.Test;
 import org.postgresql.util.PGobject;
-import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
-import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 
-import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +20,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 public class DBTests {
 
@@ -46,11 +37,10 @@ public class DBTests {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
         loader.setUsername("chengyuxing");
         loader.init();
-        SingleBaki baki = loader.getBaki();
-
-        BatchInsertHelper.readDSV4batch(baki, Paths.get("/Users/chengyuxing/Downloads/big.tsv"), "big", "\t", -9);
-
-
+        DataBaseResource dataBaseResource = new DataBaseResource("postgresql", loader);
+        dataBaseResource.getUserTableNames()
+                .forEach(System.out::println);
+        System.out.println(dataBaseResource.getProcedureDefinition("test.slow_query(integer, integer)"));
     }
 
     @Test
@@ -59,7 +49,7 @@ public class DBTests {
         loader.setUsername("remote");
         loader.setPassword("8id_439O");
         loader.init();
-        SqlUtil.getTableNames("mysql", loader).forEach(System.out::println);
+//        SqlUtil.getTableNames("mysql", loader).forEach(System.out::println);
     }
 
     @Test

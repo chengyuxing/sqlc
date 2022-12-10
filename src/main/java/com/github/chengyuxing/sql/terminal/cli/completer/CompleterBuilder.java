@@ -11,8 +11,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static com.github.chengyuxing.sql.terminal.vars.Data.cacheNameCompleter;
-import static com.github.chengyuxing.sql.terminal.vars.Data.xqlNameCompleter;
+import static com.github.chengyuxing.sql.terminal.vars.Data.*;
 
 public class CompleterBuilder {
     private final List<Completer> completers = new ArrayList<>();
@@ -63,9 +62,15 @@ public class CompleterBuilder {
             add(CliCompleters.singleCmd(":c"), "enable cache query results.");
             add(CliCompleters.singleCmd(":C"), "disable cache query results.");
             add(CliCompleters.singleCmd(":C!"), "disable and clean cache query results.");
-            add(CliCompleters.singleCmd(":paste"), "paste block of sql to execute(Ctrl+o,enter,Ctrl+x).");
+            add(CliCompleters.singleCmd(":paste"), "paste block of sql to execute(Ctrl+o, Enter, Ctrl+x).", Collections.singletonList("or Ctrl+g to get some help!"));
             add(CliCompleters.singleCmd(":ls"), "list all of cache.");
             add(CliCompleters.singleCmd(":status"), "show current status.");
+            add(CliCompleters.cmdBuilder(":edit", procedureNameCompleter, NullCompleter.INSTANCE),
+                    "open editor for update procedure definition.", Arrays.asList(
+                            "save: Ctrl+o, Enter",
+                            "submit change: Ctrl+x",
+                            "or Ctrl+g to get some help!"
+                    ), "[procedure-name]");
             add(CliCompleters.cmdBuilder(":get",
                             cacheNameCompleter,
                             new StringsCompleter(Constants.REDIRECT_SYMBOL),

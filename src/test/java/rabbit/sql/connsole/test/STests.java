@@ -13,6 +13,7 @@ import com.github.chengyuxing.sql.terminal.cli.Command;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
+import com.github.chengyuxing.sql.terminal.vars.Data;
 import org.junit.Test;
 import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
@@ -293,7 +294,7 @@ public class STests {
 
     @Test
     public void testM() throws Exception {
-        SqlUtil.getSqlKeywords("mysql").forEach(System.out::println);
+//        SqlUtil.getSqlKeywords("mysql").forEach(System.out::println);
     }
 
     @Test
@@ -311,7 +312,6 @@ public class STests {
 
     @Test
     public void testTemp() throws Exception{
-        System.out.println(SqlUtil.getTemplateNames("select * from big where ${cnd}"));
 
     }
 }
