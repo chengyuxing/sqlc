@@ -1,6 +1,5 @@
 package com.github.chengyuxing.sql.terminal;
 
-import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
@@ -11,16 +10,12 @@ import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.cli.component.SqlHistory;
 import com.github.chengyuxing.sql.terminal.core.*;
-import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
-import com.github.chengyuxing.sql.terminal.types.Cache;
-import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
-import com.github.chengyuxing.sql.types.Param;
 import org.jline.builtins.Completers;
 import org.jline.builtins.ConfigurationPath;
 import org.jline.console.CommandRegistry;
@@ -43,12 +38,10 @@ import java.nio.file.Paths;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.github.chengyuxing.sql.terminal.vars.Constants.*;
 
@@ -279,32 +272,7 @@ public class App {
                                 case ":status":
                                     PrintHelper.printlnInfo("View Mode: " + StatusManager.viewMode.get());
                                     PrintHelper.printlnInfo("Transaction: " + (StatusManager.txActive.get() ? "enabled" : "disabled"));
-                                    PrintHelper.printlnInfo("Cache: " + (StatusManager.enableCache.get() ? "enabled" : "disabled"));
-                                    PrintHelper.printlnInfo("Multi Sql Delimiter: '" + (StatusManager.sqlDelimiter) + "'");
-                                    break;
-                                case ":c":
-                                    StatusManager.enableCache.set(true);
-                                    PrintHelper.printlnNotice("cache enabled!");
-                                    break;
-                                case ":C":
-                                    StatusManager.enableCache.set(false);
-                                    PrintHelper.printlnNotice("cache disabled!");
-                                    break;
-                                case ":C!":
-                                    StatusManager.enableCache.set(false);
-                                    Data.queryCaches.clear();
-                                    Data.idx.set(0);
-                                    Data.cacheNameCompleter.setVarsNames(Collections.emptyList());
-                                    PrintHelper.printlnNotice("cache disabled and cleared!");
-                                    break;
-                                case ":ls":
-                                    Data.queryCaches.forEach((k, v) -> {
-                                        String sql = v.getSql();
-                                        if (sql.length() > terminal.getWidth()) {
-                                            sql = sql.substring(0, terminal.getWidth() - k.length() - 10) + "...";
-                                        }
-                                        PrintHelper.printlnNotice(TerminalColor.colorful(k, Color.DARK_CYAN) + " [" + v.size() + "]: " + TerminalColor.highlightSql(sql));
-                                    });
+                                    PrintHelper.printlnInfo("Multi-Sql Delimiter: '" + (StatusManager.sqlDelimiter) + "'");
                                     break;
                                 case ":tx":
                                     if (StatusManager.txActive.get()) {
@@ -361,7 +329,7 @@ public class App {
                                         String sqlName = xm.group("name");
                                         String sql = Data.xqlFileManager.get(sqlName);
                                         PrintHelper.printlnHighlightSql(sql);
-                                        Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(sql, lineReader);
+                                        Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, lineReader);
                                         PrintHelper.printOneSqlResultByType(baki, "&" + sqlName, pair.getItem1(), pair.getItem2());
                                         // prepared sql will change the prompt to arg name, reset to new-line prompt after executed.
                                         prompt.newLine();
@@ -431,43 +399,6 @@ public class App {
                                         }
                                     }
 
-                                    if (line.startsWith(":get")) {
-                                        if (line.contains(REDIRECT_SYMBOL)) {
-                                            Pair<String, String> pair = SqlUtil.getSqlAndRedirect(line.substring(4).trim());
-                                            Cache cache = Data.queryCaches.get(pair.getItem1());
-                                            if (cache == null) {
-                                                PrintHelper.printlnWarning("no cache named " + pair.getItem1());
-                                            } else {
-                                                PrintHelper.printlnNotice("redirect cache data to file...");
-                                                FileHelper.writeFile(cache.getData().stream(), pair.getItem2());
-                                            }
-                                        } else {
-                                            String name = line.substring(4).trim();
-                                            Cache cache = Data.queryCaches.get(name);
-                                            if (cache == null) {
-                                                PrintHelper.printlnWarning("no cache named " + name);
-                                            } else {
-                                                PrintHelper.printQueryResult(cache.getData().stream());
-                                            }
-                                        }
-                                        break;
-                                    }
-
-                                    Matcher rm = REMOVE_CACHE_REGEX.matcher(line);
-                                    if (rm.find()) {
-                                        String name = rm.group("name");
-                                        if (!Data.queryCaches.containsKey(name)) {
-                                            PrintHelper.printlnDanger("no cached named " + name);
-                                        } else {
-                                            Cache cache = Data.queryCaches.get(name);
-                                            cache.getData().clear();
-                                            cache.getArgs().clear();
-                                            Data.queryCaches.remove(name);
-                                            PrintHelper.printlnNotice(name + " removed!");
-                                        }
-                                        break;
-                                    }
-
                                     Matcher tx = TX_REGEX.matcher(line);
                                     if (tx.find()) {
                                         String op = tx.group("op");
@@ -523,73 +454,15 @@ public class App {
                             if (line.endsWith(";")) {
                                 sqlBuilder.add(line);
                                 String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(String.join(" ", sqlBuilder));
-                                // 执行sql
+                                // execute sql
                                 // ---------
                                 if (!sql.equals("")) {
-                                    SqlType type = SqlUtil.getType(sql);
-                                    switch (type) {
-                                        case QUERY:
-                                            if (sql.contains(REDIRECT_SYMBOL)) {
-                                                Pair<String, String> pair = SqlUtil.getSqlAndRedirect(sql);
-                                                Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlArgIf(pair.getItem1(), lineReader);
-                                                try (Stream<DataRow> rowStream = WaitingPrinter.waiting("preparing...", () -> baki.query(sqlAndArgs.getItem1()).args(sqlAndArgs.getItem2()).stream())) {
-                                                    PrintHelper.printlnNotice("redirect query to file...");
-                                                    FileHelper.writeFile(rowStream, pair.getItem2());
-                                                }
-                                            } else {
-                                                boolean hasName = false;
-                                                String prefix = "";
-                                                String name = "";
-                                                Matcher ncm = NAME_QUERY_CACHE_REGEX.matcher(sql);
-                                                if (ncm.find()) {
-                                                    hasName = true;
-                                                    sql = sql.substring(ncm.end(0));
-                                                    //prefix = ncm.group("prefix");
-                                                    name = ncm.group("name");
-                                                }
-                                                final String query = sql;
-                                                Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(query, lineReader);
-                                                Map<String, Object> argx = pair.getItem2();
-                                                try (Stream<DataRow> rowStream = WaitingPrinter.waiting(() -> baki.query(pair.getItem1()).args(argx).stream())) {
-                                                    // 查询缓存结果
-                                                    if (StatusManager.enableCache.get()) {
-                                                        if (!hasName) {
-                                                            name = "res" + Data.idx.getAndIncrement();
-                                                        }
-                                                        List<DataRow> queryResult = new ArrayList<>();
-                                                        PrintHelper.printQueryResult(rowStream, queryResult::add);
-                                                        Cache cache = new Cache(query, queryResult);
-                                                        cache.setArgs(argx);
-                                                        Data.queryCaches.put(name, cache);
-                                                        Data.cacheNameCompleter.setVarsNames(Data.queryCaches.keySet());
-                                                        PrintHelper.printlnNotice(name + " added to cache!");
-                                                    } else {
-                                                        PrintHelper.printQueryResult(rowStream);
-                                                    }
-                                                }
-                                            }
-                                            break;
-                                        case FUNCTION:
-                                            Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(sql, lineReader);
-                                            Map<String, Param> argx = SqlUtil.toInOutParam(pair.getItem2());
-                                            ProcedureExecutor procedureExecutor = new ProcedureExecutor(baki, pair.getItem1());
-                                            procedureExecutor.exec(argx);
-                                            break;
-                                        case OTHER:
-                                            if (sql.contains(REDIRECT_SYMBOL)) {
-                                                PrintHelper.printlnWarning("only query support redirect operation!");
-                                            } else {
-                                                Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlArgIf(sql, lineReader);
-                                                PrintHelper.printQueryResult(PrintHelper.executedRow2Stream(baki, sqlAndArgs.getItem1(), sqlAndArgs.getItem2()));
-                                            }
-                                            break;
-                                        default:
-                                            break;
-                                    }
+                                    ExecExecutor executor = new ExecExecutor(baki, sql);
+                                    executor.exec(lineReader);
+                                    sqlBuilder.clear();
+                                    prompt.newLine();
                                 }
                                 // ---------
-                                sqlBuilder.clear();
-                                prompt.newLine();
                             } else {
                                 sqlBuilder.add(line);
                                 prompt.append();
