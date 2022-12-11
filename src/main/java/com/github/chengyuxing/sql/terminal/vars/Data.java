@@ -7,13 +7,8 @@ import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class Data {
-    /**
-     * 结果集缓存key自增
-     */
-    public static final AtomicInteger idx = new AtomicInteger(0);
     /**
      * xql名字自动完成数据
      */
