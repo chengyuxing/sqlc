@@ -66,7 +66,7 @@ public class CompleterBuilder {
             add(CliCompleters.singleCmd(":ls"), "list all of cache.");
             add(CliCompleters.singleCmd(":status"), "show current status.");
             add(CliCompleters.cmdBuilder(":edit", editCmdCompleter, NullCompleter.INSTANCE),
-                    "open editor for update procedure definition.", Arrays.asList(
+                    "open editor for update procedure/view/trigger definition.", Arrays.asList(
                             "save: Ctrl+o, Enter",
                             "submit change: Ctrl+x",
                             "or Ctrl+g to get some help!"
