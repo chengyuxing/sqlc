@@ -110,7 +110,7 @@ public final class PrintHelper {
         return stream;
     }
 
-    public static void printOneSqlResultByType(Baki baki, String sqlOrAddress, String tempString, Map<String, Object> args) throws Exception {
+    public static void printOneSqlResultByType(Baki baki, String sqlOrAddress, String tempString, Map<String, Object> args) {
         SqlType sqlType = SqlUtil.getType(tempString);
         if (sqlType == SqlType.QUERY) {
             try (Stream<DataRow> s = WaitingPrinter.waiting(() -> baki.query(sqlOrAddress).args(args).stream())) {
@@ -129,7 +129,7 @@ public final class PrintHelper {
         sqls.forEach(sql -> {
             try {
                 printlnHighlightSql(sql);
-                Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(sql, reader);
+                Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, reader);
                 printQueryResult(executedRow2Stream(baki, pair.getItem1(), pair.getItem2()));
                 success.incrementAndGet();
             } catch (Exception e) {

@@ -13,10 +13,6 @@ public abstract class StatusManager {
      */
     public static final AtomicBoolean txActive = new AtomicBoolean(false);
     /**
-     * 是否开启缓存
-     */
-    public static final AtomicBoolean enableCache = new AtomicBoolean(false);
-    /**
      * 输出的结果视图与结果保存类型
      */
     public static final AtomicReference<View> viewMode = new AtomicReference<>(View.TSV);

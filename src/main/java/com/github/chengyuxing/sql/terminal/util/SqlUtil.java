@@ -175,7 +175,7 @@ public class SqlUtil {
      * @param lineReader readline
      * @return 解析完成的sql和参数字典
      */
-    public static Pair<String, Map<String, Object>> prepareSqlArgIf(String sql, LineReader lineReader) {
+    public static Pair<String, Map<String, Object>> prepareSqlWithArgs(String sql, LineReader lineReader) {
         String fmtSql = formatSql(sql, lineReader);
         if (!sql.equals(fmtSql)) {
             PrintHelper.printlnHighlightSql(fmtSql);
