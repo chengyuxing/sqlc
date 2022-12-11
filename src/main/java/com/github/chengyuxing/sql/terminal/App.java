@@ -21,7 +21,6 @@ import com.github.chengyuxing.sql.terminal.vars.Data;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
 import com.github.chengyuxing.sql.types.Param;
-import org.apache.log4j.Level;
 import org.jline.builtins.Completers;
 import org.jline.builtins.ConfigurationPath;
 import org.jline.console.CommandRegistry;
@@ -48,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.github.chengyuxing.sql.terminal.vars.Constants.*;
@@ -86,7 +86,6 @@ public class App {
                     }
 
                     if (!argMap.containsKey("-p")) {
-                        org.apache.log4j.Logger.getLogger("com.zaxxer.hikari").setLevel(Level.FATAL);
                         for (int i = 5; i >= 0; i--) {
                             try {
                                 if (i == 0) {
@@ -95,7 +94,6 @@ public class App {
                                 }
                                 dsLoader.setPassword(lineReader.readLine("password: ", '*'));
                                 dsLoader.init();
-                                org.apache.log4j.Logger.getLogger("com.zaxxer.hikari").setLevel(Level.INFO);
                                 break;
                             } catch (UserInterruptException | EndOfFileException e) {
                                 System.out.println("cancel login.");
@@ -228,10 +226,8 @@ public class App {
                     .history(new SqlHistory(sqlBuilder))
                     .build();
 
-            // 启用自动建议
             AutosuggestionWidgets suggest = new AutosuggestionWidgets(lineReader);
-            // 使用方向右键自动跳转到建议的行尾
-            // 使用ctrl+o自动跳转到下一个单词
+            // press ctrl+o jump to next word.
             suggest.getKeyMap().bind(new Reference(LineReader.FORWARD_WORD), KeyMap.ctrl('o'));
             suggest.enable();
 
@@ -245,9 +241,16 @@ public class App {
 
             Data.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
             Data.keywordsCompleter.addVarsNames(dataBaseResource.getUserTableNames());
+
             List<String> procedures = dataBaseResource.getUserProcedures();
-            Data.keywordsCompleter.addVarsNames(procedures);
-            Data.procedureNameCompleter.setVarsNames(procedures);
+            List<String> views = dataBaseResource.getUserViews();
+
+            Data.keywordsCompleter.addVarsNames(procedures.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
+            Data.keywordsCompleter.addVarsNames(views.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
+            // :edit command completer words
+            Data.editCmdCompleter.addVarsNames(procedures);
+            Data.editCmdCompleter.addVarsNames(views);
+            Data.editCmdCompleter.addVarsNames(dataBaseResource.getUserTriggers());
 
             Prompt prompt = new Prompt(metaData.getURL());
             StatusManager.promptReference.set(prompt);
@@ -316,7 +319,7 @@ public class App {
                                     Path path = Paths.get(CURRENT_DIR.toString(), temp);
                                     Data.tempFiles.add(path);
                                     try {
-                                        commandRegistry.invoke(session, "nano", temp);
+                                        commandRegistry.invoke(session, "nano", "-$", temp);
                                         if (Files.exists(path)) {
                                             String sqlContent = String.join("\n", Files.readAllLines(path)).trim();
                                             if (!sqlContent.equals("")) {
@@ -397,20 +400,26 @@ public class App {
                                         String name = line.substring(5).trim();
                                         switch (dbName) {
                                             case "postgresql":
-                                                String def = dataBaseResource.getProcedureDefinition(name);
+                                                int colonIdx = name.indexOf(":");
+                                                if (colonIdx == -1) {
+                                                    throw new IllegalArgumentException("invalid object name formatter, e.g: tg(trigger):test.big.my_trigger, view:test.my_view, proc:public.hello(text)");
+                                                }
+                                                String type = name.substring(0, colonIdx);
+                                                String tgt = name.substring(colonIdx + 1);
+                                                String def = dataBaseResource.getDefinition(type, tgt);
                                                 if (def.trim().equals("")) {
-                                                    throw new RuntimeException("procedure definition is empty.");
+                                                    throw new RuntimeException(name + " definition is empty.");
                                                 }
                                                 String procedureTemp = name + "_" + System.currentTimeMillis();
                                                 Path procedurePath = Paths.get(CURRENT_DIR.toString(), procedureTemp);
                                                 Data.tempFiles.add(procedurePath);
                                                 try {
                                                     Files.write(procedurePath, def.getBytes(StandardCharsets.UTF_8));
-                                                    commandRegistry.invoke(session, "nano", procedureTemp);
+                                                    commandRegistry.invoke(session, "nano", "-$", procedureTemp);
                                                     String newDef = String.join("\n", Files.readAllLines(procedurePath));
                                                     if (!def.trim().equals(newDef.trim())) {
                                                         baki.execute(newDef);
-                                                        PrintHelper.printlnNotice(name + " submitted!");
+                                                        PrintHelper.printlnNotice(name + " change submitted!");
                                                     }
                                                 } finally {
                                                     Files.deleteIfExists(procedurePath);

@@ -65,7 +65,7 @@ public class CompleterBuilder {
             add(CliCompleters.singleCmd(":paste"), "paste block of sql to execute(Ctrl+o, Enter, Ctrl+x).", Collections.singletonList("or Ctrl+g to get some help!"));
             add(CliCompleters.singleCmd(":ls"), "list all of cache.");
             add(CliCompleters.singleCmd(":status"), "show current status.");
-            add(CliCompleters.cmdBuilder(":edit", procedureNameCompleter, NullCompleter.INSTANCE),
+            add(CliCompleters.cmdBuilder(":edit", editCmdCompleter, NullCompleter.INSTANCE),
                     "open editor for update procedure definition.", Arrays.asList(
                             "save: Ctrl+o, Enter",
                             "submit change: Ctrl+x",

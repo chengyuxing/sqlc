@@ -32,7 +32,7 @@ public abstract class Data {
     /**
      * 存储过程名字自动完成
      */
-    public static final DynamicVarsCompleter procedureNameCompleter = new DynamicVarsCompleter();
+    public static final DynamicVarsCompleter editCmdCompleter = new DynamicVarsCompleter();
     /**
      * sql关键字自动完成
      */
