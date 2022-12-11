@@ -39,33 +39,38 @@ public class ExecExecutor {
         if (execContent.contains(REDIRECT_SYMBOL)) {
             Pair<String, String> pair = SqlUtil.getSqlAndRedirect(execContent);
             List<String> sqls = SqlUtil.multiSqlList(pair.getItem1());
-            if (sqls.size() > 1) {
-                PrintHelper.printlnWarning("only single query support redirect operation!");
-            } else if (SqlUtil.getType(sqls.get(0)) == SqlType.QUERY) {
-                PrintHelper.printlnHighlightSql(sqls.get(0));
-                String sql = sqls.get(0);
-                Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlArgIf(sql, reader);
-                try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...", () -> baki.query(sqlAndArgs.getItem1()).args(sqlAndArgs.getItem2()).stream())) {
-                    FileHelper.writeFile(s, pair.getItem2());
-                } catch (Exception e) {
-                    throw new RuntimeException("an error when waiting execute: " + sql, e);
+            if (!sqls.isEmpty()) {
+                if (sqls.size() == 1) {
+                    if (SqlUtil.getType(sqls.get(0)) == SqlType.QUERY) {
+                        PrintHelper.printlnHighlightSql(sqls.get(0));
+                        String sql = sqls.get(0);
+                        Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlWithArgs(sql, reader);
+                        try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...", () -> baki.query(sqlAndArgs.getItem1()).args(sqlAndArgs.getItem2()).stream())) {
+                            PrintHelper.printlnNotice("redirect query to file...");
+                            FileHelper.writeFile(s, pair.getItem2());
+                        } catch (Exception e) {
+                            throw new RuntimeException("an error when waiting execute: " + sql, e);
+                        }
+                    } else {
+                        PrintHelper.printlnWarning("only query support redirect operation!");
+                    }
+                } else {
+                    PrintHelper.printlnWarning("only single query support redirect operation!");
                 }
-            } else {
-                PrintHelper.printlnWarning("only query support redirect operation!");
             }
         } else {
             List<String> sqls = SqlUtil.multiSqlList(execContent);
-            if (sqls.size() > 0) {
+            if (!sqls.isEmpty()) {
                 if (sqls.size() == 1) {
                     String sql = sqls.get(0);
                     PrintHelper.printlnHighlightSql(sql);
-                    Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlArgIf(sql, reader);
-                    PrintHelper.printOneSqlResultByType(baki, pair.getItem1(), pair.getItem1(), pair.getItem2());
+                    Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, reader);
+                    String fullSql = pair.getItem1();
+                    Map<String, Object> args = pair.getItem2();
+                    PrintHelper.printOneSqlResultByType(baki, fullSql, fullSql, args);
                 } else {
                     PrintHelper.printMultiSqlResult(baki, sqls, reader);
                 }
-            } else {
-                PrintHelper.printlnDanger("no sql script to execute.");
             }
         }
     }
