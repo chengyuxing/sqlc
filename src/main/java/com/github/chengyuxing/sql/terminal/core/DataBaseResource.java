@@ -39,8 +39,8 @@ public class DataBaseResource {
     private Function<String, Pair<String, Map<String, Object>>> queryTableTriggersFunc;
     private Function<String, Pair<String, Map<String, Object>>> queryTableDescFunc;
 
-    public DataBaseResource(String dbName, DataSourceLoader dataSourceLoader) {
-        this.dbName = dbName;
+    public DataBaseResource(DataSourceLoader dataSourceLoader) {
+        this.dbName = dataSourceLoader.getDbName();
         this.dataSourceLoader = dataSourceLoader;
         this.xqlFileManager = new XQLFileManager();
         init();
@@ -192,14 +192,13 @@ public class DataBaseResource {
             Pair<String, Map<String, Object>> pair = queryTableDescFunc.apply(name);
             try (Stream<DataRow> s = dataSourceLoader.getBaki().query(xqlFileManager.get(pair.getItem1())).args(pair.getItem2()).stream()) {
                 AtomicBoolean first = new AtomicBoolean(true);
-                String fmt = "%15s\t%15s\t%15s\t%15s";
                 List<List<String>> rows = new ArrayList<>();
                 s.forEach(d -> {
                     if (first.get()) {
                         rows.add(d.names());
                         first.set(false);
                     }
-                    List<String> cols = d.values().stream().map(col -> Optional.ofNullable(col).map(Object::toString).orElse("null")).collect(Collectors.toList());
+                    List<String> cols = d.values().stream().map(col -> Optional.ofNullable(col).map(Object::toString).orElse("<null>")).collect(Collectors.toList());
                     rows.add(cols);
                 });
                 return rows;
