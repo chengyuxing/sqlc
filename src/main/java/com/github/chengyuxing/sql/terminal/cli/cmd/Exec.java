@@ -1,15 +1,15 @@
-package com.github.chengyuxing.sql.terminal.core;
+package com.github.chengyuxing.sql.terminal.cli.cmd;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.Baki;
+import com.github.chengyuxing.sql.terminal.core.FileHelper;
+import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import org.jline.reader.LineReader;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,24 +22,23 @@ import static com.github.chengyuxing.sql.terminal.vars.Constants.REDIRECT_SYMBOL
 /**
  * exec指令执行器
  */
-public class ExecExecutor {
+public class Exec {
     private final Baki baki;
-    private final String execContent;
+    private final LineReader lineReader;
 
-    public ExecExecutor(Baki baki, String execContent) {
+    public Exec(Baki baki, LineReader lineReader) {
         this.baki = baki;
-        this.execContent = execContent;
+        this.lineReader = lineReader;
     }
 
     /**
      * 执行
      *
-     * @param reader readline
-     * @throws IOException                             如果输入文件不存在
+     * @param execContent 执行内容
      * @throws org.jline.reader.UserInterruptException ctrl+c
      * @throws org.jline.reader.EndOfFileException     ctrl+d
      */
-    public void exec(LineReader reader) throws Exception {
+    public void exec(String execContent) throws Exception {
         if (execContent.contains(REDIRECT_SYMBOL)) {
             Pair<String, String> pair = SqlUtil.getSqlAndRedirect(execContent);
             List<String> sqls = SqlUtil.multiSqlList(pair.getItem1());
@@ -48,7 +47,7 @@ public class ExecExecutor {
                     if (SqlUtil.getType(sqls.get(0)) == SqlType.QUERY) {
                         PrintHelper.printlnHighlightSql(sqls.get(0));
                         String sql = sqls.get(0);
-                        Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlWithArgs(sql, reader);
+                        Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlWithArgs(sql, lineReader);
                         try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...", () -> baki.query(sqlAndArgs.getItem1()).args(sqlAndArgs.getItem2()).stream())) {
                             PrintHelper.printlnNotice("redirect query to file...");
                             Path output = Paths.get(pair.getItem2());
@@ -72,12 +71,12 @@ public class ExecExecutor {
                 if (sqls.size() == 1) {
                     String sql = sqls.get(0);
                     PrintHelper.printlnHighlightSql(sql);
-                    Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, reader);
+                    Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, lineReader);
                     String fullSql = pair.getItem1();
                     Map<String, Object> args = pair.getItem2();
                     PrintHelper.printOneSqlResultByType(baki, fullSql, fullSql, args);
                 } else {
-                    PrintHelper.printMultiSqlResult(baki, sqls, reader);
+                    PrintHelper.printMultiSqlResult(baki, sqls, lineReader);
                 }
             }
         }

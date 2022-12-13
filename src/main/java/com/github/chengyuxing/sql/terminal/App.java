@@ -9,6 +9,7 @@ import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.cli.cmd.Ddl;
 import com.github.chengyuxing.sql.terminal.cli.cmd.Desc;
 import com.github.chengyuxing.sql.terminal.cli.cmd.Edit;
+import com.github.chengyuxing.sql.terminal.cli.cmd.Exec;
 import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.cli.component.SqlHistory;
@@ -178,18 +179,18 @@ public class App {
         SimpleReadLine.readline(lb -> {
             StatusManager.promptReference.set(new Prompt(""));
             LineReader reader = lb.completer(new Completers.FilesCompleter(CURRENT_DIR)).build();
-            ExecExecutor executor = new ExecExecutor(baki, sql);
+            Exec executor = new Exec(baki, reader);
             try {
                 if (usingTx) {
                     Tx.using(() -> {
                         try {
-                            executor.exec(reader);
+                            executor.exec(sql);
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
                     });
                 } else {
-                    executor.exec(reader);
+                    executor.exec(sql);
                 }
             } catch (UserInterruptException | EndOfFileException e) {
                 System.out.println("canceled.");
@@ -313,8 +314,8 @@ public class App {
                                         if (Files.exists(path)) {
                                             String sqlContent = String.join("\n", Files.readAllLines(path)).trim();
                                             if (!sqlContent.equals("")) {
-                                                ExecExecutor executor = new ExecExecutor(baki, sqlContent);
-                                                executor.exec(lineReader);
+                                                Exec executor = new Exec(baki, lineReader);
+                                                executor.exec(sqlContent);
                                                 prompt.newLine();
                                             }
                                         }
@@ -359,8 +360,8 @@ public class App {
                                     }
 
                                     if (line.startsWith(":exec")) {
-                                        ExecExecutor executor = new ExecExecutor(baki, line.substring(5).trim());
-                                        executor.exec(lineReader);
+                                        Exec executor = new Exec(baki, lineReader);
+                                        executor.exec(line.substring(5).trim());
                                         prompt.newLine();
                                         break;
                                     }
@@ -462,8 +463,8 @@ public class App {
                                 // execute sql
                                 // ---------
                                 if (!sql.equals("")) {
-                                    ExecExecutor executor = new ExecExecutor(baki, sql);
-                                    executor.exec(lineReader);
+                                    Exec executor = new Exec(baki, lineReader);
+                                    executor.exec(sql);
                                     sqlBuilder.clear();
                                     prompt.newLine();
                                 }
