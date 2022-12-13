@@ -2,13 +2,14 @@ package com.github.chengyuxing.sql.terminal.cli.completer;
 
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
+import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.NullCompleter;
+import org.jline.reader.impl.completer.StringsCompleter;
 
 import java.util.*;
 
-import static com.github.chengyuxing.sql.terminal.vars.Data.editCmdCompleter;
-import static com.github.chengyuxing.sql.terminal.vars.Data.xqlNameCompleter;
+import static com.github.chengyuxing.sql.terminal.vars.Data.*;
 
 public class CompleterBuilder {
     private final List<Completer> completers = new ArrayList<>();
@@ -61,8 +62,20 @@ public class CompleterBuilder {
                     "open editor for update procedure/view/trigger definition.", Arrays.asList(
                             "save: Ctrl+o, Enter",
                             "submit change: Ctrl+x",
-                            "or Ctrl+g to get some help!"
-                    ), "[procedure-name]");
+                            "e.g:",
+                            "proc:test.my_func()"
+                    ), "[[proc|tg|view]:object]");
+            add(CliCompleters.cmdBuilder(":ddl",
+                            ddlCmdCompleter,
+                            new StringsCompleter("&>"),
+                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "get object(table, procedure/function, view, trigger) ddl ",
+                    Arrays.asList("or redirect to file.",
+                            "e.g:",
+                            ":ddl test.my_table",
+                            ":ddl proc:test.my_func()",
+                            ":ddl tg:test.my_trigger()"),
+                    "[[proc|tg|view:]object] [" + Constants.REDIRECT_SYMBOL + " output]"
+            );
             add(CliCompleters.transaction(":tx"), "use transaction.", "[begin|commit|rollback]");
             add(CliCompleters.view(":view"), "set result view format(display and redirected file format).", "[csv|tsv|json|excel]");
             add(CliCompleters.singleCmd(":d"), "delimiter for multi-sql to batch execute.", Collections.singletonList("default ';'(single semicolon)"), "[delimiter]");

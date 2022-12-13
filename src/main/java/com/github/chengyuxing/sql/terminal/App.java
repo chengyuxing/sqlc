@@ -233,17 +233,24 @@ public class App {
             DataBaseResource dataBaseResource = new DataBaseResource(dbName, dataSourceLoader);
 
             Data.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
-            Data.keywordsCompleter.addVarsNames(dataBaseResource.getUserTableNames());
 
+            List<String> tables = dataBaseResource.getUserTableNames();
             List<String> procedures = dataBaseResource.getUserProcedures();
             List<String> views = dataBaseResource.getUserViews();
+            List<String> triggers = dataBaseResource.getUserTriggers();
 
+            Data.keywordsCompleter.addVarsNames(tables);
             Data.keywordsCompleter.addVarsNames(procedures.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
             Data.keywordsCompleter.addVarsNames(views.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
             // :edit command completer words
             Data.editCmdCompleter.addVarsNames(procedures);
             Data.editCmdCompleter.addVarsNames(views);
-            Data.editCmdCompleter.addVarsNames(dataBaseResource.getUserTriggers());
+            Data.editCmdCompleter.addVarsNames(triggers);
+            // :ddl command
+            Data.ddlCmdCompleter.addVarsNames(procedures);
+            Data.ddlCmdCompleter.addVarsNames(views);
+            Data.ddlCmdCompleter.addVarsNames(triggers);
+            Data.ddlCmdCompleter.addVarsNames(tables);
 
             Prompt prompt = new Prompt(metaData.getURL());
             StatusManager.promptReference.set(prompt);
@@ -364,39 +371,50 @@ public class App {
                                         break;
                                     }
 
+                                    if (line.startsWith(":ddl")) {
+                                        String name = line.substring(4).trim();
+                                        if (name.contains(REDIRECT_SYMBOL)) {
+                                            Pair<String, String> pair = SqlUtil.getSqlAndRedirect(name);
+                                            String obj = pair.getItem1();
+                                            Path output = Paths.get(pair.getItem2());
+                                            if (Files.isDirectory(output)) {
+                                                output = output.resolve(obj.replaceAll("\\s+", "").replace(":", "_") + ".sql");
+                                            }
+                                            Files.write(output, dataBaseResource.getDefinition(obj).getBytes(StandardCharsets.UTF_8));
+                                            PrintHelper.printlnNotice("ddl script saved to: " + output);
+                                            break;
+                                        }
+                                        PrintHelper.printlnNotice("\n-------------------" + name + "-------------------");
+                                        System.out.println(TerminalColor.highlightSql(dataBaseResource.getDefinition(name)));
+                                        PrintHelper.printlnNotice("-----------------" + name + " end-----------------\n");
+                                        break;
+                                    }
+
                                     if (line.startsWith(":edit")) {
                                         String name = line.substring(5).trim();
-                                        switch (dbName) {
-                                            case "postgresql":
-                                                int colonIdx = name.indexOf(":");
-                                                if (colonIdx == -1) {
-                                                    throw new IllegalArgumentException("invalid object name formatter, e.g: tg(trigger):test.big.my_trigger, view:test.my_view, proc:public.hello(text)");
-                                                }
-                                                String type = name.substring(0, colonIdx);
-                                                String tgt = name.substring(colonIdx + 1);
-                                                String def = dataBaseResource.getDefinition(type, tgt);
-                                                if (def.trim().equals("")) {
-                                                    throw new RuntimeException(name + " definition is empty.");
-                                                }
-                                                String procedureTemp = name + "_" + System.currentTimeMillis();
-                                                Path procedurePath = Paths.get(CURRENT_DIR.toString(), procedureTemp);
-                                                Data.tempFiles.add(procedurePath);
-                                                try {
-                                                    Files.write(procedurePath, def.getBytes(StandardCharsets.UTF_8));
-                                                    commandRegistry.invoke(session, "nano", "-$", procedureTemp);
-                                                    String newDef = String.join("\n", Files.readAllLines(procedurePath));
-                                                    if (!def.trim().equals(newDef.trim())) {
-                                                        baki.execute(newDef);
-                                                        PrintHelper.printlnNotice(name + " change submitted!");
-                                                    }
-                                                } finally {
-                                                    Files.deleteIfExists(procedurePath);
-                                                }
-                                                break label;
-                                            default:
-                                                PrintHelper.printlnDarkWarning(":edit not support " + dbName + " currently.");
-                                                break label;
+                                        int colonIdx = name.indexOf(":");
+                                        if (colonIdx == -1) {
+                                            throw new IllegalArgumentException("invalid object name formatter, e.g: tg(trigger):test.big.my_trigger, view:test.my_view, proc:public.hello(text)");
                                         }
+                                        String def = dataBaseResource.getDefinition(name);
+                                        if (def.trim().equals("")) {
+                                            throw new RuntimeException(name + " definition is empty.");
+                                        }
+                                        String procedureTemp = name + "_" + System.currentTimeMillis();
+                                        Path procedurePath = Paths.get(CURRENT_DIR.toString(), procedureTemp);
+                                        Data.tempFiles.add(procedurePath);
+                                        try {
+                                            Files.write(procedurePath, def.getBytes(StandardCharsets.UTF_8));
+                                            commandRegistry.invoke(session, "nano", "-$", procedureTemp);
+                                            String newDef = String.join("\n", Files.readAllLines(procedurePath));
+                                            if (!def.trim().equals(newDef.trim())) {
+                                                baki.execute(newDef);
+                                                PrintHelper.printlnNotice(name + " change submitted!");
+                                            }
+                                        } finally {
+                                            Files.deleteIfExists(procedurePath);
+                                        }
+                                        break;
                                     }
 
                                     Matcher tx = TX_REGEX.matcher(line);

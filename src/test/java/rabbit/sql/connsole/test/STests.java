@@ -294,7 +294,7 @@ public class STests {
 
     @Test
     public void testM() throws Exception {
-//        SqlUtil.getSqlKeywords("mysql").forEach(System.out::println);
+        System.out.println(Paths.get("/Users/chengyuxing/Downloads\\").toString());
     }
 
     @Test

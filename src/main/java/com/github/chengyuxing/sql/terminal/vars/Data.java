@@ -18,6 +18,10 @@ public abstract class Data {
      */
     public static final DynamicVarsCompleter editCmdCompleter = new DynamicVarsCompleter();
     /**
+     *
+     */
+    public static final DynamicVarsCompleter ddlCmdCompleter = new DynamicVarsCompleter();
+    /**
      * sql关键字自动完成
      */
     public static final KeywordsCompleter keywordsCompleter = new KeywordsCompleter();

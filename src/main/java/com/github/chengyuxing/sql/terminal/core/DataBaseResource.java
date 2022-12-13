@@ -22,6 +22,7 @@ import static com.github.chengyuxing.sql.terminal.vars.Constants.GET_MYSQL_SCHEM
 
 public class DataBaseResource {
     private final Pattern TRIGGER_PREFIX_REGEX = Pattern.compile("^create\\s+or\\s+replace\\s[\\s\\S]+", Pattern.CASE_INSENSITIVE);
+
     private final String dbName;
     private final DataSourceLoader dataSourceLoader;
     private final XQLFileManager xqlFileManager;
@@ -32,6 +33,9 @@ public class DataBaseResource {
     private Function<String, Pair<String, Map<String, Object>>> queryViewDefFunc;
     private Supplier<Pair<String, Map<String, Object>>> queryTriggersFunc;
     private Function<String, Pair<String, Map<String, Object>>> queryTriggerDefFunc;
+    private Function<String, Pair<String, Map<String, Object>>> queryTableDef;
+    private Function<String, Pair<String, Map<String, Object>>> queryTableIndexesFunc;
+    private Function<String, Pair<String, Map<String, Object>>> queryTableTriggersFunc;
 
     public DataBaseResource(String dbName, DataSourceLoader dataSourceLoader) {
         this.dbName = dbName;
@@ -57,6 +61,9 @@ public class DataBaseResource {
                     String triggerName = name.substring(dotIdx + 1);
                     return Pair.of("pg.trigger_def", Args.create("table_name", tableName, "trigger_name", triggerName));
                 };
+                queryTableDef = name -> Pair.of("pg.table_def", Args.of("table_name", name));
+                queryTableIndexesFunc = name -> Pair.of("pg.table_indexes", Args.of("table_name", name));
+                queryTableTriggersFunc = name -> Pair.of("pg.table_triggers", Args.of("table_name", name));
                 break;
             case "oracle":
                 xqlFileManager.add("oracle", "xqls/oracle.sql");
@@ -91,7 +98,7 @@ public class DataBaseResource {
                 }
             }
         }
-        return Collections.emptyList();
+        throw new UnsupportedOperationException(dbName+" not support currently, it will be coming soon!");
     }
 
     public String getDefinition(Function<String, Pair<String, Map<String, Object>>> func, String name) {
@@ -111,7 +118,26 @@ public class DataBaseResource {
                         .orElse("");
             }
         }
-        return "";
+        throw new UnsupportedOperationException(dbName+" not support currently, it will be coming soon!");
+    }
+
+    public List<String> getDefinitions(Function<String, Pair<String, Map<String, Object>>> func, String name) {
+        if (func != null) {
+            Pair<String, Map<String, Object>> pair = func.apply(name);
+            String sql = xqlFileManager.get(pair.getItem1());
+            if (!sql.equals("")) {
+                try (Stream<DataRow> s = dataSourceLoader.getBaki().query(sql).args(pair.getItem2()).stream()) {
+                    return s.map(d -> {
+                        String def = d.getString(0);
+                        if (def != null) {
+                            return def;
+                        }
+                        return "";
+                    }).collect(Collectors.toList());
+                }
+            }
+        }
+        throw new UnsupportedOperationException(dbName+" not support currently, it will be coming soon!");
     }
 
     public String getProcedureDefinition(String name) {
@@ -126,35 +152,36 @@ public class DataBaseResource {
         return view;
     }
 
-    public String getTriggerDefinition(String name) {
-        String trigger = getDefinition(queryTriggerDefFunc, name).trim();
-        Matcher m = TRIGGER_PREFIX_REGEX.matcher(trigger);
-        if (!m.find()) {
-            trigger = StringUtil.replaceFirstIgnoreCase(trigger, "create", "CREATE OR REPLACE");
-        }
-        StringJoiner sb = new StringJoiner(" ");
-        String[] words = trigger.split("\\s+");
-        for (String w : words) {
-            if (StringUtil.equalsAnyIgnoreCase(w, "before", "after", "on", "for")) {
-                sb.add("\n\t").add(w);
-            } else if (w.equalsIgnoreCase("execute")) {
-                sb.add("\n").add(w);
-            } else sb.add(w);
-        }
-        return sb.toString();
+    public String getTableDefinition(String name) {
+        String table = getDefinition(queryTableDef, name).trim();
+        String indexes = getDefinitions(queryTableIndexesFunc, name).stream().map(this::formatIndex).collect(Collectors.joining("\n\n"));
+        String triggers = getDefinitions(queryTableTriggersFunc, name).stream().map(s -> formatTrigger(s, false)).collect(Collectors.joining("\n\n"));
+        return table + "\n\n" + indexes + "\n\n" + triggers;
     }
 
-    public String getDefinition(String type, String name) {
-        switch (type) {
-            case "proc":
-                return getProcedureDefinition(name);
-            case "tg":
-                return getTriggerDefinition(name);
-            case "view":
-                return getViewDefinition(name);
-            default:
-                throw new UnsupportedOperationException("un know type: " + type + " e.g. tg(trigger), view, proc(procedure)");
+    public String getTriggerDefinition(String name) {
+        String trigger = getDefinition(queryTriggerDefFunc, name).trim();
+        return formatTrigger(trigger, true);
+    }
+
+    public String getDefinition(String object) {
+        if (object.contains(":")) {
+            int colonIdx = object.indexOf(":");
+            String type = object.substring(0, colonIdx);
+            String name = object.substring(colonIdx + 1);
+            switch (type) {
+                case "proc":
+                    return getProcedureDefinition(name);
+                case "tg":
+                    return getTriggerDefinition(name);
+                case "view":
+                    return getViewDefinition(name);
+                default:
+                    throw new UnsupportedOperationException("un know type: " + type + " e.g. tg(trigger), view, proc(procedure)");
+            }
         }
+        //without ':' then default get table definition
+        return getTableDefinition(object);
     }
 
     public List<String> getUserProcedures() {
@@ -193,5 +220,35 @@ public class DataBaseResource {
             PrintHelper.printlnError(e);
             return Collections.emptySet();
         }
+    }
+
+    String formatIndex(String index) {
+        StringJoiner sb = new StringJoiner(" ");
+        String[] words = index.split("\\s+");
+        for (String w : words) {
+            if (w.equalsIgnoreCase("on")) {
+                sb.add("\n\t").add(w);
+            } else sb.add(w);
+        }
+        return sb.toString();
+    }
+
+    String formatTrigger(String trigger, boolean appendReplace) {
+        if (appendReplace) {
+            Matcher m = TRIGGER_PREFIX_REGEX.matcher(trigger);
+            if (!m.find()) {
+                trigger = StringUtil.replaceFirstIgnoreCase(trigger, "create", "CREATE OR REPLACE");
+            }
+        }
+        StringJoiner sb = new StringJoiner(" ");
+        String[] words = trigger.split("\\s+");
+        for (String w : words) {
+            if (StringUtil.equalsAnyIgnoreCase(w, "before", "after", "on", "for")) {
+                sb.add("\n\t").add(w);
+            } else if (w.equalsIgnoreCase("execute")) {
+                sb.add("\n").add(w);
+            } else sb.add(w);
+        }
+        return sb.toString();
     }
 }

@@ -39,12 +39,13 @@ public class DBTests {
         loader.init();
         DataBaseResource dataBaseResource = new DataBaseResource("postgresql", loader);
 //        dataBaseResource.getUserTableNames().forEach(System.out::println);
-        System.out.println(dataBaseResource.getProcedureDefinition("test.slow_query(integer, integer)"));
-        System.out.println(dataBaseResource.getViewDefinition("test.big_top5"));
-        System.out.println(dataBaseResource.getTriggerDefinition("test.big.notice_big_bad"));
-        System.out.println(dataBaseResource.getUserTriggers());
-        System.out.println(dataBaseResource.getUserViews());
-        System.out.println(dataBaseResource.getUserProcedures());
+//        System.out.println(dataBaseResource.getProcedureDefinition("test.slow_query(integer, integer)"));
+//        System.out.println(dataBaseResource.getViewDefinition("test.big_top5"));
+//        System.out.println(dataBaseResource.getTriggerDefinition("test.big.notice_big_bad"));
+//        System.out.println(dataBaseResource.getUserTriggers());
+//        System.out.println(dataBaseResource.getUserViews());
+//        System.out.println(dataBaseResource.getUserProcedures());
+        System.out.println(dataBaseResource.getTableDefinition("test.hello"));
     }
 
     @Test
