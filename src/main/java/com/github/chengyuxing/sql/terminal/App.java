@@ -3,9 +3,12 @@ package com.github.chengyuxing.sql.terminal;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
-import com.github.chengyuxing.sql.terminal.cli.Command;
+import com.github.chengyuxing.sql.terminal.cli.Help;
 import com.github.chengyuxing.sql.terminal.cli.SimpleReadLine;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
+import com.github.chengyuxing.sql.terminal.cli.cmd.Ddl;
+import com.github.chengyuxing.sql.terminal.cli.cmd.Desc;
+import com.github.chengyuxing.sql.terminal.cli.cmd.Edit;
 import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.cli.component.SqlHistory;
@@ -35,7 +38,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +104,7 @@ public class App {
                 }
 
                 log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
-                log.info("Go to " + Command.url + " get more information about this.");
+                log.info("Go to " + Help.url + " get more information about this.");
                 if (argMap.containsKey("-d")) {
                     StatusManager.sqlDelimiter.set(argMap.get("-d"));
                 }
@@ -123,7 +125,7 @@ public class App {
                 // 进入交互模式
                 startInteractiveMode(dsLoader);
             } else {
-                Command.get(args[0]);
+                Help.get(args[0]);
             }
         } catch (Exception e) {
             PrintHelper.printlnError(e);
@@ -155,6 +157,18 @@ public class App {
             } else {
                 BatchInsertHelper.readFile4batch(baki, filePath, sheetIdx, headerIdx);
             }
+            return;
+        }
+
+        if (sql.startsWith("ddl")) {
+            Ddl ddl = new Ddl(new DataBaseResource(dataSourceLoader));
+            ddl.exec(sql.substring(3).trim());
+            return;
+        }
+
+        if (sql.startsWith("desc")) {
+            Desc desc = new Desc(new DataBaseResource(dataSourceLoader));
+            desc.exec(sql.substring(4).trim());
             return;
         }
 
@@ -227,10 +241,9 @@ public class App {
             JlineCommandRegistry commandRegistry = new Builtins(CURRENT_DIR, new ConfigurationPath(APP_DIR, USER_HOME), s -> lineReader.getBuiltinWidgets().get(s));
 
             SingleBaki baki = dataSourceLoader.getBaki();
-            DatabaseMetaData metaData = baki.metaData();
-            String dbName = metaData.getDatabaseProductName().toLowerCase();
+            baki.metaData();
 
-            DataBaseResource dataBaseResource = new DataBaseResource(dbName, dataSourceLoader);
+            DataBaseResource dataBaseResource = new DataBaseResource(dataSourceLoader);
 
             Data.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
 
@@ -254,7 +267,7 @@ public class App {
             // :desc command
             Data.descCmdCompleter.setVarsNames(tables);
 
-            Prompt prompt = new Prompt(metaData.getURL());
+            Prompt prompt = new Prompt(dataSourceLoader.getJdbcUrl());
             StatusManager.promptReference.set(prompt);
 
             log.info("Type in command or sql script to execute query, ddl, dml..., or try :help.");
@@ -276,7 +289,7 @@ public class App {
                                         break exit;
                                     }
                                 case ":help":
-                                    Command.get("--cmd");
+                                    Help.get("--cmd");
                                     break;
                                 case ":status":
                                     PrintHelper.printlnInfo("View Mode: " + StatusManager.viewMode.get());
@@ -374,71 +387,20 @@ public class App {
                                     }
 
                                     if (line.startsWith(":desc")) {
-                                        String name = line.substring(5).trim();
-                                        if (name.contains(REDIRECT_SYMBOL)) {
-                                            Pair<String, String> pair = SqlUtil.getSqlAndRedirect(name);
-                                            String obj = pair.getItem1();
-                                            Path output = Paths.get(pair.getItem2());
-                                            if (Files.isDirectory(output)) {
-                                                output = output.resolve(obj + ".tsv");
-                                            }
-                                            String tsv = dataBaseResource.getTableDesc(obj)
-                                                    .stream()
-                                                    .map(cols -> String.join("\t", cols))
-                                                    .collect(Collectors.joining("\n"));
-                                            Files.write(output, tsv.getBytes(StandardCharsets.UTF_8));
-                                            PrintHelper.printlnNotice("table fields desc saved to: " + output);
-                                            break;
-                                        }
-                                        PrintHelper.printlnNotice("\n-------------------" + name + "-------------------");
-                                        PrintHelper.printGrid(dataBaseResource.getTableDesc(name));
-                                        PrintHelper.printlnNotice("-----------------" + name + " end-----------------\n");
+                                        Desc desc = new Desc(dataBaseResource);
+                                        desc.exec(line.substring(5).trim());
                                         break;
                                     }
 
                                     if (line.startsWith(":ddl")) {
-                                        String name = line.substring(4).trim();
-                                        if (name.contains(REDIRECT_SYMBOL)) {
-                                            Pair<String, String> pair = SqlUtil.getSqlAndRedirect(name);
-                                            String obj = pair.getItem1();
-                                            Path output = Paths.get(pair.getItem2());
-                                            if (Files.isDirectory(output)) {
-                                                output = output.resolve(obj.replaceAll("\\s+", "").replace(":", "_") + ".sql");
-                                            }
-                                            Files.write(output, dataBaseResource.getDefinition(obj).getBytes(StandardCharsets.UTF_8));
-                                            PrintHelper.printlnNotice("ddl script saved to: " + output);
-                                            break;
-                                        }
-                                        PrintHelper.printlnNotice("\n-------------------" + name + "-------------------");
-                                        System.out.println(TerminalColor.highlightSql(dataBaseResource.getDefinition(name)));
-                                        PrintHelper.printlnNotice("-----------------" + name + " end-----------------\n");
+                                        Ddl ddl = new Ddl(dataBaseResource);
+                                        ddl.exec(line.substring(4).trim());
                                         break;
                                     }
 
                                     if (line.startsWith(":edit")) {
-                                        String name = line.substring(5).trim();
-                                        int colonIdx = name.indexOf(":");
-                                        if (colonIdx == -1) {
-                                            throw new IllegalArgumentException("invalid object name formatter, e.g: tg(trigger):test.big.my_trigger, view:test.my_view, proc:public.hello(text)");
-                                        }
-                                        String def = dataBaseResource.getDefinition(name);
-                                        if (def.trim().equals("")) {
-                                            throw new RuntimeException(name + " definition is empty.");
-                                        }
-                                        String procedureTemp = name + "_" + System.currentTimeMillis();
-                                        Path procedurePath = Paths.get(CURRENT_DIR.toString(), procedureTemp);
-                                        Data.tempFiles.add(procedurePath);
-                                        try {
-                                            Files.write(procedurePath, def.getBytes(StandardCharsets.UTF_8));
-                                            commandRegistry.invoke(session, "nano", "-$", procedureTemp);
-                                            String newDef = String.join("\n", Files.readAllLines(procedurePath));
-                                            if (!def.trim().equals(newDef.trim())) {
-                                                baki.execute(newDef);
-                                                PrintHelper.printlnNotice(name + " change submitted!");
-                                            }
-                                        } finally {
-                                            Files.deleteIfExists(procedurePath);
-                                        }
+                                        Edit edit = new Edit(dataBaseResource, commandRegistry, session, baki);
+                                        edit.exec(line.substring(5).trim());
                                         break;
                                     }
 
