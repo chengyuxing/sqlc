@@ -1,8 +1,6 @@
 package com.github.chengyuxing.sql.terminal;
 
-import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
-import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Help;
 import com.github.chengyuxing.sql.terminal.cli.SimpleReadLine;
@@ -12,10 +10,7 @@ import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.cli.component.SqlHistory;
 import com.github.chengyuxing.sql.terminal.core.*;
-import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
-import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.types.View;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
@@ -41,10 +36,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.github.chengyuxing.sql.terminal.vars.Constants.*;
 
