@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -36,6 +37,7 @@ public class DataBaseResource {
     private Function<String, Pair<String, Map<String, Object>>> queryTableDef;
     private Function<String, Pair<String, Map<String, Object>>> queryTableIndexesFunc;
     private Function<String, Pair<String, Map<String, Object>>> queryTableTriggersFunc;
+    private Function<String, Pair<String, Map<String, Object>>> queryTableDescFunc;
 
     public DataBaseResource(String dbName, DataSourceLoader dataSourceLoader) {
         this.dbName = dbName;
@@ -64,6 +66,7 @@ public class DataBaseResource {
                 queryTableDef = name -> Pair.of("pg.table_def", Args.of("table_name", name));
                 queryTableIndexesFunc = name -> Pair.of("pg.table_indexes", Args.of("table_name", name));
                 queryTableTriggersFunc = name -> Pair.of("pg.table_triggers", Args.of("table_name", name));
+                queryTableDescFunc = name -> Pair.of("pg.table_desc", Args.of("table_name", name));
                 break;
             case "oracle":
                 xqlFileManager.add("oracle", "xqls/oracle.sql");
@@ -98,7 +101,7 @@ public class DataBaseResource {
                 }
             }
         }
-        throw new UnsupportedOperationException(dbName+" not support currently, it will be coming soon!");
+        throw new UnsupportedOperationException(dbName + " not support currently, it will be coming soon!");
     }
 
     public String getDefinition(Function<String, Pair<String, Map<String, Object>>> func, String name) {
@@ -118,7 +121,7 @@ public class DataBaseResource {
                         .orElse("");
             }
         }
-        throw new UnsupportedOperationException(dbName+" not support currently, it will be coming soon!");
+        throw new UnsupportedOperationException(dbName + " not support currently, it will be coming soon!");
     }
 
     public List<String> getDefinitions(Function<String, Pair<String, Map<String, Object>>> func, String name) {
@@ -137,7 +140,7 @@ public class DataBaseResource {
                 }
             }
         }
-        throw new UnsupportedOperationException(dbName+" not support currently, it will be coming soon!");
+        throw new UnsupportedOperationException(dbName + " not support currently, it will be coming soon!");
     }
 
     public String getProcedureDefinition(String name) {
@@ -182,6 +185,27 @@ public class DataBaseResource {
         }
         //without ':' then default get table definition
         return getTableDefinition(object);
+    }
+
+    public List<List<String>> getTableDesc(String name) {
+        if (queryTableDescFunc != null) {
+            Pair<String, Map<String, Object>> pair = queryTableDescFunc.apply(name);
+            try (Stream<DataRow> s = dataSourceLoader.getBaki().query(xqlFileManager.get(pair.getItem1())).args(pair.getItem2()).stream()) {
+                AtomicBoolean first = new AtomicBoolean(true);
+                String fmt = "%15s\t%15s\t%15s\t%15s";
+                List<List<String>> rows = new ArrayList<>();
+                s.forEach(d -> {
+                    if (first.get()) {
+                        rows.add(d.names());
+                        first.set(false);
+                    }
+                    List<String> cols = d.values().stream().map(col -> Optional.ofNullable(col).map(Object::toString).orElse("null")).collect(Collectors.toList());
+                    rows.add(cols);
+                });
+                return rows;
+            }
+        }
+        throw new UnsupportedOperationException(dbName + " not support currently, it will be coming soon!");
     }
 
     public List<String> getUserProcedures() {

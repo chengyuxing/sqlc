@@ -65,13 +65,20 @@ public class CompleterBuilder {
                             "e.g:",
                             "proc:test.my_func()"
                     ), "[[proc|tg|view]:object]");
+            add(CliCompleters.cmdBuilder(":desc",
+                            descCmdCompleter,
+                            new StringsCompleter(Constants.REDIRECT_SYMBOL),
+                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "show table fields description or redirect to file.",
+                    Arrays.asList("e.g.", ":desc test.my_table " + Constants.REDIRECT_SYMBOL + " /root/my.tsv"),
+                    "[table] [" + Constants.REDIRECT_SYMBOL + " output]"
+            );
             add(CliCompleters.cmdBuilder(":ddl",
                             ddlCmdCompleter,
-                            new StringsCompleter("&>"),
-                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "get object(table, procedure/function, view, trigger) ddl ",
+                            new StringsCompleter(Constants.REDIRECT_SYMBOL),
+                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "show object(table, procedure/function, view, trigger) ddl ",
                     Arrays.asList("or redirect to file.",
                             "e.g:",
-                            ":ddl test.my_table",
+                            ":ddl test.my_table " + Constants.REDIRECT_SYMBOL + " /root/table.sql",
                             ":ddl proc:test.my_func()",
                             ":ddl tg:test.my_trigger()"),
                     "[[proc|tg|view:]object] [" + Constants.REDIRECT_SYMBOL + " output]"

@@ -251,6 +251,8 @@ public class App {
             Data.ddlCmdCompleter.addVarsNames(views);
             Data.ddlCmdCompleter.addVarsNames(triggers);
             Data.ddlCmdCompleter.addVarsNames(tables);
+            // :desc command
+            Data.descCmdCompleter.setVarsNames(tables);
 
             Prompt prompt = new Prompt(metaData.getURL());
             StatusManager.promptReference.set(prompt);
@@ -368,6 +370,29 @@ public class App {
                                         }
                                         Data.xqlNameCompleter.setVarsNames(Data.xqlFileManager.names());
                                         PrintHelper.printlnInfo("XQLFileManager enabled, input command: ':exec& your_sql_name' to execute!");
+                                        break;
+                                    }
+
+                                    if (line.startsWith(":desc")) {
+                                        String name = line.substring(5).trim();
+                                        if (name.contains(REDIRECT_SYMBOL)) {
+                                            Pair<String, String> pair = SqlUtil.getSqlAndRedirect(name);
+                                            String obj = pair.getItem1();
+                                            Path output = Paths.get(pair.getItem2());
+                                            if (Files.isDirectory(output)) {
+                                                output = output.resolve(obj + ".tsv");
+                                            }
+                                            String tsv = dataBaseResource.getTableDesc(obj)
+                                                    .stream()
+                                                    .map(cols -> String.join("\t", cols))
+                                                    .collect(Collectors.joining("\n"));
+                                            Files.write(output, tsv.getBytes(StandardCharsets.UTF_8));
+                                            PrintHelper.printlnNotice("table fields desc saved to: " + output);
+                                            break;
+                                        }
+                                        PrintHelper.printlnNotice("\n-------------------" + name + "-------------------");
+                                        PrintHelper.printGrid(dataBaseResource.getTableDesc(name));
+                                        PrintHelper.printlnNotice("-----------------" + name + " end-----------------\n");
                                         break;
                                     }
 

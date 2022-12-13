@@ -18,9 +18,13 @@ public abstract class Data {
      */
     public static final DynamicVarsCompleter editCmdCompleter = new DynamicVarsCompleter();
     /**
-     *
+     * ddl指令参数自动完成
      */
     public static final DynamicVarsCompleter ddlCmdCompleter = new DynamicVarsCompleter();
+    /**
+     * 表字段描述自动完成
+     */
+    public static final DynamicVarsCompleter descCmdCompleter = new DynamicVarsCompleter();
     /**
      * sql关键字自动完成
      */

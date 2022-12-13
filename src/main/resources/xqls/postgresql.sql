@@ -166,3 +166,23 @@ where concat(event_object_schema, '.', event_object_table) = :table_name;
 select indexdef || ';'
 from pg_catalog.pg_indexes
 where concat(schemaname, '.', tablename) = :table_name;
+
+/*[table_desc]*/
+SELECT a.attname                                       as name,
+       pg_catalog.format_type(a.atttypid, a.atttypmod) as type,
+       (SELECT substring(pg_catalog.pg_get_expr(d.adbin, d.adrelid, true) for 128)
+        FROM pg_catalog.pg_attrdef d
+        WHERE d.adrelid = a.attrelid
+          AND d.adnum = a.attnum
+          AND a.atthasdef)                             as "default",
+       a.attnotnull                                    as "notNull",
+       d.description
+FROM pg_catalog.pg_attribute a
+         JOIN pg_catalog.pg_class c ON a.attrelid = c.oid
+         JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
+         left join pg_catalog.pg_description d on d.objoid = a.attrelid and d.objsubid = a.attnum
+         LEFT JOIN pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)
+WHERE concat(n.nspname, '.', c.relname) = :table_name
+  AND a.attnum > 0
+  AND NOT a.attisdropped
+ORDER BY a.attnum;

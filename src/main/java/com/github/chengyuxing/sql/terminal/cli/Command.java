@@ -4,6 +4,7 @@ import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
 import com.github.chengyuxing.sql.terminal.Version;
+import com.github.chengyuxing.sql.terminal.vars.Constants;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -19,7 +20,7 @@ public class Command {
         put("-u[url]", "jdbc url, e.g: -ujdbc:postgresql://... (require)");
         put("-n[username]", "database username.");
         put("-p[password]", "database password.");
-        put("-e\"[sql|path[&> output]]\"", "execute sql or redirect single query result to \nfile(if ends with '.sql', will ignore -f and \ngenerate insert sql script and file name will \nas table name) with format(-f).");
+        put("-e\"[sql|path[" + Constants.REDIRECT_SYMBOL + " output]]\"", "execute sql or redirect single query result to \nfile(if ends with '.sql', will ignore -f and \ngenerate insert sql script and file name will \nas table name) with format(-f).");
         put("-e\"[@path]\"", "read a multi-line file for execute batch insert, \nfile type:\n.sql: delimiter default ';'\n.csv|.tsv|.xls(x): default header-index is 0, it \nmeans first line is fields, -1 means no fields, \n5 means fields at 5th line and start read from \n5th line.");
         put("-header[index]", "set header-index for -e\"[@path]\" command, \ndefault -header0(first line is fields).");
         put("-sheet[index]", "set sheet-index for -e\"[@path]\" command \nto import excel file, default -sheet0.");

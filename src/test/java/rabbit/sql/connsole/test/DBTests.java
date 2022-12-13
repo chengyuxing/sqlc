@@ -8,15 +8,13 @@ import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
+import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.core.*;
 import org.junit.Test;
 import org.postgresql.util.PGobject;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,11 +43,14 @@ public class DBTests {
 //        System.out.println(dataBaseResource.getUserTriggers());
 //        System.out.println(dataBaseResource.getUserViews());
 //        System.out.println(dataBaseResource.getUserProcedures());
-        System.out.println(dataBaseResource.getTableDefinition("test.hello"));
+//        System.out.println(dataBaseResource.getTableDefinition("test.hello"));
+
+        List<List<String>> tableDesc = dataBaseResource.getTableDesc("test.big");
+        PrintHelper.printGrid(tableDesc);
     }
 
     @Test
-    public void testMysql() throws Exception{
+    public void testMysql() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:mysql://139.198.19.116:3306/test");
         loader.setUsername("remote");
         loader.setPassword("8id_439O");

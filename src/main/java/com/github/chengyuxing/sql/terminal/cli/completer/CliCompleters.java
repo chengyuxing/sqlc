@@ -1,6 +1,7 @@
 package com.github.chengyuxing.sql.terminal.cli.completer;
 
 import com.github.chengyuxing.common.tuple.Pair;
+import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
@@ -23,7 +24,7 @@ public class CliCompleters {
         ArgumentCompleter completer = new ArgumentCompleter(
                 new StringsCompleter(mainCmd),
                 new Completers.FilesCompleter(CURRENT_DIR, "*.sql"),
-                new StringsCompleter("&>"),
+                new StringsCompleter(Constants.REDIRECT_SYMBOL),
                 new Completers.DirectoriesCompleter(CURRENT_DIR),
                 NullCompleter.INSTANCE
         );
