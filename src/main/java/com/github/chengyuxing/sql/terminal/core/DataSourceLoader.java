@@ -61,7 +61,7 @@ public class DataSourceLoader {
      * @throws NoSuchMethodException exp
      */
     public static void loadDrivers(String path) throws NoSuchMethodException, FileNotFoundException {
-        File driverDir = new File(Constants.APP_DIR.getParent() + File.separator + path);
+        File driverDir = Constants.APP_DIR.getParent().resolve(path).toFile();
         if (!driverDir.exists()) {
             throw new FileNotFoundException("jdbc driver folder not exists: " + driverDir);
         }

@@ -8,7 +8,11 @@ import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import org.jline.reader.LineReader;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -47,7 +51,11 @@ public class ExecExecutor {
                         Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlWithArgs(sql, reader);
                         try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...", () -> baki.query(sqlAndArgs.getItem1()).args(sqlAndArgs.getItem2()).stream())) {
                             PrintHelper.printlnNotice("redirect query to file...");
-                            FileHelper.writeFile(s, pair.getItem2());
+                            Path output = Paths.get(pair.getItem2());
+                            if (Files.isDirectory(output)) {
+                                output = output.resolve("sqlc_query_result_" + System.currentTimeMillis());
+                            }
+                            FileHelper.writeFile(s, output.toString());
                         } catch (Exception e) {
                             throw new RuntimeException("an error when waiting execute: " + sql, e);
                         }

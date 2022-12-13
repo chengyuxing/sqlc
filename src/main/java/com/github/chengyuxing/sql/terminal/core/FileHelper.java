@@ -207,9 +207,9 @@ public final class FileHelper {
                 PrintHelper.printlnPrimary(value + " rows write completed.(" + TimeUtil.format(during) + ")");
                 if (hasBlob.get()) {
                     try {
-                        Files.move(path, Paths.get(fileDir.get() + File.separator + fileName));
+                        Files.move(path, Paths.get(fileDir.get(), fileName));
                         String readme = StringUtil.format("please do not change files if you will batch insert to another table:\n-----------------\n${blobs}\n${insert}", Args.create("blobs", blobsDir, "insert", path));
-                        Files.write(Paths.get(fileDir.get() + File.separator + "readme.txt"), readme.getBytes(StandardCharsets.UTF_8));
+                        Files.write(Paths.get(fileDir.get(), "readme.txt"), readme.getBytes(StandardCharsets.UTF_8));
                         PrintHelper.printlnNotice(StringUtil.format("${a}(${b} and blobs) saved!", Args.create("a", fileDir, "b", fileName)));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -229,13 +229,13 @@ public final class FileHelper {
                         }
                         for (String k : insertAndBlobKeys.getItem2()) {
                             if (fileDir.get().equals("")) {
-                                fileDir.set(currentDir + File.separator + tableName + "_" + System.currentTimeMillis());
-                                blobsDir.set(fileDir.get() + File.separator + "blobs");
+                                fileDir.set(Paths.get(currentDir, tableName + "_" + System.currentTimeMillis()).toString());
+                                blobsDir.set(Paths.get(fileDir.get(), "blobs").toString());
                                 Files.createDirectory(Paths.get(fileDir.get()));
                                 Files.createDirectory(Paths.get(blobsDir.get()));
                             }
                             Bytes2File b2f = new Bytes2File((byte[]) d.get(k));
-                            b2f.saveTo(blobsDir.get() + File.separator + "blob_" + pp.getValue() + "_" + k);
+                            b2f.saveTo(Paths.get(blobsDir.get(), "blob_" + pp.getValue() + "_" + k));
                         }
                     }
                     pp.increment();
