@@ -17,8 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -194,6 +196,31 @@ public final class PrintHelper {
 
     public static void printPrimary(String msg) {
         TerminalColor.print(msg, Color.DARK_CYAN);
+    }
+
+    public static void printGrid(List<List<String>> gridData) {
+        int[] maxes = new int[gridData.get(0).size()];
+        Arrays.fill(maxes, 0);
+        StringJoiner fmt = new StringJoiner("\t");
+        for (List<String> gridDatum : gridData) {
+            for (int j = 0; j < gridDatum.size(); j++) {
+                int now = gridDatum.get(j).length();
+                if (maxes[j] < now) {
+                    maxes[j] = now;
+                }
+            }
+        }
+        for (int len : maxes) {
+            fmt.add("%-" + len + "s");
+        }
+        for (int i = 0; i < gridData.size(); i++) {
+            if (i == 0) {
+                TerminalColor.printf(fmt.toString(), Color.CYAN, gridData.get(i).toArray());
+            } else {
+                TerminalColor.printf(fmt.toString(), Color.DARK_CYAN, gridData.get(i).toArray());
+            }
+            System.out.println();
+        }
     }
 
     public static void printJSON(DataRow data, AtomicBoolean firstLine) throws JsonProcessingException {
