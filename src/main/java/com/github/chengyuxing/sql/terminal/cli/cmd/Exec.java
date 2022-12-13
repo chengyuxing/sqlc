@@ -55,30 +55,30 @@ public class Exec {
                                 output = output.resolve("sqlc_query_result_" + System.currentTimeMillis());
                             }
                             FileHelper.writeFile(s, output.toString());
+                            return;
                         } catch (Exception e) {
                             throw new RuntimeException("an error when waiting execute: " + sql, e);
                         }
-                    } else {
-                        PrintHelper.printlnWarning("only query support redirect operation!");
                     }
-                } else {
-                    PrintHelper.printlnWarning("only single query support redirect operation!");
+                    PrintHelper.printlnWarning("only query support redirect operation!");
+                    return;
                 }
+                PrintHelper.printlnWarning("only single query support redirect operation!");
             }
-        } else {
-            List<String> sqls = SqlUtil.multiSqlList(execContent);
-            if (!sqls.isEmpty()) {
-                if (sqls.size() == 1) {
-                    String sql = sqls.get(0);
-                    PrintHelper.printlnHighlightSql(sql);
-                    Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, lineReader);
-                    String fullSql = pair.getItem1();
-                    Map<String, Object> args = pair.getItem2();
-                    PrintHelper.printOneSqlResultByType(baki, fullSql, fullSql, args);
-                } else {
-                    PrintHelper.printMultiSqlResult(baki, sqls, lineReader);
-                }
+            return;
+        }
+        List<String> sqls = SqlUtil.multiSqlList(execContent);
+        if (!sqls.isEmpty()) {
+            if (sqls.size() == 1) {
+                String sql = sqls.get(0);
+                PrintHelper.printlnHighlightSql(sql);
+                Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, lineReader);
+                String fullSql = pair.getItem1();
+                Map<String, Object> args = pair.getItem2();
+                PrintHelper.printOneSqlResultByType(baki, fullSql, fullSql, args);
+                return;
             }
+            PrintHelper.printMultiSqlResult(baki, sqls, lineReader);
         }
     }
 }

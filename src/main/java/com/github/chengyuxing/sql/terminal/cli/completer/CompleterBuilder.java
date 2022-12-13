@@ -50,10 +50,12 @@ public class CompleterBuilder {
             ), "[input-file] [sheet-index] [header-index]");
             add(CliCompleters.cmdBuilder(":exec&",
                             xqlNameCompleter,
+                            new StringsCompleter(Constants.REDIRECT_SYMBOL),
+                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR),
                             NullCompleter.INSTANCE),
-                    "get sql by name(after ':load .../your.sql as me') to execute.",
-                    Arrays.asList("e.g: ", ":exec& me.query"),
-                    "[sql-name]");
+                    "get sql by name(after ':load .../your.sql as me') to execute or",
+                    Arrays.asList("redirect query to file.", "e.g: ", ":exec& me.query"),
+                    "[sql-name] [" + Constants.REDIRECT_SYMBOL + " output]");
             add(CliCompleters.readXqlFile(":load"), "read load alia a xql file for execute by name.",
                     Arrays.asList("e.g:", ":load /my.xql as my"),
                     "[xql-file]", "as", "[alias]");
@@ -68,7 +70,7 @@ public class CompleterBuilder {
             add(CliCompleters.cmdBuilder(":desc",
                             descCmdCompleter,
                             new StringsCompleter(Constants.REDIRECT_SYMBOL),
-                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "show table fields description or redirect to file.",
+                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "show table description or redirect to tsv file.",
                     Arrays.asList("e.g.", ":desc test.my_table " + Constants.REDIRECT_SYMBOL + " /root/my.tsv"),
                     "[table] [" + Constants.REDIRECT_SYMBOL + " output]"
             );
@@ -76,7 +78,7 @@ public class CompleterBuilder {
                             ddlCmdCompleter,
                             new StringsCompleter(Constants.REDIRECT_SYMBOL),
                             new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "show object(table, procedure/function, view, trigger) ddl ",
-                    Arrays.asList("or redirect to file.",
+                    Arrays.asList("or redirect to sql file.",
                             "e.g:",
                             ":ddl test.my_table " + Constants.REDIRECT_SYMBOL + " /root/table.sql",
                             ":ddl proc:test.my_func()",

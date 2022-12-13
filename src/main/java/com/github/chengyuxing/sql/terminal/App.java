@@ -1,19 +1,19 @@
 package com.github.chengyuxing.sql.terminal;
 
+import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Help;
 import com.github.chengyuxing.sql.terminal.cli.SimpleReadLine;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
-import com.github.chengyuxing.sql.terminal.cli.cmd.Ddl;
-import com.github.chengyuxing.sql.terminal.cli.cmd.Desc;
-import com.github.chengyuxing.sql.terminal.cli.cmd.Edit;
-import com.github.chengyuxing.sql.terminal.cli.cmd.Exec;
+import com.github.chengyuxing.sql.terminal.cli.cmd.*;
 import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.cli.component.SqlHistory;
 import com.github.chengyuxing.sql.terminal.core.*;
+import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
+import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.github.chengyuxing.sql.terminal.vars.Constants.*;
 
@@ -94,7 +95,6 @@ public class App {
                                 System.out.println("cancel login.");
                                 return;
                             } catch (Exception e) {
-                                e.printStackTrace();
                                 PrintHelper.printlnError(e);
                                 PrintHelper.printlnDanger("please try again.");
                             }
@@ -348,13 +348,9 @@ public class App {
                                         break;
                                     }
 
-                                    Matcher xm = EXEC_XQL_REGEX.matcher(line);
-                                    if (xm.find()) {
-                                        String sqlName = xm.group("name");
-                                        String sql = Data.xqlFileManager.get(sqlName);
-                                        PrintHelper.printlnHighlightSql(sql);
-                                        Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, lineReader);
-                                        PrintHelper.printOneSqlResultByType(baki, "&" + sqlName, pair.getItem1(), pair.getItem2());
+                                    if (line.startsWith(":exec&")) {
+                                        XqlExec xqlExec = new XqlExec(baki, lineReader);
+                                        xqlExec.exec(line.substring(6).trim());
                                         // prepared sql will change the prompt to arg name, reset to new-line prompt after executed.
                                         prompt.newLine();
                                         break;
