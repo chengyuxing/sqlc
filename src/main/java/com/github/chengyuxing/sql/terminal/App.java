@@ -333,6 +333,7 @@ public class App {
                                         BatchInsertHelper.readFile4batch(baki, file, sheetIdx, headerIdx);
                                         break;
                                     }
+
                                     Matcher bmh = EXEC_BATCH_WITH_HEADER_REGEX.matcher(line);
                                     if (bmh.find()) {
                                         String file = bmh.group("input");
@@ -341,9 +342,8 @@ public class App {
                                         break;
                                     }
 
-                                    Matcher bm = EXEC_BATCH_REGEX.matcher(line);
-                                    if (bm.find()) {
-                                        String file = bm.group("input");
+                                    if (line.startsWith(":exec@")) {
+                                        String file = line.substring(6).trim();
                                         BatchInsertHelper.readFile4batch(baki, file);
                                         break;
                                     }
