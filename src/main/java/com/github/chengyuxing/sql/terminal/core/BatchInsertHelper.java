@@ -14,7 +14,6 @@ import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -139,7 +138,7 @@ public class BatchInsertHelper {
     }
 
     public static boolean preparedInsert4BlobBatchExecute(SingleBaki baki, List<String> sqls, Path path) throws IOException {
-        Path blobsDir = Paths.get(path.getParent().toString() + File.separator + "blobs");
+        Path blobsDir = path.getParent().resolve("blobs");
         if (Files.exists(blobsDir)) {
             if (!StatusManager.txActive.get()) {
                 Tx.using(() -> {
@@ -147,7 +146,7 @@ public class BatchInsertHelper {
                         List<String> names = SqlUtil.sqlTranslator.getPreparedSql(sql, Collections.emptyMap()).getItem2();
                         Map<String, Object> arg = new HashMap<>();
                         for (String name : names) {
-                            arg.put(name, Paths.get(blobsDir + File.separator + name).toFile());
+                            arg.put(name, blobsDir.resolve(name).toFile());
                         }
                         baki.executeNonQuery(sql, Collections.singletonList(arg));
                     }
