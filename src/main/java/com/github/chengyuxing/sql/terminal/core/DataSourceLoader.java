@@ -11,6 +11,8 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -21,6 +23,7 @@ public class DataSourceLoader {
     private final String jdbcUrl;
     private String username = "";
     private String password = "";
+    private String dbName = "";
 
     DataSourceLoader(String jdbcUrl) {
         this.jdbcUrl = jdbcUrl;
@@ -47,11 +50,18 @@ public class DataSourceLoader {
         this.password = password;
     }
 
-    public void init() {
-        config.setMaximumPoolSize(5);
+    public String getDbName() {
+        return dbName;
+    }
+
+    public void init() throws SQLException {
+        config.setMaximumPoolSize(4);
         config.setUsername(username);
         config.setPassword(password);
         dataSource = new HikariDataSource(config);
+        try (Connection connection = dataSource.getConnection()) {
+            dbName = connection.getMetaData().getDatabaseProductName().toLowerCase();
+        }
     }
 
     /**
