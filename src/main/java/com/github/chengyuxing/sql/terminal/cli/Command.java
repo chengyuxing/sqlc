@@ -39,6 +39,7 @@ public class Command {
             } else {
                 TerminalColor.printf("%-2s %-25s %-10s\n", Color.CYAN, "", k, v);
             }
+            System.out.println();
         }));
         put("--cmd", () -> cmdDesc.forEach((k, v) -> {
             if (!k.equals("")) {
@@ -51,6 +52,7 @@ public class Command {
                     TerminalColor.printf("%-2s %-10s %-10s\n", Color.DARK_CYAN, "", k, String.join(" ", argDesc));
                     mainDesc.forEach(s -> TerminalColor.printf("%-2s %-10s %-10s\n", Color.CYAN, "", "", s));
                 }
+                System.out.println();
             }
         }));
         put("-h", () -> {
