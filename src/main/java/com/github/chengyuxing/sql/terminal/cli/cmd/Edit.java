@@ -2,7 +2,7 @@ package com.github.chengyuxing.sql.terminal.cli.cmd;
 
 import com.github.chengyuxing.sql.terminal.core.DataBaseResource;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
-import com.github.chengyuxing.sql.terminal.core.SingleBaki;
+import com.github.chengyuxing.sql.terminal.core.UserBaki;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import org.jline.console.CommandRegistry;
 import org.jline.console.impl.JlineCommandRegistry;
@@ -18,9 +18,9 @@ public class Edit {
     private final DataBaseResource dataBaseResource;
     private final JlineCommandRegistry commandRegistry;
     private final CommandRegistry.CommandSession session;
-    private final SingleBaki baki;
+    private final UserBaki baki;
 
-    public Edit(DataBaseResource dataBaseResource, JlineCommandRegistry commandRegistry, CommandRegistry.CommandSession session, SingleBaki baki) {
+    public Edit(DataBaseResource dataBaseResource, JlineCommandRegistry commandRegistry, CommandRegistry.CommandSession session, UserBaki baki) {
         this.dataBaseResource = dataBaseResource;
         this.commandRegistry = commandRegistry;
         this.session = session;

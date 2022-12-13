@@ -1,5 +1,7 @@
 package com.github.chengyuxing.sql.terminal.core;
 
+import com.github.chengyuxing.sql.Baki;
+import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -19,7 +21,9 @@ import java.util.stream.Stream;
 public class DataSourceLoader {
     private final HikariConfig config = new HikariConfig();
     private HikariDataSource dataSource;
-    private SingleBaki baki;
+    private HikariDataSource sysDataSource;
+    private UserBaki baki;
+    private BakiDao sysBaki;
     private final String jdbcUrl;
     private String username = "";
     private String password = "";
@@ -55,11 +59,14 @@ public class DataSourceLoader {
     }
 
     public void init() throws SQLException {
-        config.setMaximumPoolSize(4);
+        config.setMaximumPoolSize(2);
         config.setUsername(username);
         config.setPassword(password);
+
         dataSource = new HikariDataSource(config);
-        try (Connection connection = dataSource.getConnection()) {
+        sysDataSource = new HikariDataSource(config);
+
+        try (Connection connection = sysDataSource.getConnection()) {
             dbName = connection.getMetaData().getDatabaseProductName().toLowerCase();
         }
     }
@@ -97,9 +104,9 @@ public class DataSourceLoader {
      *
      * @return baki
      */
-    public SingleBaki getBaki() {
+    public UserBaki getUserBaki() {
         if (baki == null) {
-            baki = new SingleBaki(dataSource, username);
+            baki = new UserBaki(dataSource, username);
             if (Constants.IS_XTERM) {
                 baki.setHighlightSql(true);
             }
@@ -108,7 +115,17 @@ public class DataSourceLoader {
         return baki;
     }
 
+    public Baki getSysBaki() {
+        if (sysBaki == null) {
+            sysBaki = new BakiDao(sysDataSource);
+            sysBaki.setHighlightSql(false);
+            sysBaki.setCheckParameterType(false);
+        }
+        return sysBaki;
+    }
+
     public void release() {
         dataSource.close();
+        sysDataSource.close();
     }
 }

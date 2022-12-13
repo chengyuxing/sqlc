@@ -4,6 +4,7 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.Args;
+import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 
@@ -26,6 +27,7 @@ public class DataBaseResource {
 
     private final String dbName;
     private final DataSourceLoader dataSourceLoader;
+    private final Baki baki;
     private final XQLFileManager xqlFileManager;
     private Supplier<Pair<String, Map<String, Object>>> queryTablesFunc;
     private Supplier<Pair<String, Map<String, Object>>> queryProceduresFunc;
@@ -42,6 +44,7 @@ public class DataBaseResource {
     public DataBaseResource(DataSourceLoader dataSourceLoader) {
         this.dbName = dataSourceLoader.getDbName();
         this.dataSourceLoader = dataSourceLoader;
+        this.baki = this.dataSourceLoader.getSysBaki();
         this.xqlFileManager = new XQLFileManager();
         init();
     }
@@ -91,7 +94,7 @@ public class DataBaseResource {
             Pair<String, Map<String, Object>> pair = supplier.get();
             String sql = xqlFileManager.get(pair.getItem1());
             if (!sql.equals("")) {
-                try (Stream<DataRow> s = dataSourceLoader.getBaki().query(sql).args(pair.getItem2()).stream()) {
+                try (Stream<DataRow> s = baki.query(sql).args(pair.getItem2()).stream()) {
                     return s.map(d -> {
                         if (d.getString(1).equals("")) {
                             return d.getString(0);
@@ -109,7 +112,7 @@ public class DataBaseResource {
             Pair<String, Map<String, Object>> pair = func.apply(name);
             String sql = xqlFileManager.get(pair.getItem1());
             if (!sql.equals("")) {
-                return dataSourceLoader.getBaki().query(sql).args(pair.getItem2())
+                return baki.query(sql).args(pair.getItem2())
                         .findFirst()
                         .map(d -> {
                             String def = d.getString(0);
@@ -129,7 +132,7 @@ public class DataBaseResource {
             Pair<String, Map<String, Object>> pair = func.apply(name);
             String sql = xqlFileManager.get(pair.getItem1());
             if (!sql.equals("")) {
-                try (Stream<DataRow> s = dataSourceLoader.getBaki().query(sql).args(pair.getItem2()).stream()) {
+                try (Stream<DataRow> s = baki.query(sql).args(pair.getItem2()).stream()) {
                     return s.map(d -> {
                         String def = d.getString(0);
                         if (def != null) {
@@ -190,7 +193,7 @@ public class DataBaseResource {
     public List<List<String>> getTableDesc(String name) {
         if (queryTableDescFunc != null) {
             Pair<String, Map<String, Object>> pair = queryTableDescFunc.apply(name);
-            try (Stream<DataRow> s = dataSourceLoader.getBaki().query(xqlFileManager.get(pair.getItem1())).args(pair.getItem2()).stream()) {
+            try (Stream<DataRow> s = baki.query(xqlFileManager.get(pair.getItem1())).args(pair.getItem2()).stream()) {
                 AtomicBoolean first = new AtomicBoolean(true);
                 List<List<String>> rows = new ArrayList<>();
                 s.forEach(d -> {

@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 public class BatchInsertHelper {
     static final ObjectMapper JSON = new ObjectMapper();
 
-    public static void readFile4batch(SingleBaki baki, String filePath, int sheetIdx, int headerIdx) throws Exception {
+    public static void readFile4batch(UserBaki baki, String filePath, int sheetIdx, int headerIdx) throws Exception {
         Path file = Paths.get(filePath.trim());
         if (Files.exists(file)) {
             String fileName = file.getFileName().toString();
@@ -65,15 +65,15 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void readFile4batch(SingleBaki baki, String filePath, int headerIdx) throws Exception {
+    public static void readFile4batch(UserBaki baki, String filePath, int headerIdx) throws Exception {
         readFile4batch(baki, filePath, 0, headerIdx);
     }
 
-    public static void readFile4batch(SingleBaki baki, String filePath) throws Exception {
+    public static void readFile4batch(UserBaki baki, String filePath) throws Exception {
         readFile4batch(baki, filePath, 0);
     }
 
-    public static void readInsertSqlScriptBatchExecute(SingleBaki baki, Path path) {
+    public static void readInsertSqlScriptBatchExecute(UserBaki baki, Path path) {
         String delimiter = StatusManager.sqlDelimiter.get();
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
@@ -137,7 +137,7 @@ public class BatchInsertHelper {
         }
     }
 
-    public static boolean preparedInsert4BlobBatchExecute(SingleBaki baki, List<String> sqls, Path path) throws IOException {
+    public static boolean preparedInsert4BlobBatchExecute(UserBaki baki, List<String> sqls, Path path) throws IOException {
         Path blobsDir = path.getParent().resolve("blobs");
         if (Files.exists(blobsDir)) {
             if (!StatusManager.txActive.get()) {
@@ -158,7 +158,7 @@ public class BatchInsertHelper {
     }
 
 
-    public static void readJson4batch(SingleBaki baki, Path path, String tableName) {
+    public static void readJson4batch(UserBaki baki, Path path, String tableName) {
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         ProgressPrinter pp = new ProgressPrinter();
@@ -189,7 +189,7 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void readDSV4batch(SingleBaki baki, Path path, String tableName, String delimiter, int headerIdx) {
+    public static void readDSV4batch(UserBaki baki, Path path, String tableName, String delimiter, int headerIdx) {
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         ProgressPrinter pp = new ProgressPrinter();
@@ -238,7 +238,7 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void readExcel4batch(SingleBaki baki, Path path, String tableName, int sheetIdx, int headerIdx) {
+    public static void readExcel4batch(UserBaki baki, Path path, String tableName, int sheetIdx, int headerIdx) {
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         ProgressPrinter pp = new ProgressPrinter();

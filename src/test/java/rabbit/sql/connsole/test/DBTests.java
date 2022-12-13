@@ -8,7 +8,6 @@ import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
-import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.core.*;
 import org.junit.Test;
 import org.postgresql.util.PGobject;
@@ -35,7 +34,7 @@ public class DBTests {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
         loader.setUsername("chengyuxing");
         loader.init();
-        DataBaseResource dataBaseResource = new DataBaseResource("postgresql", loader);
+        DataBaseResource dataBaseResource = new DataBaseResource(loader);
 //        dataBaseResource.getUserTableNames().forEach(System.out::println);
 //        System.out.println(dataBaseResource.getProcedureDefinition("test.slow_query(integer, integer)"));
 //        System.out.println(dataBaseResource.getViewDefinition("test.big_top5"));
@@ -61,7 +60,7 @@ public class DBTests {
     @Test
     public void test2() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
-        Baki baki = loader.getBaki();
+        Baki baki = loader.getUserBaki();
         baki.query("select '{\"a\":\"cyx\"}'::jsonb as x").findFirst().ifPresent(d -> {
             Object v = d.get("x");
             if (v instanceof PGobject) {

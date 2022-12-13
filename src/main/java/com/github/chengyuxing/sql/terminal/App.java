@@ -39,7 +39,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +94,9 @@ public class App {
                                 System.out.println("cancel login.");
                                 return;
                             } catch (Exception e) {
-                                PrintHelper.printlnDanger(e.getCause().getMessage() + ", please try again.");
+                                e.printStackTrace();
+                                PrintHelper.printlnError(e);
+                                PrintHelper.printlnDanger("please try again.");
                             }
                         }
                     } else {
@@ -138,7 +139,7 @@ public class App {
             dataSourceLoader.release();
             System.out.println("Bye bye :(");
         }));
-        SingleBaki baki = dataSourceLoader.getBaki();
+        UserBaki baki = dataSourceLoader.getUserBaki();
         baki.metaData();
         String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(execute);
         boolean usingTx = args.containsKey("--with-tx");
@@ -200,7 +201,7 @@ public class App {
         });
     }
 
-    public static void startInteractiveMode(DataSourceLoader dataSourceLoader) throws IOException, SQLException {
+    public static void startInteractiveMode(DataSourceLoader dataSourceLoader) throws IOException {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (StatusManager.txActive.get()) {
                 Tx.rollback();
@@ -241,7 +242,7 @@ public class App {
 
             JlineCommandRegistry commandRegistry = new Builtins(CURRENT_DIR, new ConfigurationPath(APP_DIR, USER_HOME), s -> lineReader.getBuiltinWidgets().get(s));
 
-            SingleBaki baki = dataSourceLoader.getBaki();
+            UserBaki baki = dataSourceLoader.getUserBaki();
             baki.metaData();
 
             DataBaseResource dataBaseResource = new DataBaseResource(dataSourceLoader);

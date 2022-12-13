@@ -13,8 +13,8 @@ import java.sql.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class SingleBaki extends BakiDao {
-    private static final Logger log = LoggerFactory.getLogger(SingleBaki.class);
+public class UserBaki extends BakiDao {
+    private static final Logger log = LoggerFactory.getLogger(UserBaki.class);
     private final String username;
 
     /**
@@ -23,7 +23,7 @@ public class SingleBaki extends BakiDao {
      * @param dataSource 数据源
      * @param username   jdbc登录用户名
      */
-    public SingleBaki(DataSource dataSource, String username) {
+    public UserBaki(DataSource dataSource, String username) {
         super(dataSource);
         this.username = username;
     }

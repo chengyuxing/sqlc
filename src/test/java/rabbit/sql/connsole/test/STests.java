@@ -1,7 +1,5 @@
 package rabbit.sql.connsole.test;
 
-import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.excel.Excels;
@@ -9,11 +7,9 @@ import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
-import com.github.chengyuxing.sql.terminal.cli.Command;
+import com.github.chengyuxing.sql.terminal.cli.Help;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
-import com.github.chengyuxing.sql.terminal.vars.Data;
 import org.junit.Test;
 import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
@@ -27,7 +23,6 @@ import java.sql.Types;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -105,7 +100,7 @@ public class STests {
         Args<Object> args = Args.of("id", "");
 
         BakiDao bakiDao = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres")
-                .getBaki();
+                .getUserBaki();
         bakiDao.setDebugFullSql(true);
         bakiDao.setXqlFileManager(xqlFileManager);
         Thread.sleep(5000);
@@ -161,7 +156,7 @@ public class STests {
 
     @Test
     public void testCmdDesc() throws Exception {
-        Command.get("--cmd");
+        Help.get("--cmd");
     }
 
     @Test
