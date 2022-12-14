@@ -30,7 +30,7 @@ public class DBTests {
     }
 
     @Test
-    public void test1() throws Exception {
+    public void testPg() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
         loader.setUsername("chengyuxing");
         loader.init();
@@ -51,10 +51,11 @@ public class DBTests {
     @Test
     public void testMysql() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:mysql://139.198.19.116:3306/test");
-        loader.setUsername("remote");
-        loader.setPassword("8id_439O");
+        loader.setUsername("sp");
+        loader.setPassword("A14_sp_123");
         loader.init();
-//        SqlUtil.getTableNames("mysql", loader).forEach(System.out::println);
+        DataBaseResource dataBaseResource = new DataBaseResource(loader);
+        dataBaseResource.getUserTableNames().forEach(System.out::println);
     }
 
     @Test

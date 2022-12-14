@@ -1,6 +1,5 @@
 package com.github.chengyuxing.sql.terminal.core;
 
-import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.zaxxer.hikari.HikariConfig;
@@ -115,7 +114,7 @@ public class DataSourceLoader {
         return baki;
     }
 
-    public Baki getSysBaki() {
+    public BakiDao getSysBaki() {
         if (sysBaki == null) {
             sysBaki = new BakiDao(sysDataSource);
             sysBaki.setHighlightSql(false);

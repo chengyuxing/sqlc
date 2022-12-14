@@ -28,6 +28,10 @@ public class Edit {
     }
 
     public void exec(String cmd) throws Exception {
+        if (dataBaseResource.getDbName().equals("mysql")) {
+            PrintHelper.printlnWarning("mysql not support :edit command.");
+            return;
+        }
         int colonIdx = cmd.indexOf(":");
         if (colonIdx == -1) {
             throw new IllegalArgumentException("invalid object name formatter, e.g: tg(trigger):test.big.my_trigger, view:test.my_view, proc:public.hello(text)");

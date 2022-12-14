@@ -22,6 +22,10 @@ public class Ddl {
     }
 
     public void exec(String cmd) throws IOException {
+        if (dataBaseResource.getDbName().equals("mysql")) {
+            PrintHelper.printlnWarning("mysql not support :ddl command, use mysql 'show ...' syntax instead.");
+            return;
+        }
         if (cmd.contains(REDIRECT_SYMBOL)) {
             Pair<String, String> pair = SqlUtil.getSqlAndRedirect(cmd);
             String obj = pair.getItem1();

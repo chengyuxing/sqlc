@@ -7,6 +7,8 @@ import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -24,6 +26,7 @@ import java.util.stream.Stream;
 import static com.github.chengyuxing.sql.terminal.vars.Constants.GET_MYSQL_SCHEMA;
 
 public class DataBaseResource {
+    private static final Logger log = LoggerFactory.getLogger(DataBaseResource.class);
     private final Pattern TRIGGER_PREFIX_REGEX = Pattern.compile("^create\\s+or\\s+replace\\s[\\s\\S]+", Pattern.CASE_INSENSITIVE);
 
     private final String dbName;
@@ -83,8 +86,9 @@ public class DataBaseResource {
                     if (m.find()) {
                         return Pair.of("mysql.user_tables", Args.of("schema", m.group("schema")));
                     }
-                    return Pair.of("", Collections.emptyMap());
+                    return Pair.of("mysql.user_tables", Collections.emptyMap());
                 };
+                queryTableDescFunc = name -> Pair.of("mysql.table_desc", Args.of("table_name", name));
                 break;
         }
         xqlFileManager.init();
@@ -93,7 +97,7 @@ public class DataBaseResource {
     List<String> getNames(Supplier<Pair<String, Map<String, Object>>> supplier) {
         if (supplier != null) {
             Pair<String, Map<String, Object>> pair = supplier.get();
-            String sql = xqlFileManager.get(pair.getItem1());
+            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2());
             if (!sql.equals("")) {
                 try (Stream<DataRow> s = baki.query(sql).args(pair.getItem2()).stream()) {
                     return s.map(d -> {
@@ -105,13 +109,14 @@ public class DataBaseResource {
                 }
             }
         }
+        log.debug("not implement now.");
         return Collections.emptyList();
     }
 
     public String getDefinition(Function<String, Pair<String, Map<String, Object>>> func, String name) {
         if (func != null) {
             Pair<String, Map<String, Object>> pair = func.apply(name);
-            String sql = xqlFileManager.get(pair.getItem1());
+            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2());
             if (!sql.equals("")) {
                 return baki.query(sql).args(pair.getItem2())
                         .findFirst()
@@ -125,13 +130,13 @@ public class DataBaseResource {
                         .orElse("");
             }
         }
-        throw new UnsupportedOperationException(dbName + " not support currently, it will be coming soon!");
+        throw new UnsupportedOperationException(dbName + ": operation not implement currently.");
     }
 
     public List<String> getDefinitions(Function<String, Pair<String, Map<String, Object>>> func, String name) {
         if (func != null) {
             Pair<String, Map<String, Object>> pair = func.apply(name);
-            String sql = xqlFileManager.get(pair.getItem1());
+            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2());
             if (!sql.equals("")) {
                 try (Stream<DataRow> s = baki.query(sql).args(pair.getItem2()).stream()) {
                     return s.map(d -> {
@@ -144,7 +149,7 @@ public class DataBaseResource {
                 }
             }
         }
-        throw new UnsupportedOperationException(dbName + " not support currently, it will be coming soon!");
+        throw new UnsupportedOperationException(dbName + ": operation not implement currently.");
     }
 
     public String getProcedureDefinition(String name) {
@@ -194,7 +199,7 @@ public class DataBaseResource {
     public List<List<String>> getTableDesc(String name) {
         if (queryTableDescFunc != null) {
             Pair<String, Map<String, Object>> pair = queryTableDescFunc.apply(name);
-            try (Stream<DataRow> s = baki.query(xqlFileManager.get(pair.getItem1())).args(pair.getItem2()).stream()) {
+            try (Stream<DataRow> s = baki.query(xqlFileManager.get(pair.getItem1(), pair.getItem2())).args(pair.getItem2()).stream()) {
                 AtomicBoolean first = new AtomicBoolean(true);
                 List<List<String>> rows = new ArrayList<>();
                 s.forEach(d -> {
@@ -208,7 +213,7 @@ public class DataBaseResource {
                 return rows;
             }
         }
-        throw new UnsupportedOperationException(dbName + " not support currently, it will be coming soon!");
+        throw new UnsupportedOperationException(dbName + ": operation not implement currently.");
     }
 
     public List<String> getUserProcedures() {
@@ -277,5 +282,13 @@ public class DataBaseResource {
             } else sb.add(w);
         }
         return sb.toString();
+    }
+
+    public String getDbName() {
+        return dbName;
+    }
+
+    public DataSourceLoader getDataSourceLoader() {
+        return dataSourceLoader;
     }
 }

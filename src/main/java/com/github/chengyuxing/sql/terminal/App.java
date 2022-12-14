@@ -472,6 +472,8 @@ public class App {
                     prompt.newLine();
                 }
             }
+        } catch (Exception e) {
+            PrintHelper.printlnError(e);
         }
     }
 }
