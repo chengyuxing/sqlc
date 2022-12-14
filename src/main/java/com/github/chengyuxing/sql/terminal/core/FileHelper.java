@@ -103,7 +103,7 @@ public final class FileHelper {
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         ProgressPrinter pp = ProgressPrinter.of("", " object has written.");
         try {
-            bufferedWriterAtomicReference.set(Files.newBufferedWriter(filePath));
+            bufferedWriterAtomicReference.set(Files.newBufferedWriter(filePath,StandardCharsets.UTF_8));
             BufferedWriter writer = bufferedWriterAtomicReference.get();
             PrintHelper.printlnPrimary("waiting...");
             pp.whenStopped((value, during) -> {
@@ -195,7 +195,7 @@ public final class FileHelper {
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         ProgressPrinter pp = ProgressPrinter.of("", " rows has written.");
         try {
-            bufferedWriterAtomicReference.set(new BufferedWriter(new OutputStreamWriter(Files.newOutputStream(path))));
+            bufferedWriterAtomicReference.set(Files.newBufferedWriter(path, StandardCharsets.UTF_8));
             BufferedWriter writer = bufferedWriterAtomicReference.get();
             AtomicBoolean hasBlob = new AtomicBoolean(false);
 

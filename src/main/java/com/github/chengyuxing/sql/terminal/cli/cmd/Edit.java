@@ -42,7 +42,7 @@ public class Edit {
         try {
             Files.write(procedurePath, def.getBytes(StandardCharsets.UTF_8));
             commandRegistry.invoke(session, "nano", "-$", procedureTemp);
-            String newDef = String.join("\n", Files.readAllLines(procedurePath));
+            String newDef = String.join("\n", Files.readAllLines(procedurePath, StandardCharsets.UTF_8));
             if (!def.trim().equals(newDef.trim())) {
                 baki.execute(newDef);
                 PrintHelper.printlnNotice(cmd + " change submitted!");

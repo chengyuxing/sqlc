@@ -8,6 +8,7 @@ import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -238,7 +239,7 @@ public class DataBaseResource {
             PrintHelper.printlnDarkWarning("cannot find " + dbName + " keywords completion cnf file: " + cnf);
             return Collections.emptySet();
         }
-        try (Stream<String> lines = Files.lines(cnf)) {
+        try (Stream<String> lines = Files.lines(cnf, StandardCharsets.UTF_8)) {
             return lines.map(line -> Arrays.asList(line.split("\\s+")))
                     .flatMap(Collection::stream)
                     .collect(Collectors.toSet());

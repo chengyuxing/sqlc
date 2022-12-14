@@ -83,7 +83,7 @@ public class BatchInsertHelper {
         pp.setStep(2);
         pp.setFormatter(formatter("rows", "executed"));
         pp.whenStopped(whenStoppedFunc(chunk, example, "rows", "execute")).start();
-        try (Stream<String> lineStream = Files.lines(path)) {
+        try (Stream<String> lineStream = Files.lines(path, StandardCharsets.UTF_8)) {
             StringBuilder sb = new StringBuilder();
             lineStream.map(String::trim)
                     .filter(sql -> !sql.equals("") && !StringUtil.startsWithsIgnoreCase(sql, "--", "#", "/*"))

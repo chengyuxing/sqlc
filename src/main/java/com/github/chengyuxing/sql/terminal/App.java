@@ -299,7 +299,7 @@ public class App {
                                     try {
                                         commandRegistry.invoke(session, "nano", "-$", temp);
                                         if (Files.exists(path)) {
-                                            String sqlContent = String.join("\n", Files.readAllLines(path)).trim();
+                                            String sqlContent = String.join("\n", Files.readAllLines(path, StandardCharsets.UTF_8)).trim();
                                             if (!sqlContent.equals("")) {
                                                 Exec executor = new Exec(baki, lineReader);
                                                 executor.exec(sqlContent);

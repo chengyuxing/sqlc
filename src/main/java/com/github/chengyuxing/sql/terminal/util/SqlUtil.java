@@ -18,6 +18,7 @@ import org.jline.reader.LineReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -273,7 +274,7 @@ public class SqlUtil {
         if (!Files.exists(path)) {
             throw new FileNotFoundException("sql file [" + sqlFilePath + "] not exists.");
         }
-        return String.join("\n", Files.readAllLines(path));
+        return String.join("\n", Files.readAllLines(path, StandardCharsets.UTF_8));
     }
 
     public static Pair<String, String> getSqlAndRedirect(String s) {
