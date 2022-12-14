@@ -106,6 +106,9 @@ public class DataBaseResource {
                         }
                         return d.getString(1) + ":" + d.getString(0);
                     }).collect(Collectors.toList());
+                } catch (Exception e) {
+                    PrintHelper.printlnError(e);
+                    return Collections.emptyList();
                 }
             }
         }

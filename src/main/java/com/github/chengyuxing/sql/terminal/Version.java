@@ -1,5 +1,5 @@
 package com.github.chengyuxing.sql.terminal;
 
 public final class Version {
-    public static final String RELEASE = "2.0.1";
+    public static final String RELEASE = "2.0.2";
 }
