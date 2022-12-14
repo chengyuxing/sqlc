@@ -8,6 +8,7 @@ import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Help;
+import com.github.chengyuxing.sql.terminal.cli.completer.DbObjectCompleter;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import org.junit.Test;
@@ -307,6 +308,14 @@ public class STests {
 
     @Test
     public void testTemp() throws Exception{
+        System.out.println(System.getProperty("java.class.path"));
+        System.getenv().forEach((k,v)->{
+            System.out.println(k + ": " + v);
+        });
+    }
+
+    @Test
+    public void testList() throws Exception{
 
     }
 }

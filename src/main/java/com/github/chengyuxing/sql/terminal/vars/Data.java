@@ -1,6 +1,7 @@
 package com.github.chengyuxing.sql.terminal.vars;
 
 import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.terminal.cli.completer.DbObjectCompleter;
 import com.github.chengyuxing.sql.terminal.cli.completer.DynamicVarsCompleter;
 import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 
@@ -13,18 +14,11 @@ public abstract class Data {
      * xql名字自动完成数据
      */
     public static final DynamicVarsCompleter xqlNameCompleter = new DynamicVarsCompleter();
+
     /**
-     * 存储过程名字自动完成
+     * 存储过程、函数、触发器、视图、表名自动完成
      */
-    public static final DynamicVarsCompleter editCmdCompleter = new DynamicVarsCompleter();
-    /**
-     * ddl指令参数自动完成
-     */
-    public static final DynamicVarsCompleter ddlCmdCompleter = new DynamicVarsCompleter();
-    /**
-     * 表字段描述自动完成
-     */
-    public static final DynamicVarsCompleter descCmdCompleter = new DynamicVarsCompleter();
+    public static final DbObjectCompleter dbObjectCompleter = new DbObjectCompleter();
     /**
      * sql关键字自动完成
      */

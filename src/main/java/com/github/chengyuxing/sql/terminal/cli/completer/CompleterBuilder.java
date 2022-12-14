@@ -60,7 +60,7 @@ public class CompleterBuilder {
                     Arrays.asList("e.g:", ":load /my.xql as my"),
                     "[xql-file]", "as", "[alias]");
             add(CliCompleters.singleCmd(":paste"), "paste block of sql to execute(Ctrl+o, Enter, Ctrl+x).", Collections.singletonList("or Ctrl+g to get some help!"));
-            add(CliCompleters.cmdBuilder(":edit", editCmdCompleter, NullCompleter.INSTANCE),
+            add(CliCompleters.cmdBuilder(":edit", dbObjectCompleter, NullCompleter.INSTANCE),
                     "open editor for update procedure/view/trigger definition.", Arrays.asList(
                             "save: Ctrl+o, Enter",
                             "submit change: Ctrl+x",
@@ -68,14 +68,14 @@ public class CompleterBuilder {
                             "proc:test.my_func()"
                     ), "[[proc|tg|view]:object]");
             add(CliCompleters.cmdBuilder(":desc",
-                            descCmdCompleter,
+                            dbObjectCompleter,
                             new StringsCompleter(Constants.REDIRECT_SYMBOL),
                             new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "show table description or redirect to tsv file.",
                     Arrays.asList("e.g.", ":desc test.my_table " + Constants.REDIRECT_SYMBOL + " /root/my.tsv"),
                     "[table] [" + Constants.REDIRECT_SYMBOL + " output]"
             );
             add(CliCompleters.cmdBuilder(":ddl",
-                            ddlCmdCompleter,
+                            dbObjectCompleter,
                             new StringsCompleter(Constants.REDIRECT_SYMBOL),
                             new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "show object(table, procedure/function, view, trigger) ddl ",
                     Arrays.asList("or redirect to sql file.",

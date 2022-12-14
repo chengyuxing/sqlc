@@ -240,27 +240,20 @@ public class App {
 
             DataBaseResource dataBaseResource = new DataBaseResource(dataSourceLoader);
 
-            Data.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
-
             List<String> tables = dataBaseResource.getUserTableNames();
             List<String> procedures = dataBaseResource.getUserProcedures();
             List<String> views = dataBaseResource.getUserViews();
             List<String> triggers = dataBaseResource.getUserTriggers();
 
+            Data.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
             Data.keywordsCompleter.addVarsNames(tables);
             Data.keywordsCompleter.addVarsNames(procedures.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
             Data.keywordsCompleter.addVarsNames(views.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
-            // :edit command completer words
-            Data.editCmdCompleter.addVarsNames(procedures);
-            Data.editCmdCompleter.addVarsNames(views);
-            Data.editCmdCompleter.addVarsNames(triggers);
-            // :ddl command
-            Data.ddlCmdCompleter.addVarsNames(procedures);
-            Data.ddlCmdCompleter.addVarsNames(views);
-            Data.ddlCmdCompleter.addVarsNames(triggers);
-            Data.ddlCmdCompleter.addVarsNames(tables);
-            // :desc command
-            Data.descCmdCompleter.setVarsNames(tables);
+
+            Data.dbObjectCompleter.setTables(tables);
+            Data.dbObjectCompleter.setTriggers(triggers);
+            Data.dbObjectCompleter.setProcedures(procedures);
+            Data.dbObjectCompleter.setViews(views);
 
             Prompt prompt = new Prompt(dataSourceLoader.getJdbcUrl());
             StatusManager.promptReference.set(prompt);
