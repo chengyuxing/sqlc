@@ -105,7 +105,7 @@ public class DataBaseResource {
                 }
             }
         }
-        throw new UnsupportedOperationException(dbName + " not support currently, it will be coming soon!");
+        return Collections.emptyList();
     }
 
     public String getDefinition(Function<String, Pair<String, Map<String, Object>>> func, String name) {
