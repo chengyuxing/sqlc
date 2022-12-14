@@ -50,7 +50,7 @@ public class DBTests {
 
     @Test
     public void testMysql() throws Exception {
-        DataSourceLoader loader = DataSourceLoader.of("jdbc:mysql://139.198.19.116:3306/test");
+        DataSourceLoader loader = DataSourceLoader.of("jdbc:mysql://139.198.19.116:3306");
         loader.setUsername("sp");
         loader.setPassword("A14_sp_123");
         loader.init();

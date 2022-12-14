@@ -97,7 +97,7 @@ public class DataBaseResource {
     List<String> getNames(Supplier<Pair<String, Map<String, Object>>> supplier) {
         if (supplier != null) {
             Pair<String, Map<String, Object>> pair = supplier.get();
-            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2());
+            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2(), false);
             if (!sql.equals("")) {
                 try (Stream<DataRow> s = baki.query(sql).args(pair.getItem2()).stream()) {
                     return s.map(d -> {
@@ -116,7 +116,7 @@ public class DataBaseResource {
     public String getDefinition(Function<String, Pair<String, Map<String, Object>>> func, String name) {
         if (func != null) {
             Pair<String, Map<String, Object>> pair = func.apply(name);
-            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2());
+            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2(), false);
             if (!sql.equals("")) {
                 return baki.query(sql).args(pair.getItem2())
                         .findFirst()
@@ -136,7 +136,7 @@ public class DataBaseResource {
     public List<String> getDefinitions(Function<String, Pair<String, Map<String, Object>>> func, String name) {
         if (func != null) {
             Pair<String, Map<String, Object>> pair = func.apply(name);
-            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2());
+            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2(), false);
             if (!sql.equals("")) {
                 try (Stream<DataRow> s = baki.query(sql).args(pair.getItem2()).stream()) {
                     return s.map(d -> {
@@ -199,7 +199,7 @@ public class DataBaseResource {
     public List<List<String>> getTableDesc(String name) {
         if (queryTableDescFunc != null) {
             Pair<String, Map<String, Object>> pair = queryTableDescFunc.apply(name);
-            try (Stream<DataRow> s = baki.query(xqlFileManager.get(pair.getItem1(), pair.getItem2())).args(pair.getItem2()).stream()) {
+            try (Stream<DataRow> s = baki.query(xqlFileManager.get(pair.getItem1(), pair.getItem2(), false)).args(pair.getItem2()).stream()) {
                 AtomicBoolean first = new AtomicBoolean(true);
                 List<List<String>> rows = new ArrayList<>();
                 s.forEach(d -> {

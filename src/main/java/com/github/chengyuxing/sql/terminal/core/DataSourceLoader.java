@@ -110,6 +110,7 @@ public class DataSourceLoader {
                 baki.setHighlightSql(true);
             }
             baki.setCheckParameterType(false);
+            baki.setStrictDynamicSqlArg(false);
         }
         return baki;
     }
@@ -119,6 +120,7 @@ public class DataSourceLoader {
             sysBaki = new BakiDao(sysDataSource);
             sysBaki.setHighlightSql(false);
             sysBaki.setCheckParameterType(false);
+            sysBaki.setStrictDynamicSqlArg(false);
         }
         return sysBaki;
     }
