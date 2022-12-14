@@ -246,10 +246,9 @@ public final class PrintHelper {
                             return v;
                         }
                         return v.substring(idx + 1);
-                    }).collect(Collectors.joining(d, "[", "]"));
+                    }).collect(Collectors.joining(d));
             TerminalColor.println(typesLine, Color.DARK_CYAN);
-            String namesLine = data.keySet().stream()
-                    .collect(Collectors.joining(d, "[", "]"));
+            String namesLine = String.join(d, data.keySet());
             TerminalColor.println(namesLine, Color.DARK_CYAN);
             firstLine.set(false);
         }
@@ -258,7 +257,7 @@ public final class PrintHelper {
                 return "null";
             }
             return wrapObjectForSerialized(v).toString();
-        }).collect(Collectors.joining(d, "[", "]"));
+        }).collect(Collectors.joining(d));
         TerminalColor.println(valuesLine, Color.CYAN);
     }
 }
