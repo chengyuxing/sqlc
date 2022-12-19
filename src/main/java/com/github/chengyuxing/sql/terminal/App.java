@@ -50,7 +50,7 @@ public class App {
     public static void main(String[] args) {
         try {
             if (args.length == 0) {
-                System.out.println("-h to get some help.");
+                System.out.println("-u is required, -h to get some help.");
                 System.exit(0);
             }
             Arguments argMap = new Arguments(args);
