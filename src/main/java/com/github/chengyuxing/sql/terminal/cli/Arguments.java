@@ -16,7 +16,7 @@ public class Arguments {
             "-d",    //multi sql block delimiter;
             "-header",   // tsv,csv，excel header index
             "-sheet",   // excel sheet index
-            "--with-tx"   //using transaction wrapper
+            "--with-tx",   //using transaction wrapper
     };
     private final String[] args;
     private Map<String, String> argMap = new HashMap<>();
