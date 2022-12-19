@@ -155,7 +155,8 @@ public class DataBaseResource {
                 }
             }
         }
-        throw new UnsupportedOperationException(dbName + ": operation not implement currently.");
+        log.debug("not implement now.");
+        return Collections.emptyList();
     }
 
     public String getProcedureDefinition(String name) {
