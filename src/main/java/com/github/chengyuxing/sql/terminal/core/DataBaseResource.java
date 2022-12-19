@@ -50,6 +50,7 @@ public class DataBaseResource {
         this.dataSourceLoader = dataSourceLoader;
         this.baki = this.dataSourceLoader.getSysBaki();
         this.xqlFileManager = new XQLFileManager();
+        this.xqlFileManager.setDelimiter(";;");
         init();
     }
 
@@ -78,6 +79,8 @@ public class DataBaseResource {
             case "oracle":
                 xqlFileManager.add("oracle", "xqls/oracle.sql");
                 queryTablesFunc = () -> Pair.of("oracle.user_tables", Collections.emptyMap());
+                queryTableDescFunc = name -> Pair.of("oracle.table_desc", getSchemaAndTable(name));
+                queryTableDef = name -> Pair.of("oracle.table_def", getSchemaAndTable(name));
                 break;
             case "mysql":
                 xqlFileManager.add("mysql", "xqls/mysql.sql");
@@ -293,5 +296,16 @@ public class DataBaseResource {
 
     public DataSourceLoader getDataSourceLoader() {
         return dataSourceLoader;
+    }
+
+    public static Args<Object> getSchemaAndTable(String s) {
+        int dotIdx = s.indexOf(".");
+        if (dotIdx != -1) {
+            String[] arr = s.split("\\.");
+            String schema = arr[0].trim();
+            String table = arr[1].trim();
+            return Args.create("schema", schema, "table_name", table);
+        }
+        return Args.of("table_name", s);
     }
 }

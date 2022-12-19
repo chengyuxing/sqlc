@@ -2,7 +2,7 @@
 select concat(schemaname, '.', tablename), '' as type
 from pg_catalog.pg_tables
 where tableowner = :username
-  and schemaname not in ('pg_toast', 'pg_catalog', 'information_schema');
+  and schemaname not in ('pg_toast', 'pg_catalog', 'information_schema');;
 
 /*[user_procedures]*/
 select concat(nm.nspname, '.', c.proname, '(', oidvectortypes(c.proargtypes), ')') procedure_name,
@@ -11,27 +11,27 @@ from pg_catalog.pg_proc c
          inner join pg_catalog.pg_namespace nm on nm.oid = c.pronamespace
 where pg_get_userbyid(c.proowner) = :username
   and c.probin is null
-  and nm.nspname not in ('pg_toast', 'pg_catalog', 'information_schema');
+  and nm.nspname not in ('pg_toast', 'pg_catalog', 'information_schema');;
 
 /*[procedure_def]*/
-select pg_get_functiondef(:procedure_name::regprocedure);
+select pg_get_functiondef(:procedure_name::regprocedure);;
 
 
 /*[user_views]*/
 select concat(schemaname, '.', viewname) view_name, 'view' as type
 from pg_catalog.pg_views
 where viewowner = :username
-  and schemaname not in ('pg_toast', 'pg_catalog', 'information_schema');
+  and schemaname not in ('pg_toast', 'pg_catalog', 'information_schema');;
 
 /*[view_def]*/
-select pg_get_viewdef(:view_name);
+select pg_get_viewdef(:view_name);;
 
 
 /*[user_triggers]*/
 select distinct concat(event_object_schema, '.', event_object_table, '.', trigger_name),
                 'tg' as type
 from information_schema.triggers
-where trigger_schema not in ('pg_toast', 'pg_catalog', 'information_schema');
+where trigger_schema not in ('pg_toast', 'pg_catalog', 'information_schema');;
 
 /*[trigger_def]*/
 select distinct pg_get_triggerdef(b.oid)
@@ -39,7 +39,7 @@ from information_schema.triggers a
          inner join pg_catalog.pg_trigger b on a.trigger_name = b.tgname
 where concat(event_object_schema, '.', event_object_table) = :table_name
   and trigger_name = :trigger_name
-limit 1;
+limit 1;;
 
 /*[table_def]*/
 WITH attrdef AS (SELECT n.nspname,
@@ -154,18 +154,18 @@ SELECT pg_catalog.format('CREATE%s TABLE %I.%I%s%s%s;%s',
                                    where objoid = :table_name::regclass
                                      and d.description is not null), '')
            ) as table_create_sql
-FROM tabdef;
+FROM tabdef;;
 
 /*[table_triggers]*/
 select distinct pg_get_triggerdef(b.oid) || ';'
 from information_schema.triggers a
          inner join pg_catalog.pg_trigger b on a.trigger_name = b.tgname
-where concat(event_object_schema, '.', event_object_table) = :table_name;
+where concat(event_object_schema, '.', event_object_table) = :table_name;;
 
 /*[table_indexes]*/
 select indexdef || ';'
 from pg_catalog.pg_indexes
-where concat(schemaname, '.', tablename) = :table_name;
+where concat(schemaname, '.', tablename) = :table_name;;
 
 /*[table_desc]*/
 SELECT a.attname                                       as name,
@@ -176,7 +176,7 @@ SELECT a.attname                                       as name,
           AND d.adnum = a.attnum
           AND a.atthasdef)                             as "default",
        a.attnotnull                                    as "notNull",
-       d.description
+       d.description                                   as "comment"
 FROM pg_catalog.pg_attribute a
          JOIN pg_catalog.pg_class c ON a.attrelid = c.oid
          JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
@@ -185,4 +185,4 @@ FROM pg_catalog.pg_attribute a
 WHERE concat(n.nspname, '.', c.relname) = :table_name
   AND a.attnum > 0
   AND NOT a.attisdropped
-ORDER BY a.attnum;
+ORDER BY a.attnum;;
