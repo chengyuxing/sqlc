@@ -1,5 +1,5 @@
 /*[user_tables]*/
-SELECT TABLE_NAME
+SELECT TABLE_NAME as table_name, '' as type
 FROM USER_TABLES;;
 
 /*[table_desc]*/

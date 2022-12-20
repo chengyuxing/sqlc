@@ -59,6 +59,16 @@ public class DBTests {
     }
 
     @Test
+    public void testOrcl() throws Exception {
+        DataSourceLoader loader = DataSourceLoader.of("jdbc:oracle:thin:@//172.17.169.104/orcl");
+        loader.setUsername("rk_yjsdd");
+        loader.setPassword("rk_yjsdd");
+        loader.init();
+        DataBaseResource dataBaseResource = new DataBaseResource(loader);
+        dataBaseResource.getUserTableNames().forEach(System.out::println);
+    }
+
+    @Test
     public void test2() throws Exception {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
         Baki baki = loader.getUserBaki();

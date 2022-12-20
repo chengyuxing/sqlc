@@ -104,7 +104,7 @@ public class DataBaseResource {
             if (!sql.equals("")) {
                 try (Stream<DataRow> s = baki.query(sql).args(pair.getItem2()).stream()) {
                     return s.map(d -> {
-                        if (d.getString(1).equals("")) {
+                        if (!StringUtil.hasLength(d.getString(1))) {
                             return d.getString(0);
                         }
                         return d.getString(1) + ":" + d.getString(0);
