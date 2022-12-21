@@ -66,7 +66,14 @@ WITH attrdef AS (SELECT n.nspname,
                            AND t.oid = a.atttypid
                            AND a.attcollation <> t.typcollation)        as attcollation,
                         a.attidentity,
-                        a.attgenerated
+                        -- #choose
+                              -- #when :version < 12
+                                    '' as attgenerated
+                              -- #break
+                              -- #default
+                                    a.attgenerated
+                              -- #break
+                        -- #end
                  FROM pg_catalog.pg_attribute a
                           JOIN pg_catalog.pg_class c ON a.attrelid = c.oid
                           JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid

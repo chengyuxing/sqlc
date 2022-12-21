@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -71,7 +72,16 @@ public class DataBaseResource {
                     String triggerName = name.substring(dotIdx + 1);
                     return Pair.of("pg.trigger_def", Args.create("table_name", tableName, "trigger_name", triggerName));
                 };
-                queryTableDef = name -> Pair.of("pg.table_def", Args.of("table_name", name));
+                queryTableDef = name -> {
+                    Args<Object> args = Args.of("table_name", name);
+                    try {
+                        int version = baki.metaData().getDatabaseMajorVersion();
+                        args.add("version", version);
+                    } catch (SQLException e) {
+                        PrintHelper.printlnError(e);
+                    }
+                    return Pair.of("pg.table_def", args);
+                };
                 queryTableIndexesFunc = name -> Pair.of("pg.table_indexes", Args.of("table_name", name));
                 queryTableTriggersFunc = name -> Pair.of("pg.table_triggers", Args.of("table_name", name));
                 queryTableDescFunc = name -> Pair.of("pg.table_desc", Args.of("table_name", name));

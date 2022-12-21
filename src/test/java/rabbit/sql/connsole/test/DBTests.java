@@ -36,6 +36,11 @@ public class DBTests {
         DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
         loader.setUsername("chengyuxing");
         loader.init();
+
+        System.out.println(loader.getSysBaki().metaData().getDatabaseMajorVersion());
+        System.out.println(loader.getSysBaki().metaData().getDatabaseMinorVersion());
+        System.out.println(loader.getSysBaki().metaData().getDatabaseProductVersion());
+
         DataBaseResource dataBaseResource = new DataBaseResource(loader);
 //        dataBaseResource.getUserTableNames().forEach(System.out::println);
 //        System.out.println(dataBaseResource.getProcedureDefinition("test.slow_query(integer, integer)"));
@@ -67,9 +72,13 @@ public class DBTests {
         loader.setPassword("rk_yjsdd");
         loader.init();
 
-        DataBaseResource dataBaseResource = new DataBaseResource(loader);
-        dataBaseResource.getUserTableNames().forEach(System.out::println);
-        System.out.println(dataBaseResource.getTableDefinition("XXL_JOB_INFO"));;
+        System.out.println(loader.getSysBaki().metaData().getDatabaseMajorVersion());
+        System.out.println(loader.getSysBaki().metaData().getDatabaseMinorVersion());
+        System.out.println(loader.getSysBaki().metaData().getDatabaseProductVersion());
+
+//        DataBaseResource dataBaseResource = new DataBaseResource(loader);
+//        dataBaseResource.getUserTableNames().forEach(System.out::println);
+//        System.out.println(dataBaseResource.getTableDefinition("XXL_JOB_INFO"));;
 
     }
 
