@@ -13,6 +13,8 @@ import org.junit.Test;
 import org.postgresql.util.PGobject;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
@@ -64,8 +66,11 @@ public class DBTests {
         loader.setUsername("rk_yjsdd");
         loader.setPassword("rk_yjsdd");
         loader.init();
+
         DataBaseResource dataBaseResource = new DataBaseResource(loader);
         dataBaseResource.getUserTableNames().forEach(System.out::println);
+        System.out.println(dataBaseResource.getTableDefinition("XXL_JOB_INFO"));;
+
     }
 
     @Test

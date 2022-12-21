@@ -17,15 +17,19 @@ where col.TABLE_NAME = cmt.TABLE_NAME
 --#fi
 ;;
 
-/*[table_def]*/
+/*[table_def_init]*/
 begin
-    DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SQLTERMINATOR', true);
-    DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'PRETTY', true);
-    DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SEGMENT_ATTRIBUTES', false);
-    DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'STORAGE', false);
-    DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'TABLESPACE', false);
+DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SQLTERMINATOR', true);
+DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'PRETTY', true);
+DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SEGMENT_ATTRIBUTES', false);
+DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'STORAGE', false);
+DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'TABLESPACE', false);
 end;
-select listagg(col, chr(10)) within group ( order by idx)
+
+/*[table_def]*/
+select replace(replace(rtrim(xmlagg(xmlcdata(col || chr(10)).extract('//text()') order by idx).getClobVal(), ','),
+                       '<![CDATA[',
+                       ''), ']]>', '') table_def
 from (select to_char(DBMS_METADATA.GET_DDL('TABLE', :table_name
     --#if :schema <> blank
     , :schema
@@ -34,13 +38,14 @@ from (select to_char(DBMS_METADATA.GET_DDL('TABLE', :table_name
              1 as idx
       from dual
       union all
-      select chr(10) || 'COMMENT ON TABLE "' || OWNER || '"."' || TABLE_NAME || '" IS' || '''' || COMMENTS || ''';' col,
+      select chr(10) || 'COMMENT ON TABLE "' || OWNER || '"."' || TABLE_NAME || '" IS ' || '''' || COMMENTS || ''';' col,
              2 as                                                                                                   idx
       from ALL_TAB_COMMENTS
       where TABLE_NAME = :table_name
         --#if :schema <> blank
         and OWNER = :schema
         --#fi
+      and comments is not null
       union all
       select chr(10) || 'COMMENT ON COLUMN "' || OWNER || '"."' || TABLE_NAME || '"."' || COLUMN_NAME || '" IS ' ||
              '''' ||
@@ -52,11 +57,12 @@ from (select to_char(DBMS_METADATA.GET_DDL('TABLE', :table_name
         --#if :schema <> blank
         and OWNER = :schema
         --#fi
+      and comments is not null
       union all
       select to_char(DBMS_METADATA.GET_DDL('INDEX', INDEX_NAME, OWNER)) col, 4 as idx
       from ALL_INDEXES
       where TABLE_NAME = :table_name
         --#if :schema <> blank
         and TABLE_OWNER = :schema
-        --#fi
+         --#fi
      ) t;;

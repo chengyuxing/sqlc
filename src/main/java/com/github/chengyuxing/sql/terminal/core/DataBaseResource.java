@@ -172,6 +172,9 @@ public class DataBaseResource {
     }
 
     public String getTableDefinition(String name) {
+        if (dbName.equals("oracle")) {
+            baki.execute(xqlFileManager.get("oracle.table_def_init"));
+        }
         String table = getDefinition(queryTableDef, name).trim();
         String indexes = getDefinitions(queryTableIndexesFunc, name).stream().map(this::formatIndex).collect(Collectors.joining("\n\n"));
         String triggers = getDefinitions(queryTableTriggersFunc, name).stream().map(s -> formatTrigger(s, false)).collect(Collectors.joining("\n\n"));
