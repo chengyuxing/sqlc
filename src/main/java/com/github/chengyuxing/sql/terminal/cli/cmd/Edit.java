@@ -40,7 +40,7 @@ public class Edit {
         if (def.trim().equals("")) {
             throw new RuntimeException(cmd + " definition is empty.");
         }
-        String procedureTemp = cmd + "_" + System.currentTimeMillis();
+        String procedureTemp = cmd.replace(":", "_") + "_" + System.currentTimeMillis();
         Path procedurePath = Paths.get(CURRENT_DIR.toString(), procedureTemp);
         Data.tempFiles.add(procedurePath);
         try {
