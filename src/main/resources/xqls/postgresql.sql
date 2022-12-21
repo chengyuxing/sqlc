@@ -65,13 +65,13 @@ WITH attrdef AS (SELECT n.nspname,
                          WHERE c.oid = a.attcollation
                            AND t.oid = a.atttypid
                            AND a.attcollation <> t.typcollation)        as attcollation,
-                        a.attidentity,
+                        a.attidentity
                         -- #choose
                               -- #when :version < 12
-                                    '' as attgenerated
+                                    ,'' as attgenerated
                               -- #break
                               -- #default
-                                    a.attgenerated
+                                    ,a.attgenerated
                               -- #break
                         -- #end
                  FROM pg_catalog.pg_attribute a
