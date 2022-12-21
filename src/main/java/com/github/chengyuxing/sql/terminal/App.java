@@ -29,13 +29,13 @@ import org.jline.widget.AutosuggestionWidgets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
@@ -194,7 +194,7 @@ public class App {
         });
     }
 
-    public static void startInteractiveMode(DataSourceLoader dataSourceLoader) throws IOException {
+    public static void startInteractiveMode(DataSourceLoader dataSourceLoader) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (StatusManager.txActive.get()) {
                 Tx.rollback();
@@ -240,20 +240,29 @@ public class App {
 
             DataBaseResource dataBaseResource = new DataBaseResource(dataSourceLoader);
 
-            List<String> tables = dataBaseResource.getUserTableNames();
-            List<String> procedures = dataBaseResource.getUserProcedures();
-            List<String> views = dataBaseResource.getUserViews();
-            List<String> triggers = dataBaseResource.getUserTriggers();
-
             Data.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
-            Data.keywordsCompleter.addVarsNames(tables);
-            Data.keywordsCompleter.addVarsNames(procedures.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
-            Data.keywordsCompleter.addVarsNames(views.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
 
-            Data.dbObjectCompleter.setTables(tables);
-            Data.dbObjectCompleter.setTriggers(triggers);
-            Data.dbObjectCompleter.setProcedures(procedures);
-            Data.dbObjectCompleter.setViews(views);
+            try (AsyncCat cat = new AsyncCat()) {
+                CompletableFuture.supplyAsync(dataBaseResource::getUserTableNames, cat.getService())
+                        .whenCompleteAsync((tables, e) -> {
+                            Data.keywordsCompleter.addVarsNames(tables);
+                            Data.dbObjectCompleter.setTables(tables);
+                        });
+
+                CompletableFuture.supplyAsync(dataBaseResource::getUserProcedures, cat.getService())
+                        .whenCompleteAsync((procedures, e) -> {
+                            Data.keywordsCompleter.addVarsNames(procedures.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
+                            Data.dbObjectCompleter.setProcedures(procedures);
+                        });
+                CompletableFuture.supplyAsync(dataBaseResource::getUserTriggers, cat.getService())
+                        .whenCompleteAsync((triggers, e) -> Data.dbObjectCompleter.setTriggers(triggers));
+
+                CompletableFuture.supplyAsync(dataBaseResource::getUserViews, cat.getService())
+                        .whenCompleteAsync((views, e) -> {
+                            Data.keywordsCompleter.addVarsNames(views.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
+                            Data.dbObjectCompleter.setViews(views);
+                        });
+            }
 
             Prompt prompt = new Prompt(dataSourceLoader.getJdbcUrl());
             StatusManager.promptReference.set(prompt);
