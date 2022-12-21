@@ -22,7 +22,7 @@ public class Help {
         put("-p[password]", "database password.");
         put("-e\"[sql|path[" + Constants.REDIRECT_SYMBOL + " output]]\"", "execute sql or redirect single query result to \nfile(if ends with '.sql', will ignore -f and \ngenerate insert sql script and file name will \nas table name) with format(-f).");
         put("-e\"[@path]\"", "read a multi-line file for execute batch insert, \nfile type:\n.sql: delimiter default ';'\n.csv|.tsv|.xls(x): default header-index is 0, it \nmeans first line is fields, -1 means no fields, \n5 means fields at 5th line and start read from \n5th line.");
-        put("-e\"[command]\"", "execute interactive mode command, support \ndesc, ddl. \ne.g: -e\"ddl test.my_table &> /my_table.sql\"");
+        put("-e\"[command]\"", "execute interactive mode command, support \ndesc, ddl. \ne.g: -e\"ddl test.my_table " + Constants.REDIRECT_SYMBOL + " /my_table.sql\"");
         put("-header[index]", "set header-index for -e\"[@path]\" command, \ndefault -header0(first line is fields).");
         put("-sheet[index]", "set sheet-index for -e\"[@path]\" command \nto import excel file, default -sheet0.");
         put("-d\"[delimiter]\"", "delimiter for multi-sql, default ';'(single \nsemicolon).");
