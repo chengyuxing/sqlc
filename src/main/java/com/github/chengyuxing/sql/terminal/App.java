@@ -243,21 +243,22 @@ public class App {
             Data.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
 
             try (AsyncCat cat = new AsyncCat()) {
-                CompletableFuture.supplyAsync(dataBaseResource::getUserTableNames, cat.getService())
+                cat.supplyAsync(dataBaseResource::getUserTableNames)
                         .whenCompleteAsync((tables, e) -> {
                             Data.keywordsCompleter.addVarsNames(tables);
                             Data.dbObjectCompleter.setTables(tables);
                         });
 
-                CompletableFuture.supplyAsync(dataBaseResource::getUserProcedures, cat.getService())
+                cat.supplyAsync(dataBaseResource::getUserProcedures)
                         .whenCompleteAsync((procedures, e) -> {
                             Data.keywordsCompleter.addVarsNames(procedures.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
                             Data.dbObjectCompleter.setProcedures(procedures);
                         });
-                CompletableFuture.supplyAsync(dataBaseResource::getUserTriggers, cat.getService())
+
+                cat.supplyAsync(dataBaseResource::getUserTriggers)
                         .whenCompleteAsync((triggers, e) -> Data.dbObjectCompleter.setTriggers(triggers));
 
-                CompletableFuture.supplyAsync(dataBaseResource::getUserViews, cat.getService())
+                cat.supplyAsync(dataBaseResource::getUserViews)
                         .whenCompleteAsync((views, e) -> {
                             Data.keywordsCompleter.addVarsNames(views.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
                             Data.dbObjectCompleter.setViews(views);
