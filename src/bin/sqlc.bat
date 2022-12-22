@@ -23,6 +23,6 @@ if "%params:~0,1%"==" " set "params=%params:~1%"&goto intercept_left
 if "%params:~-1%"==" " set "params=%params:~0,-1%"&goto intercept_right
 
 :eof
-java -jar "%curdir%\\lib\\${name}-${version}.jar" "%params%"
+java -jar "%curdir%\\lib\\${name}-${version}.jar" %params%
 
 pause

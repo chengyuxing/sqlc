@@ -8,7 +8,7 @@ import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
 public class Constants {
-    public static final String REDIRECT_SYMBOL = "$>";
+    public static final String REDIRECT_SYMBOL = ">>>";
     public static final Path ROOT_DIR = Paths.get(File.separator);
     public static final Path USER_HOME = Paths.get(System.getProperty("user.home"));
     public static final Path CURRENT_DIR = Paths.get(System.getProperty("user.dir"));

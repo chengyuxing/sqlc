@@ -70,14 +70,16 @@ public class CompleterBuilder {
             add(CliCompleters.cmdBuilder(":desc",
                             dbObjectCompleter,
                             new StringsCompleter(Constants.REDIRECT_SYMBOL),
-                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "show table description or redirect to tsv file.",
+                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR),
+                            NullCompleter.INSTANCE), "show table description or redirect to tsv file.",
                     Arrays.asList("e.g.", ":desc test.my_table " + Constants.REDIRECT_SYMBOL + " /root/my.tsv"),
                     "[table] [" + Constants.REDIRECT_SYMBOL + " output]"
             );
             add(CliCompleters.cmdBuilder(":ddl",
                             dbObjectCompleter,
                             new StringsCompleter(Constants.REDIRECT_SYMBOL),
-                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR)), "show object(table, procedure/function, view, trigger) ddl ",
+                            new Completers.DirectoriesCompleter(Constants.CURRENT_DIR),
+                            NullCompleter.INSTANCE), "show object(table, procedure/function, view, trigger) ddl ",
                     Arrays.asList("or redirect to sql file.",
                             "e.g:",
                             ":ddl test.my_table " + Constants.REDIRECT_SYMBOL + " /root/table.sql",
