@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
@@ -48,7 +49,7 @@ public class App {
 
     public static void main(String[] args) {
         try {
-            if (args.length == 0) {
+            if (args.length == 0 || Arrays.toString(args).trim().equals("")) {
                 System.out.println("-u is required, -h to get some help.");
                 System.exit(0);
             }
