@@ -14,9 +14,9 @@
 
 `-p[password]`
 
-`-e"[sql|path[$> output]]"` 或者 `-e"[@path]"`
+`-e"[sql|path[>>> output]]"` 或者 `-e"[@path]"`
 
-> sql语句或者读取文件内的sql语句执行，如果是查询语句，则可以使用重定向符号`$>`将结果导出到文件，结果类型取决于命令`-f`，不指定则默认为`tsv`；
+> sql语句或者读取文件内的sql语句执行，如果是查询语句，则可以使用重定向符号`>>>`将结果导出到文件，结果类型取决于命令`-f`，不指定则默认为`tsv`；
 >
 > 如果路径前面有`@`符号，那么此指令的逻辑是执行批量导入数据，文件类型支持：`tsv|csv|xlsx|xls|json|sql`，sql为**insert**语句。
 >
@@ -30,9 +30,9 @@
 
 ### :exec
 
-**参数**：`[sql-file] [$> output]`
+**参数**：`[sql-file] [>>> output]`
 
-如指令（`-e"[sql|path[$> output]]"`）的读取sql文件，如果是查询，则可重定向输出到文件；
+如指令（`-e"[sql|path[>>> output]]"`）的读取sql文件，如果是查询，则可重定向输出到文件；
 
 ### :exec@
 
@@ -72,7 +72,7 @@
 - 大多数时候可以通过 `Tab` 来获取一些输入建议；
 - 建议的输入记录可以通过 `Ctrl + o` 来前进每个单词，而不是直接到结尾；
 - `Ctrl + r` 调用搜索历史记录；
-- 重定向操作符 `$> ` 只能作用于查询语句；
+- 重定向操作符 `>>> ` 只能作用于查询语句；
 - 重定向导出sql类型文件和批量导入sql文件，支持二进制文件类型；
 
 - 批量导入`@`文件操作，**文件名即是表名**，如：`test.user.json`，生成的sql语句形如：
@@ -163,7 +163,7 @@
 - 命令模式导出一个查询结果：
 
   ```shell
-  ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -e"select * from big $> /Users/chengyuxing/Downloads/test.big" -fjson
+  ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -e"select * from big >>> /Users/chengyuxing/Downloads/test.big" -fjson
   ```
 
   :warning: 如果sql中有字符串模版常量，需要改为使用单引号：
@@ -175,7 +175,7 @@
 - 执行查询并导出结果：
 
   ```sql
-  select * from big $> /Users/chengyuxing/Downloads/big;
+  select * from big >>> /Users/chengyuxing/Downloads/big;
   ```
 
 ## 截图

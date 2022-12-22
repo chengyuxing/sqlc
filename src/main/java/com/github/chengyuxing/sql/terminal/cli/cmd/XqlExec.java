@@ -31,7 +31,7 @@ public class XqlExec {
     public void exec(String sqlName) {
         String sql;
         if (sqlName.contains(REDIRECT_SYMBOL)) {
-            // me.query $> /my_path.csv
+            // me.query >>> /my_path.csv
             Pair<String, String> pair = SqlUtil.getSqlAndRedirect(sqlName);
             sqlName = pair.getItem1();
             sql = Data.xqlFileManager.get(sqlName);
