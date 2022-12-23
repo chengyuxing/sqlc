@@ -31,7 +31,7 @@ public class Ddl {
             String obj = pair.getItem1();
             Path output = Paths.get(pair.getItem2());
             if (Files.isDirectory(output)) {
-                output = output.resolve(obj.replaceAll("\\s+", "").replace(":", "_") + ".sql");
+                output = output.resolve(obj.replaceAll("\\s+", "").replace(":", "_") + ".ddl.sql");
             }
             Files.write(output, dataBaseResource.getDefinition(obj).getBytes(StandardCharsets.UTF_8));
             PrintHelper.printlnNotice("ddl script saved to: " + output);
