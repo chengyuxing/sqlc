@@ -7,7 +7,7 @@ select col.COLUMN_NAME                                                          
        DECODE(CHAR_LENGTH, 0, DATA_TYPE, DATA_TYPE || '(' || CHAR_LENGTH || ')') as type,
        DATA_DEFAULT                                                              as "default",
        DECODE(NULLABLE, 'N', 'yes', 'no')                                        as "notNull",
-       COMMENTS                                                                  as "comment"
+       REPLACE(COMMENTS, '''', '''''')                                           as "comment"
 from ALL_TAB_COLUMNS col
          inner join ALL_COL_COMMENTS cmt on col.COLUMN_NAME = cmt.COLUMN_NAME
 where col.TABLE_NAME = cmt.TABLE_NAME
@@ -38,7 +38,7 @@ from (select to_char(DBMS_METADATA.GET_DDL('TABLE', :table_name
              1 as idx
       from dual
       union all
-      select chr(10) || 'COMMENT ON TABLE "' || OWNER || '"."' || TABLE_NAME || '" IS ' || '''' || COMMENTS || ''';' col,
+      select chr(10) || 'COMMENT ON TABLE "' || OWNER || '"."' || TABLE_NAME || '" IS ' || '''' || REPLACE(COMMENTS, '''', '''''') || ''';' col,
              2 as                                                                                                   idx
       from ALL_TAB_COMMENTS
       where TABLE_NAME = :table_name
@@ -49,7 +49,7 @@ from (select to_char(DBMS_METADATA.GET_DDL('TABLE', :table_name
       union all
       select chr(10) || 'COMMENT ON COLUMN "' || OWNER || '"."' || TABLE_NAME || '"."' || COLUMN_NAME || '" IS ' ||
              '''' ||
-             COMMENTS ||
+             REPLACE(COMMENTS, '''', '''''') ||
              ''';' col,
              3 as  idx
       from ALL_COL_COMMENTS

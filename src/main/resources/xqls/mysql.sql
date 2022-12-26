@@ -8,10 +8,10 @@ where TABLE_SCHEMA != 'information_schema'
 ;;
 
 /*[table_desc]*/
-select c.COLUMN_NAME    as name,
-       c.COLUMN_TYPE    as type,
-       c.COLUMN_DEFAULT as "default",
-       c.IS_NULLABLE    as "notNull",
-       c.COLUMN_COMMENT as "comment"
+select c.COLUMN_NAME                           as name,
+       c.COLUMN_TYPE                           as type,
+       c.COLUMN_DEFAULT                        as "default",
+       c.IS_NULLABLE                           as "notNull",
+       replace(c.COLUMN_COMMENT, '''', '''''') as "comment"
 from information_schema.COLUMNS c
 where concat(c.TABLE_SCHEMA, '.', c.TABLE_NAME) = :table_name;;
