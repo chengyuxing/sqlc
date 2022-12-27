@@ -5,16 +5,12 @@ import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 public class DataSourceLoader {
@@ -74,28 +70,17 @@ public class DataSourceLoader {
      * 加载jdbc驱动包
      *
      * @param path 路径
-     * @throws NoSuchMethodException exp
      */
-    public static void loadDrivers(String path) throws NoSuchMethodException, FileNotFoundException {
-        File driverDir = Constants.APP_DIR.getParent().resolve(path).toFile();
-        if (!driverDir.exists()) {
+    public static void loadDrivers(String path) throws IOException {
+        Path driverDir = Constants.APP_DIR.getParent().resolve(path);
+        if (!Files.exists(driverDir)) {
             throw new FileNotFoundException("jdbc driver folder not exists: " + driverDir);
         }
-        URLClassLoader loader = (URLClassLoader) ClassLoader.getSystemClassLoader();
-        Method add = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-        add.setAccessible(true);
-
-        Optional.ofNullable(driverDir.listFiles())
-                .ifPresent(files -> Stream.of(files)
-                        .filter(f -> f.getName().endsWith(".jar"))
-                        .forEach(j -> {
-                            try {
-                                add.invoke(loader, j.toURI().toURL());
-                            } catch (IllegalAccessException | InvocationTargetException | MalformedURLException e) {
-                                e.printStackTrace();
-                            }
-                        }));
-
+        try (Stream<Path> s = Files.list(driverDir)) {
+            s.filter(p -> p.toString().endsWith(".jar"))
+                    .map(Path::toFile)
+                    .forEach(Agent::addClassPath);
+        }
     }
 
     /**
