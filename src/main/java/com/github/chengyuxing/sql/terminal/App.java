@@ -375,7 +375,7 @@ public class App {
                                         if (baki.getXqlFileManager() == null) {
                                             baki.setXqlFileManager(Data.xqlFileManager);
                                         }
-                                        Data.xqlNameCompleter.setVarsNames(Data.xqlFileManager.names());
+                                        Data.xqlNameCompleter.setSuggestions(Data.xqlFileManager.names());
                                         PrintHelper.printlnInfo("XQLFileManager enabled, input command: ':exec& your_sql_name' to execute!");
                                         break;
                                     }
