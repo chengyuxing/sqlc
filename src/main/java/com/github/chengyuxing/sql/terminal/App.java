@@ -247,22 +247,22 @@ public class App {
             cat.supplyAsync(dataBaseResource::getUserTableNames)
                     .whenCompleteAsync((tables, e) -> {
                         Data.keywordsCompleter.addVarsNames(tables);
-                        Data.dbObjectCompleter.setTables(tables);
+                        Data.dbObjects.setTables(tables);
                     });
 
             cat.supplyAsync(dataBaseResource::getUserProcedures)
                     .whenCompleteAsync((procedures, e) -> {
                         Data.keywordsCompleter.addVarsNames(procedures.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
-                        Data.dbObjectCompleter.setProcedures(procedures);
+                        Data.dbObjects.setProcedures(procedures);
                     });
 
             cat.supplyAsync(dataBaseResource::getUserTriggers)
-                    .whenCompleteAsync((triggers, e) -> Data.dbObjectCompleter.setTriggers(triggers));
+                    .whenCompleteAsync((triggers, e) -> Data.dbObjects.setTriggers(triggers));
 
             cat.supplyAsync(dataBaseResource::getUserViews)
                     .whenCompleteAsync((views, e) -> {
                         Data.keywordsCompleter.addVarsNames(views.stream().map(s -> s.substring(s.indexOf(":") + 1)).collect(Collectors.toList()));
-                        Data.dbObjectCompleter.setViews(views);
+                        Data.dbObjects.setViews(views);
                     });
 
             Prompt prompt = new Prompt(dataSourceLoader.getJdbcUrl());

@@ -60,7 +60,22 @@ public class CompleterBuilder {
                     Arrays.asList("e.g:", ":load /my.xql as my"),
                     "[xql-file]", "as", "[alias]");
             add(CliCompleters.singleCmd(":paste"), "paste block of sql to execute(Ctrl+o, Enter, Ctrl+x).", Collections.singletonList("or Ctrl+g to get some help!"));
-            add(CliCompleters.cmdBuilder(":edit", dbObjectCompleter, NullCompleter.INSTANCE),
+            add(CliCompleters.cmdBuilder(":edit",
+                            new DynamicCompleter() {{
+                                listening(word -> {
+                                    if (word.startsWith("proc:")) {
+                                        return dbObjects.getProcedures();
+                                    }
+                                    if (word.startsWith("tg:")) {
+                                        return dbObjects.getTriggers();
+                                    }
+                                    if (word.startsWith("view:")) {
+                                        return dbObjects.getViews();
+                                    }
+                                    return dbObjects.getProcedures();
+                                });
+                            }},
+                            NullCompleter.INSTANCE),
                     "open editor for update procedure/view/trigger definition.", Arrays.asList(
                             "save: Ctrl+o, Enter",
                             "submit change: Ctrl+x",
@@ -68,7 +83,9 @@ public class CompleterBuilder {
                             "proc:test.my_func()"
                     ), "[[proc|tg|view]:object]");
             add(CliCompleters.cmdBuilder(":desc",
-                            dbObjectCompleter,
+                            new DynamicCompleter() {{
+                                listening(word -> dbObjects.getTables());
+                            }},
                             new StringsCompleter(Constants.REDIRECT_SYMBOL),
                             new Completers.DirectoriesCompleter(Constants.CURRENT_DIR),
                             NullCompleter.INSTANCE), "show table description or redirect to tsv file.",
@@ -76,7 +93,20 @@ public class CompleterBuilder {
                     "[table] [" + Constants.REDIRECT_SYMBOL + " output]"
             );
             add(CliCompleters.cmdBuilder(":ddl",
-                            dbObjectCompleter,
+                            new DynamicCompleter() {{
+                                listening(word -> {
+                                    if (word.startsWith("proc:")) {
+                                        return dbObjects.getProcedures();
+                                    }
+                                    if (word.startsWith("tg:")) {
+                                        return dbObjects.getTriggers();
+                                    }
+                                    if (word.startsWith("view:")) {
+                                        return dbObjects.getViews();
+                                    }
+                                    return dbObjects.getTables();
+                                });
+                            }},
                             new StringsCompleter(Constants.REDIRECT_SYMBOL),
                             new Completers.DirectoriesCompleter(Constants.CURRENT_DIR),
                             NullCompleter.INSTANCE), "show object(table, procedure/function, view, trigger) ddl ",

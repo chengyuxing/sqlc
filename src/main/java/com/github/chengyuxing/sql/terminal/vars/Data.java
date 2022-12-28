@@ -1,7 +1,7 @@
 package com.github.chengyuxing.sql.terminal.vars;
 
 import com.github.chengyuxing.sql.XQLFileManager;
-import com.github.chengyuxing.sql.terminal.cli.completer.DbObjectCompleter;
+import com.github.chengyuxing.sql.terminal.cli.completer.DynamicCompleter;
 import com.github.chengyuxing.sql.terminal.cli.completer.DynamicVarsCompleter;
 import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 
@@ -10,15 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class Data {
+    public static final DbObjects dbObjects = new DbObjects();
     /**
      * xql名字自动完成数据
      */
     public static final DynamicVarsCompleter xqlNameCompleter = new DynamicVarsCompleter();
 
-    /**
-     * 存储过程、函数、触发器、视图、表名自动完成
-     */
-    public static final DbObjectCompleter dbObjectCompleter = new DbObjectCompleter();
     /**
      * sql关键字自动完成
      */
