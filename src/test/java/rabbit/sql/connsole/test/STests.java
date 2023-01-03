@@ -20,6 +20,8 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -319,5 +321,12 @@ public class STests {
         String newDb = "mydb";
         String res = "comment on \"test\".\"user\" is 'sss'".replaceAll("\\s+([\\w_]+|(([\"`])[\\w_]+([\"`])))\\.", " $3" + newDb + "$4.");
         System.out.println(res);
+    }
+
+    @Test
+    public void testDate() throws Exception{
+        Date date = new Date(000);
+        System.out.println(date instanceof java.util.Date);
+        System.out.println(java.util.Date.class.isAssignableFrom(date.getClass()));
     }
 }
