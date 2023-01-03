@@ -11,7 +11,6 @@ import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.cli.component.SqlHistory;
 import com.github.chengyuxing.sql.terminal.core.*;
 import com.github.chengyuxing.sql.terminal.types.View;
-import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
@@ -224,7 +223,7 @@ public class App {
                     .terminal(terminal)
                     .parser(cliParser)
                     .completer(new AggregateCompleter(CompleterBuilder.builtins.getCompleters()))
-                    .variable(LineReader.HISTORY_FILE, Paths.get(Constants.USER_HOME.toString(), ".sqlc_history_" + (dataSourceLoader.getUsername() + "@" + dataSourceLoader.getJdbcUrl()).hashCode()))
+                    .variable(LineReader.HISTORY_FILE, SQLC_USER_PATH.resolve("history_" + (dataSourceLoader.getUsername() + "@" + dataSourceLoader.getJdbcUrl()).hashCode()))
                     .history(new SqlHistory(sqlBuilder))
                     .build();
 

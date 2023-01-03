@@ -11,6 +11,7 @@ public class Constants {
     public static final String REDIRECT_SYMBOL = ">>>";
     public static final Path ROOT_DIR = Paths.get(File.separator);
     public static final Path USER_HOME = Paths.get(System.getProperty("user.home"));
+    public static final Path SQLC_USER_PATH = USER_HOME.resolve(".sqlc");
     public static final Path CURRENT_DIR = Paths.get(System.getProperty("user.dir"));
     public static final Path CLASS_PATH = Paths.get(System.getProperty("java.class.path"));
     public static final Path APP_DIR = CLASS_PATH.getParent();
