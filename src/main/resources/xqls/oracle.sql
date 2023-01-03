@@ -61,8 +61,9 @@ from (select to_char(DBMS_METADATA.GET_DDL('TABLE', :table_name
       union all
       select to_char(DBMS_METADATA.GET_DDL('INDEX', INDEX_NAME, OWNER)) col, 4 as idx
       from ALL_INDEXES
-      where TABLE_NAME = :table_name
+      where UNIQUENESS != 'UNIQUE'
+        and TABLE_NAME = :table_name
         --#if :schema <> blank
-        and TABLE_OWNER = :schema
+            and TABLE_OWNER = :schema
          --#fi
      ) t;;
