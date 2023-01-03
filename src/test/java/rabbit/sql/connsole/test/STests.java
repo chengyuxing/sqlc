@@ -8,13 +8,14 @@ import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Help;
+import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
+import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import org.junit.Test;
-import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
-import com.github.chengyuxing.sql.terminal.core.FileHelper;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -306,15 +307,17 @@ public class STests {
     }
 
     @Test
-    public void testTemp() throws Exception{
+    public void testTemp() throws Exception {
         System.out.println(System.getProperty("java.class.path"));
-        System.getenv().forEach((k,v)->{
+        System.getenv().forEach((k, v) -> {
             System.out.println(k + ": " + v);
         });
     }
 
     @Test
-    public void testList() throws Exception{
-
+    public void testRegexD() throws Exception{
+        String newDb = "mydb";
+        String res = "comment on \"test\".\"user\" is 'sss'".replaceAll("\\s+([\\w_]+|(([\"`])[\\w_]+([\"`])))\\.", " $3" + newDb + "$4.");
+        System.out.println(res);
     }
 }

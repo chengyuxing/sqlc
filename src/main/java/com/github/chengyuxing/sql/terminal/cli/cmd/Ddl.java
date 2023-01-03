@@ -6,6 +6,7 @@ import com.github.chengyuxing.sql.terminal.core.DataBaseResource;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -30,10 +31,30 @@ public class Ddl {
             Pair<String, String> pair = SqlUtil.getSqlAndRedirect(cmd);
             String obj = pair.getItem1();
             Path output = Paths.get(pair.getItem2());
+            boolean customUser = false;
             if (Files.isDirectory(output)) {
                 output = output.resolve(obj.replaceAll("\\s+", "").replace(":", "_") + ".ddl.sql");
+            } else {
+                if (pair.getItem2().matches(".*[\\w_]\\.$")) {
+                    customUser = true;
+                    int dotIdx = obj.indexOf(".");
+                    String newObj = obj;
+                    if (dotIdx != -1) {
+                        newObj = obj.substring(dotIdx + 1);
+                    }
+                    output = Paths.get(pair.getItem2() + newObj.replaceAll("\\s+", "").replace(":", "_") + ".ddl.sql");
+                }
             }
-            Files.write(output, dataBaseResource.getDefinition(obj).getBytes(StandardCharsets.UTF_8));
+            String def = dataBaseResource.getDefinition(obj);
+            if (customUser) {
+                int pathIdx = pair.getItem2().lastIndexOf(File.separator);
+                String newDb = pair.getItem2();
+                if (pathIdx != -1) {
+                    newDb = pair.getItem2().substring(pathIdx + 1);
+                }
+                def = def.replaceAll("\\s+([\\w_]+|(([\"`])[\\w_]+([\"`])))\\.", " $3" + newDb + "$4");
+            }
+            Files.write(output, def.getBytes(StandardCharsets.UTF_8));
             PrintHelper.printlnNotice("ddl script saved to: " + output);
             return;
         }
