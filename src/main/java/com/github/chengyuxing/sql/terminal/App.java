@@ -303,10 +303,10 @@ public class App {
                                     break;
                                 case ":paste":
                                     String temp = "paste_panel_" + System.currentTimeMillis();
-                                    Path path = Paths.get(CURRENT_DIR.toString(), temp);
+                                    Path path = SQLC_USER_PATH.resolve(temp);
                                     Data.tempFiles.add(path);
                                     try {
-                                        commandRegistry.invoke(session, "nano", "-$", temp);
+                                        commandRegistry.invoke(session, "nano", "-$", path);
                                         if (Files.exists(path)) {
                                             String sqlContent = String.join("\n", Files.readAllLines(path, StandardCharsets.UTF_8)).trim();
                                             if (!sqlContent.equals("")) {

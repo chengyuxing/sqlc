@@ -51,8 +51,9 @@ public class Ddl {
                 String newDb = pair.getItem2();
                 if (pathIdx != -1) {
                     newDb = pair.getItem2().substring(pathIdx + 1);
+                    newDb = newDb.substring(0, newDb.length() - 1);
                 }
-                def = def.replaceAll("\\s+([\\w_]+|(([\"`])[\\w_]+([\"`])))\\.", " $3" + newDb + "$4");
+                def = def.replaceAll("\\s+([\\w_]+|(([\"`])[\\w_]+([\"`])))\\.", " $3" + newDb + "$4.");
             }
             Files.write(output, def.getBytes(StandardCharsets.UTF_8));
             PrintHelper.printlnNotice("ddl script saved to: " + output);

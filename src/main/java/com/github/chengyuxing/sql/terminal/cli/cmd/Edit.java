@@ -10,9 +10,8 @@ import org.jline.console.impl.JlineCommandRegistry;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
-import static com.github.chengyuxing.sql.terminal.vars.Constants.CURRENT_DIR;
+import static com.github.chengyuxing.sql.terminal.vars.Constants.SQLC_USER_PATH;
 
 public class Edit {
     private final DataBaseResource dataBaseResource;
@@ -41,11 +40,11 @@ public class Edit {
             throw new RuntimeException(cmd + " definition is empty.");
         }
         String procedureTemp = cmd.replace(":", "_") + "_" + System.currentTimeMillis();
-        Path procedurePath = Paths.get(CURRENT_DIR.toString(), procedureTemp);
+        Path procedurePath = SQLC_USER_PATH.resolve(procedureTemp);
         Data.tempFiles.add(procedurePath);
         try {
             Files.write(procedurePath, def.getBytes(StandardCharsets.UTF_8));
-            commandRegistry.invoke(session, "nano", "-$", procedureTemp);
+            commandRegistry.invoke(session, "nano", "-$", procedurePath);
             String newDef = String.join("\n", Files.readAllLines(procedurePath, StandardCharsets.UTF_8));
             if (!def.trim().equals(newDef.trim())) {
                 baki.execute(newDef);
