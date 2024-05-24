@@ -48,7 +48,7 @@ public class App {
 
     public static void main(String[] args) {
         try {
-            if (args.length == 0 || Arrays.toString(args).trim().equals("")) {
+            if (args.length == 0 || Arrays.toString(args).trim().isEmpty()) {
                 System.out.println("-u is required, -h to get some help.");
                 System.exit(0);
             }
@@ -273,7 +273,7 @@ public class App {
             while (true) {
                 try {
                     String line = lineReader.readLine(prompt.getValue()).trim();
-                    if (!line.equals("")) {
+                    if (!line.isEmpty()) {
                         if (line.startsWith(":")) {
                             sqlBuilder.clear();
                             label:
@@ -309,7 +309,7 @@ public class App {
                                         commandRegistry.invoke(session, "nano", "-$", path);
                                         if (Files.exists(path)) {
                                             String sqlContent = String.join("\n", Files.readAllLines(path, StandardCharsets.UTF_8)).trim();
-                                            if (!sqlContent.equals("")) {
+                                            if (!sqlContent.isEmpty()) {
                                                 Exec executor = new Exec(baki, lineReader);
                                                 executor.exec(sqlContent);
                                                 prompt.newLine();
@@ -370,7 +370,7 @@ public class App {
                                         Data.xqlFileManager.add(alias, "file:" + filePath);
                                         Data.xqlFileManager.setDelimiter(StatusManager.sqlDelimiter.get());
                                         Data.xqlFileManager.init();
-                                        Data.xqlFileManager.foreach((k, v) -> System.out.println("+[" + TerminalColor.colorful(k, Color.DARK_CYAN) + "]:" + TerminalColor.highlightSql(v)));
+                                        Data.xqlFileManager.foreach((k, v) -> v.getEntry().forEach((name, sql) -> System.out.println("+[" + TerminalColor.colorful(name, Color.DARK_CYAN) + "]:" + TerminalColor.highlightSql(sql.getContent()))));
                                         if (baki.getXqlFileManager() == null) {
                                             baki.setXqlFileManager(Data.xqlFileManager);
                                         }
@@ -454,7 +454,7 @@ public class App {
                                 String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(String.join(" ", sqlBuilder));
                                 // execute sql
                                 // ---------
-                                if (!sql.equals("")) {
+                                if (!sql.isEmpty()) {
                                     Exec executor = new Exec(baki, lineReader);
                                     executor.exec(sql);
                                     sqlBuilder.clear();

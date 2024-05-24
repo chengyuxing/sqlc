@@ -20,7 +20,7 @@ public class ProcedureExecutor {
     }
 
     public void exec(Map<String, Param> args) {
-        DataRow result = WaitingPrinter.waiting(() -> baki.call(procedure, args));
+        DataRow result = WaitingPrinter.waiting(() -> baki.of(procedure).call(args));
         result.forEach((k, v) -> {
             PrintHelper.printlnDarkWarning(k + ":");
             PrintHelper.printQueryResult(value2stream(k, v));
@@ -32,7 +32,7 @@ public class ProcedureExecutor {
         if (value instanceof List) {
             return ((List<DataRow>) value).stream();
         }
-        return Stream.of(DataRow.fromPair(key, value));
+        return Stream.of(DataRow.of(key, value));
     }
 
     public static class OutParam implements IOutParam {
@@ -43,13 +43,8 @@ public class ProcedureExecutor {
         }
 
         @Override
-        public int getTypeNumber() {
+        public int typeNumber() {
             return code;
-        }
-
-        @Override
-        public String getName() {
-            return "" + code;
         }
     }
 }

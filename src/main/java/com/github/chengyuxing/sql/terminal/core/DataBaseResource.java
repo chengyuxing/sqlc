@@ -70,7 +70,7 @@ public class DataBaseResource {
                     int dotIdx = name.lastIndexOf(".");
                     String tableName = name.substring(0, dotIdx);
                     String triggerName = name.substring(dotIdx + 1);
-                    return Pair.of("pg.trigger_def", Args.create("table_name", tableName, "trigger_name", triggerName));
+                    return Pair.of("pg.trigger_def", Args.of("table_name", tableName, "trigger_name", triggerName));
                 };
                 queryTableDef = name -> {
                     Args<Object> args = Args.of("table_name", name);
@@ -110,11 +110,14 @@ public class DataBaseResource {
     List<String> getNames(Supplier<Pair<String, Map<String, Object>>> supplier) {
         if (supplier != null) {
             Pair<String, Map<String, Object>> pair = supplier.get();
-            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2(), false);
-            if (!sql.equals("")) {
-                try (Stream<DataRow> s = baki.query(sql).args(pair.getItem2()).stream()) {
+            Pair<String, Map<String, Object>> sqlMap = xqlFileManager.get(pair.getItem1(), pair.getItem2());
+            String sql = sqlMap.getItem1();
+            Map<String, Object> params = new HashMap<>(pair.getItem2());
+            params.put(XQLFileManager.DynamicSqlParser.FOR_VARS_KEY, sqlMap.getItem2());
+            if (!sql.isEmpty()) {
+                try (Stream<DataRow> s = baki.query(sql).args(params).stream()) {
                     return s.map(d -> {
-                        if (!StringUtil.hasLength(d.getString(1))) {
+                        if (!StringUtil.isEmpty(d.getString(1))) {
                             return d.getString(0);
                         }
                         return d.getString(1) + ":" + d.getString(0);
@@ -132,9 +135,12 @@ public class DataBaseResource {
     public String getDefinition(Function<String, Pair<String, Map<String, Object>>> func, String name) {
         if (func != null) {
             Pair<String, Map<String, Object>> pair = func.apply(name);
-            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2(), false);
-            if (!sql.equals("")) {
-                return baki.query(sql).args(pair.getItem2())
+            Pair<String, Map<String, Object>> sqlMap = xqlFileManager.get(pair.getItem1(), pair.getItem2());
+            String sql = sqlMap.getItem1();
+            Map<String, Object> params = new HashMap<>(pair.getItem2());
+            params.put(XQLFileManager.DynamicSqlParser.FOR_VARS_KEY, sqlMap.getItem2());
+            if (!sql.isEmpty()) {
+                return baki.query(sql).args(params)
                         .findFirst()
                         .map(d -> {
                             String def = d.getString(0);
@@ -152,9 +158,12 @@ public class DataBaseResource {
     public List<String> getDefinitions(Function<String, Pair<String, Map<String, Object>>> func, String name) {
         if (func != null) {
             Pair<String, Map<String, Object>> pair = func.apply(name);
-            String sql = xqlFileManager.get(pair.getItem1(), pair.getItem2(), false);
-            if (!sql.equals("")) {
-                try (Stream<DataRow> s = baki.query(sql).args(pair.getItem2()).stream()) {
+            Pair<String, Map<String, Object>> sqlMap = xqlFileManager.get(pair.getItem1(), pair.getItem2());
+            String sql = sqlMap.getItem1();
+            Map<String, Object> params = new HashMap<>(pair.getItem2());
+            params.put(XQLFileManager.DynamicSqlParser.FOR_VARS_KEY, sqlMap.getItem2());
+            if (!sql.isEmpty()) {
+                try (Stream<DataRow> s = baki.query(sql).args(params).stream()) {
                     return s.map(d -> {
                         String def = d.getString(0);
                         if (def != null) {
@@ -183,7 +192,7 @@ public class DataBaseResource {
 
     public String getTableDefinition(String name) {
         if (dbName.equals("oracle")) {
-            baki.execute(xqlFileManager.get("oracle.table_def_init"));
+            baki.of(xqlFileManager.get("oracle.table_def_init")).execute();
         }
         String table = getDefinition(queryTableDef, name).trim();
         String indexes = getDefinitions(queryTableIndexesFunc, name).stream().map(this::formatIndex).collect(Collectors.joining("\n\n"));
@@ -219,7 +228,11 @@ public class DataBaseResource {
     public List<List<String>> getTableDesc(String name) {
         if (queryTableDescFunc != null) {
             Pair<String, Map<String, Object>> pair = queryTableDescFunc.apply(name);
-            try (Stream<DataRow> s = baki.query(xqlFileManager.get(pair.getItem1(), pair.getItem2(), false)).args(pair.getItem2()).stream()) {
+            Pair<String, Map<String, Object>> sqlMap = xqlFileManager.get(pair.getItem1(), pair.getItem2());
+            String sql = sqlMap.getItem1();
+            Map<String, Object> params = new HashMap<>(pair.getItem2());
+            params.put(XQLFileManager.DynamicSqlParser.FOR_VARS_KEY, sqlMap.getItem2());
+            try (Stream<DataRow> s = baki.query(sql).args(params).stream()) {
                 AtomicBoolean first = new AtomicBoolean(true);
                 List<List<String>> rows = new ArrayList<>();
                 s.forEach(d -> {
@@ -318,7 +331,7 @@ public class DataBaseResource {
             String[] arr = s.split("\\.");
             String schema = arr[0].trim();
             String table = arr[1].trim();
-            return Args.create("schema", schema, "table_name", table);
+            return Args.of("schema", schema, "table_name", table);
         }
         return Args.of("table_name", s);
     }

@@ -1,6 +1,6 @@
 package com.github.chengyuxing.sql.terminal.util;
 
-import com.github.chengyuxing.common.DateTimes;
+import com.github.chengyuxing.common.MostDateTime;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
@@ -12,7 +12,7 @@ import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.types.Param;
-import com.github.chengyuxing.sql.utils.SqlTranslator;
+import com.github.chengyuxing.sql.utils.SqlGenerator;
 import org.jline.reader.LineReader;
 
 import java.io.FileNotFoundException;
@@ -29,12 +29,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.github.chengyuxing.sql.utils.SqlUtil.quoteFormatValueIfNecessary;
-
 public class SqlUtil {
     public static Pattern p = Pattern.compile("^[(\\s]*((select\\s*)|with\\s+[\\w_]+\\s+as\\s+\\([\\s\\S]+\\)\\s*select)");
     public static Pattern TYPE_PARSE = Pattern.compile("::(?<type>[a-zA-Z]+\\[*)((?<delimiter>[\\s\\S]*)])*$");
-    public static final SqlTranslator sqlTranslator = new SqlTranslator(':');
+    public static final SqlGenerator sqlTranslator = new SqlGenerator(':');
 
     public static SqlType getType(final String sql) {
         String trimSql = sql.trim();
@@ -55,50 +53,48 @@ public class SqlUtil {
             value = str.substring(0, m.start("type") - 2);
             String parse = m.group("type");
             if (parse.equals("date")) {
-                return DateTimes.toDate(value);
+                return MostDateTime.toDate(value);
             }
             if (value.startsWith("[") && value.endsWith("]")) {
                 String delimiter = m.group("delimiter");
                 if (delimiter != null && parse.endsWith("[")) {
                     delimiter = delimiter.trim();
-                    if (delimiter.equals("")) {
+                    if (delimiter.isEmpty()) {
                         delimiter = ",";
                     }
                     String[] filteredArrS = Stream.of(value.substring(1, value.length() - 1).split(delimiter))
                             .map(String::trim)
-                            .filter(v -> !v.equals(""))
+                            .filter(v -> !v.isEmpty())
                             .toArray(String[]::new);
                     if (parse.equals("string[")) {
                         return filteredArrS;
                     }
                     int length = filteredArrS.length;
-                    if (parse.equals("int[")) {
-                        int[] ints = new int[length];
-                        for (int i = 0; i < length; i++) {
-                            ints[i] = Integer.parseInt(filteredArrS[i]);
-                        }
-                        return ints;
-                    }
-                    if (parse.equals("double[")) {
-                        double[] doubles = new double[length];
-                        for (int i = 0; i < length; i++) {
-                            doubles[i] = Double.parseDouble(filteredArrS[i]);
-                        }
-                        return doubles;
-                    }
-                    if (parse.equals("float[")) {
-                        float[] floats = new float[length];
-                        for (int i = 0; i < length; i++) {
-                            floats[i] = Float.parseFloat(filteredArrS[i]);
-                        }
-                        return floats;
-                    }
-                    if (parse.equals("long[")) {
-                        long[] longs = new long[length];
-                        for (int i = 0; i < length; i++) {
-                            longs[i] = Long.parseLong(filteredArrS[i]);
-                        }
-                        return longs;
+                    switch (parse) {
+                        case "int[":
+                            int[] ints = new int[length];
+                            for (int i = 0; i < length; i++) {
+                                ints[i] = Integer.parseInt(filteredArrS[i]);
+                            }
+                            return ints;
+                        case "double[":
+                            double[] doubles = new double[length];
+                            for (int i = 0; i < length; i++) {
+                                doubles[i] = Double.parseDouble(filteredArrS[i]);
+                            }
+                            return doubles;
+                        case "float[":
+                            float[] floats = new float[length];
+                            for (int i = 0; i < length; i++) {
+                                floats[i] = Float.parseFloat(filteredArrS[i]);
+                            }
+                            return floats;
+                        case "long[":
+                            long[] longs = new long[length];
+                            for (int i = 0; i < length; i++) {
+                                longs[i] = Long.parseLong(filteredArrS[i]);
+                            }
+                            return longs;
                     }
                 }
             }
@@ -107,7 +103,7 @@ public class SqlUtil {
         if (value.startsWith("\"") && value.endsWith("\"")) {
             return value.substring(1, value.length() - 1);
         }
-        if (value.startsWith("'") && value.startsWith("'")) {
+        if (value.startsWith("'") && value.endsWith("'")) {
             return value.substring(1, value.length() - 1);
         }
         if (value.matches("-?(0|[1-9]\\d*)")) {
@@ -142,7 +138,7 @@ public class SqlUtil {
                 blobKeys.add(e.getKey());
             } else {
                 f.add(e.getKey());
-                v.add(quoteFormatValueIfNecessary(e.getValue()));
+                v.add(com.github.chengyuxing.sql.utils.SqlUtil.quoteFormatValue(e.getValue()));
             }
         }
         return Pair.of("insert into " + tableName + "(" + f + ") values (" + v + ")", blobKeys);
@@ -166,7 +162,7 @@ public class SqlUtil {
             String template = lineReader.readLine(StatusManager.promptReference.get().getValue()).trim();
             templates.put(name, template);
         }
-        return formatSql(sqlTranslator.formatSql(sql, templates), lineReader);
+        return formatSql(com.github.chengyuxing.sql.utils.SqlUtil.formatSql(sql, templates), lineReader);
     }
 
     /**
@@ -181,7 +177,7 @@ public class SqlUtil {
         if (!sql.equals(fmtSql)) {
             PrintHelper.printlnHighlightSql(fmtSql);
         }
-        Pair<String, List<String>> pSql = sqlTranslator.generateSql(fmtSql, Collections.emptyMap(), true);
+        Pair<String, List<String>> pSql = sqlTranslator.generatePreparedSql(fmtSql, Collections.emptyMap());
         List<String> pNames = pSql.getItem2();
         if (pNames.isEmpty()) {
             return Pair.of(fmtSql, Collections.emptyMap());
@@ -258,7 +254,7 @@ public class SqlUtil {
             sqls = getSqlsByFile(multiSqlOrFilePath);
         }
         return Stream.of(sqls.split(StatusManager.sqlDelimiter.get()))
-                .filter(sql -> !sql.trim().equals("") && !sql.matches("^[;\r\t\n]$"))
+                .filter(sql -> !sql.trim().isEmpty() && !sql.matches("^[;\r\t\n]$"))
                 .collect(Collectors.toList());
     }
 

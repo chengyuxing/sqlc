@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.common.io.FileResource;
 
 import java.util.Arrays;
 
@@ -31,7 +31,7 @@ public class ObjectUtil {
         }
         if (obj instanceof byte[]) {
             byte[] bytesArr = (byte[]) obj;
-            return "blob:" + StringUtil.getSize(bytesArr);
+            return "blob:" + FileResource.getSize(bytesArr);
         }
         return obj;
     }

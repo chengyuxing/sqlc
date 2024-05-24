@@ -22,9 +22,7 @@ public abstract class Data {
     /**
      * xql管理器
      */
-    public static final XQLFileManager xqlFileManager = new XQLFileManager() {{
-        setHighlightSql(Constants.IS_XTERM);
-    }};
+    public static final XQLFileManager xqlFileManager = new XQLFileManager();
 
     /**
      * 临时文件缓存

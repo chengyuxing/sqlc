@@ -31,15 +31,11 @@ public class ProgressPrinter extends Progress {
     }
 
     protected void updateValue(String content) throws InterruptedException {
-        if (content != null && !content.equals("")) {
-            PrintHelper.printPrimary(content);
-            TimeUnit.MILLISECONDS.sleep(200);
+        if (content != null && !content.isEmpty()) {
+            PrintHelper.printPrimary(content + '\r');
+            TimeUnit.MILLISECONDS.sleep(100);
             if (stop.get()) {
                 System.out.println();
-            } else {
-                for (int i = 0, j = content.length() + content.length() >> 1; i < j; i++) {
-                    System.out.print("\b");
-                }
             }
         }
     }

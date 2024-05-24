@@ -159,11 +159,11 @@ public class DBTests {
     public void sqlFile() throws Exception {
         XQLFileManager manager = new XQLFileManager(Args.of("sql", "/Users/chengyuxing/Downloads/sqlc.sql"));
         manager.init();
-        manager.foreachEntry((k, r) -> r.forEach((n, v) -> {
-            if (!n.startsWith("${")) {
-                Printer.println("Execute sql [ " + n + " ] ::: ", Color.DARK_CYAN);
-            }
-        }));
+//        manager.foreachEntry((k, r) -> r.forEach((n, v) -> {
+//            if (!n.startsWith("${")) {
+//                Printer.println("Execute sql [ " + n + " ] ::: ", Color.DARK_CYAN);
+//            }
+//        }));
     }
 
     @Test
@@ -177,11 +177,11 @@ public class DBTests {
         List<Map<String, Object>> list = Arrays.asList(map, map1);
         AtomicBoolean first = new AtomicBoolean(true);
         list.forEach(m -> {
-            try {
-                PrintHelper.printJSON(DataRow.fromMap(m), first);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                PrintHelper.printJSON(DataRow.fromMap(m), first);
+//            } catch (JsonProcessingException e) {
+//                e.printStackTrace();
+//            }
         });
     }
 }

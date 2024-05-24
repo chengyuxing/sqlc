@@ -16,19 +16,18 @@ public class Agent {
         Agent.inst = inst;
     }
 
-    public static boolean addClassPath(File jar) {
+    public static void addClassPath(File jar) {
         ClassLoader classLoader = ClassLoader.getSystemClassLoader();
         try {
             // jdk9+
             if (!(classLoader instanceof URLClassLoader)) {
                 inst.appendToSystemClassLoaderSearch(new JarFile(jar));
-                return true;
+                return;
             }
             //jdk8
             Method m = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
             m.setAccessible(true);
             m.invoke(classLoader, jar.toURI().toURL());
-            return true;
         } catch (IOException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }

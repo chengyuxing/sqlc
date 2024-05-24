@@ -92,10 +92,7 @@ public class DataSourceLoader {
         if (baki == null) {
             baki = new UserBaki(dataSource, username);
             if (Constants.IS_XTERM) {
-                baki.setHighlightSql(true);
             }
-            baki.setCheckParameterType(false);
-            baki.setStrictDynamicSqlArg(false);
         }
         return baki;
     }
@@ -103,9 +100,6 @@ public class DataSourceLoader {
     public BakiDao getSysBaki() {
         if (sysBaki == null) {
             sysBaki = new BakiDao(sysDataSource);
-            sysBaki.setHighlightSql(false);
-            sysBaki.setCheckParameterType(false);
-            sysBaki.setStrictDynamicSqlArg(false);
         }
         return sysBaki;
     }

@@ -2,6 +2,7 @@ package com.github.chengyuxing.sql.terminal.cli;
 
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
+import com.github.chengyuxing.sql.utils.SqlHighlighter;
 import com.github.chengyuxing.sql.utils.SqlUtil;
 
 import static com.github.chengyuxing.sql.terminal.vars.Constants.IS_XTERM;
@@ -34,6 +35,6 @@ public class TerminalColor {
     }
 
     public static String highlightSql(String sql) {
-        return SqlUtil.buildPrintSql(sql, IS_XTERM);
+        return SqlHighlighter.highlightIfAnsiCapable(sql);
     }
 }

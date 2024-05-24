@@ -1,7 +1,6 @@
 package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.common.io.Lines;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
@@ -21,8 +20,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class FileHelper {
@@ -68,10 +69,14 @@ public final class FileHelper {
             s.forEach(row -> {
                 try {
                     if (first.get()) {
-                        Lines.writeLine(out, row.names(), d);
+                        String line = String.join(d, row.names());
+                        out.write(line.getBytes());
+                        out.write("\n".getBytes());
                         first.set(false);
                     }
-                    Lines.writeLine(out, row.values(), d);
+                    String line = row.values().stream().map(v -> Objects.isNull(v) ? "" : v.toString()).collect(Collectors.joining(d));
+                    out.write(line.getBytes());
+                    out.write("\n".getBytes());
                     pp.increment();
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
@@ -103,7 +108,7 @@ public final class FileHelper {
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         ProgressPrinter pp = ProgressPrinter.of("", " object has written.");
         try {
-            bufferedWriterAtomicReference.set(Files.newBufferedWriter(filePath,StandardCharsets.UTF_8));
+            bufferedWriterAtomicReference.set(Files.newBufferedWriter(filePath, StandardCharsets.UTF_8));
             BufferedWriter writer = bufferedWriterAtomicReference.get();
             PrintHelper.printlnPrimary("waiting...");
             pp.whenStopped((value, during) -> {
@@ -208,9 +213,9 @@ public final class FileHelper {
                 if (hasBlob.get()) {
                     try {
                         Files.move(path, Paths.get(fileDir.get(), fileName));
-                        String readme = StringUtil.format("please do not change files if you will batch insert to another table:\n-----------------\n${blobs}\n${insert}", Args.create("blobs", blobsDir, "insert", path));
+                        String readme = StringUtil.FMT.format("please do not change files if you will batch insert to another table:\n-----------------\n${blobs}\n${insert}", Args.of("blobs", blobsDir, "insert", path));
                         Files.write(Paths.get(fileDir.get(), "readme.txt"), readme.getBytes(StandardCharsets.UTF_8));
-                        PrintHelper.printlnNotice(StringUtil.format("${a}(${b} and blobs) saved!", Args.create("a", fileDir, "b", fileName)));
+                        PrintHelper.printlnNotice(StringUtil.FMT.format("${a}(${b} and blobs) saved!", Args.of("a", fileDir, "b", fileName)));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -228,7 +233,7 @@ public final class FileHelper {
                             hasBlob.set(true);
                         }
                         for (String k : insertAndBlobKeys.getItem2()) {
-                            if (fileDir.get().equals("")) {
+                            if (fileDir.get().isEmpty()) {
                                 fileDir.set(Paths.get(currentDir, tableName + "_" + System.currentTimeMillis()).toString());
                                 blobsDir.set(Paths.get(fileDir.get(), "blobs").toString());
                                 Files.createDirectory(Paths.get(fileDir.get()));

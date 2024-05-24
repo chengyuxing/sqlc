@@ -1,6 +1,6 @@
 package rabbit.sql.connsole.test;
 
-import com.github.chengyuxing.sql.utils.SqlTranslator;
+//import com.github.chengyuxing.sql.utils.SqlTranslator;
 import org.junit.Test;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 
@@ -48,9 +48,9 @@ public class ArgsResolveTests {
 
     @Test
     public void tests() throws Exception {
-        SqlTranslator sqlTranslator = new SqlTranslator(':');
-        String sql = "insert into skynet.files(id, photo, file) values (1, :blob_0_photo, :blob_0_file);";
-        System.out.println(sqlTranslator.getPreparedSql(sql, Collections.emptyMap()));
+//        SqlTranslator sqlTranslator = new SqlTranslator(':');
+//        String sql = "insert into skynet.files(id, photo, file) values (1, :blob_0_photo, :blob_0_file);";
+//        System.out.println(sqlTranslator.getPreparedSql(sql, Collections.emptyMap()));
     }
 
     @Test

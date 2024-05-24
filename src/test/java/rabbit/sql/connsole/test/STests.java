@@ -31,11 +31,11 @@ import java.util.stream.Stream;
 
 public class STests {
     public static void main(String[] args) throws Exception {
-        Stream<DataRow> rowStream = Stream.iterate(0, (i) -> i + 1)
+//        Stream<DataRow> rowStream = Stream.iterate(0, (i) -> i + 1)
 //                .limit(10006093)
-                .limit(906093)
-                .map(i -> DataRow.fromPair("id", i, "name", "cyx", "address", "昆明市西山区", "age", 27));
-        FileHelper.writeJSON(rowStream, "/Users/chengyuxing/Downloads/big.json");
+//                .limit(906093)
+//                .map(i -> DataRow.fromPair("id", i, "name", "cyx", "address", "昆明市西山区", "age", 27));
+//        FileHelper.writeJSON(rowStream, "/Users/chengyuxing/Downloads/big.json");
 //        FileHelper.writeDSV(rowStream, new AtomicReference<>(View.TSV), "/Users/chengyuxing/Downloads/big.tsv");
 //        FileHelper.writeExcel(rowStream, "/Users/chengyuxing/Downloads/big.xlsx");
 //        FileHelper.writeInsertSqlFile(rowStream, "/Users/chengyuxing/Downloads/test.big.sql");
@@ -104,7 +104,6 @@ public class STests {
 
         BakiDao bakiDao = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres")
                 .getUserBaki();
-        bakiDao.setDebugFullSql(true);
         bakiDao.setXqlFileManager(xqlFileManager);
         Thread.sleep(5000);
         bakiDao.query("&x.query_region").args(args).stream().forEach(System.out::println);
@@ -275,8 +274,8 @@ public class STests {
         XQLFileManager xqlFileManager = new XQLFileManager();
         xqlFileManager.add("me", "file:/Users/chengyuxing/Downloads/xql_file_manager.xql");
         xqlFileManager.init();
-        String sql = xqlFileManager.get("me.query_region", Args.create("id", 131, "age", 28));
-        System.out.println(sql);
+//        String sql = xqlFileManager.get("me.query_region", Args.of("id", 131, "age", 28));
+//        System.out.println(sql);
     }
 
     @Test

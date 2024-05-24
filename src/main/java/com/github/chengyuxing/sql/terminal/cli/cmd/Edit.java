@@ -47,7 +47,7 @@ public class Edit {
             commandRegistry.invoke(session, "nano", "-$", procedurePath);
             String newDef = String.join("\n", Files.readAllLines(procedurePath, StandardCharsets.UTF_8));
             if (!def.trim().equals(newDef.trim())) {
-                baki.execute(newDef);
+                baki.of(newDef).execute();
                 PrintHelper.printlnNotice(cmd + " change submitted!");
             }
         } finally {
