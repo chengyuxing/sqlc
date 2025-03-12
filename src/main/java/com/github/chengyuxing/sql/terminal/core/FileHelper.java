@@ -70,13 +70,13 @@ public final class FileHelper {
                 try {
                     if (first.get()) {
                         String line = String.join(d, row.names());
-                        out.write(line.getBytes());
-                        out.write("\n".getBytes());
+                        out.write(line.getBytes(StandardCharsets.UTF_8));
+                        out.write("\n".getBytes(StandardCharsets.UTF_8));
                         first.set(false);
                     }
                     String line = row.values().stream().map(v -> Objects.isNull(v) ? "" : v.toString()).collect(Collectors.joining(d));
-                    out.write(line.getBytes());
-                    out.write("\n".getBytes());
+                    out.write(line.getBytes(StandardCharsets.UTF_8));
+                    out.write("\n".getBytes(StandardCharsets.UTF_8));
                     pp.increment();
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);

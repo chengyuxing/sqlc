@@ -25,7 +25,7 @@ public class KeywordsCompleter implements Completer {
     @Override
     public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
         String l = line.line().trim();
-        if (l.equals("")) {
+        if (l.isEmpty()) {
             return;
         }
         if (!l.startsWith(":") && StatusManager.promptReference.get().getStatus() != Prompt.Status.CUSTOM) {

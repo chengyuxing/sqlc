@@ -43,7 +43,7 @@ public class Help {
             System.out.println();
         }));
         put("--cmd", () -> cmdDesc.forEach((k, v) -> {
-            if (!k.equals("")) {
+            if (!k.isEmpty()) {
                 List<String> mainDesc = v.getItem1();
                 List<String> argDesc = v.getItem2();
                 if (argDesc.isEmpty()) {

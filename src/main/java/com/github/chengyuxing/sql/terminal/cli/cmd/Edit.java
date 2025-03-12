@@ -36,7 +36,7 @@ public class Edit {
             throw new IllegalArgumentException("invalid object name formatter, e.g: tg(trigger):test.big.my_trigger, view:test.my_view, proc:public.hello(text)");
         }
         String def = dataBaseResource.getDefinition(cmd);
-        if (def.trim().equals("")) {
+        if (def.trim().isEmpty()) {
             throw new RuntimeException(cmd + " definition is empty.");
         }
         String procedureTemp = cmd.replace(":", "_") + "_" + System.currentTimeMillis();

@@ -54,7 +54,7 @@ public class Arguments {
         if (!argMap.containsKey(key)) {
             return defaultValue;
         }
-        if (argMap.get(key).equals("")) {
+        if (argMap.get(key).isEmpty()) {
             return defaultValue;
         }
         return argMap.get(key);
