@@ -117,7 +117,8 @@ public class DataBaseResource {
             if (!sql.isEmpty()) {
                 try (Stream<DataRow> s = baki.query(sql).args(params).stream()) {
                     return s.map(d -> {
-                        if (!StringUtil.isEmpty(d.getString(1))) {
+                        // type
+                        if (StringUtil.isEmpty(d.getString(1))) {
                             return d.getString(0);
                         }
                         return d.getString(1) + ":" + d.getString(0);
