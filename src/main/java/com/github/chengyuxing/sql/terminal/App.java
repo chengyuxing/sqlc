@@ -98,7 +98,7 @@ public class App {
                 }
 
                 log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
-                log.info("Go to " + Help.url + " get more information about this.");
+                log.info("Go to {} get more information about this.", Help.url);
                 if (argMap.containsKey("-d")) {
                     StatusManager.sqlDelimiter.set(argMap.get("-d"));
                 }

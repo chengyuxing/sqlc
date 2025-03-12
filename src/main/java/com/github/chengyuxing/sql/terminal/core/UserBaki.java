@@ -5,11 +5,13 @@ import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.utils.JdbcUtil;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,15 +31,19 @@ public class UserBaki extends BakiDao {
     }
 
     @Override
-    protected Connection getConnection() {
+    protected @NotNull Connection getConnection() {
         Connection connection = super.getConnection();
         initDbConfig(connection);
         return connection;
     }
 
-    @Override
     protected List<String> getTableFields(String tableName) {
-        return super.getTableFields(tableName);
+        return execute("select * from " + tableName + " where 1 = 2", sc -> {
+            ResultSet resultSet = sc.executeQuery();
+            List<String> fields = Arrays.asList(JdbcUtil.createNames(resultSet, ""));
+            JdbcUtil.closeResultSet(resultSet);
+            return fields;
+        });
     }
 
     public void initDbConfig(Connection connection) {
@@ -61,7 +67,7 @@ public class UserBaki extends BakiDao {
                         JdbcUtil.closeStatement(preparedStatement);
                         String schemas = paths.stream().map(d -> "\"" + d.getFirst() + "\"")
                                 .collect(Collectors.joining(","));
-                        if (!schemas.trim().equals("")) {
+                        if (!schemas.trim().isEmpty()) {
                             String searchPath = "set search_path = " + schemas;
                             PreparedStatement statement = connection.prepareStatement(searchPath);
                             statement.execute();

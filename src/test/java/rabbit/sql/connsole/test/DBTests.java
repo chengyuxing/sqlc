@@ -91,7 +91,7 @@ public class DBTests {
             if (v instanceof PGobject) {
                 System.out.println(((PGobject) v).getValue());
             }
-            System.out.println(d.getType(0));
+            System.out.println(d.getString(0));
             System.out.println(d.get("x"));
         });
     }
@@ -157,7 +157,7 @@ public class DBTests {
 
     @Test
     public void sqlFile() throws Exception {
-        XQLFileManager manager = new XQLFileManager(Args.of("sql", "/Users/chengyuxing/Downloads/sqlc.sql"));
+        XQLFileManager manager = new XQLFileManager();
         manager.init();
 //        manager.foreachEntry((k, r) -> r.forEach((n, v) -> {
 //            if (!n.startsWith("${")) {

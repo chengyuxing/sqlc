@@ -234,18 +234,17 @@ public final class PrintHelper {
 
     public static void printDSV(DataRow data, String d, AtomicBoolean firstLine) {
         if (firstLine.get()) {
-            String typesLine = data.keySet().stream()
-                    .map(n -> {
-                        Class<?> type = data.getType(n);
-                        if (type == null) {
+            String typesLine = data.values().stream()
+                    .map(v -> {
+                        if (v == null) {
                             return "unKnow";
                         }
-                        String v = type.getName();
-                        int idx = v.lastIndexOf(".");
+                        String name = v.getClass().getName();
+                        int idx = name.lastIndexOf(".");
                         if (idx == -1) {
-                            return v;
+                            return name;
                         }
-                        return v.substring(idx + 1);
+                        return name.substring(idx + 1);
                     }).collect(Collectors.joining(d));
             TerminalColor.println(typesLine, Color.DARK_CYAN);
             String namesLine = String.join(d, data.keySet());

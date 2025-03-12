@@ -138,7 +138,7 @@ public class SqlUtil {
                 blobKeys.add(e.getKey());
             } else {
                 f.add(e.getKey());
-                v.add(com.github.chengyuxing.sql.utils.SqlUtil.quoteFormatValue(e.getValue()));
+                v.add(com.github.chengyuxing.sql.utils.SqlUtil.safeQuote(e.getValue()));
             }
         }
         return Pair.of("insert into " + tableName + "(" + f + ") values (" + v + ")", blobKeys);
@@ -177,12 +177,11 @@ public class SqlUtil {
         if (!sql.equals(fmtSql)) {
             PrintHelper.printlnHighlightSql(fmtSql);
         }
-        Pair<String, List<String>> pSql = sqlTranslator.generatePreparedSql(fmtSql, Collections.emptyMap());
-        List<String> pNames = pSql.getItem2();
-        if (pNames.isEmpty()) {
+        SqlGenerator.GeneratedSqlMetaData pSql = sqlTranslator.generatePreparedSql(fmtSql, Collections.emptyMap());
+        Set<String> distinctArgs = pSql.getArgNameIndexMapping().keySet();
+        if (distinctArgs.isEmpty()) {
             return Pair.of(fmtSql, Collections.emptyMap());
         }
-        Set<String> distinctArgs = new LinkedHashSet<>(pNames);
         Map<String, Object> args = new HashMap<>();
         SqlType type = getType(fmtSql);
         if (type == SqlType.FUNCTION) {

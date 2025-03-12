@@ -99,7 +99,7 @@ public class BatchInsertHelper {
                         if (example.get().isEmpty()) {
                             if (!chunk.isEmpty()) {
                                 example.set(chunk.get(0));
-                                boolean isPrepared = !SqlUtil.sqlTranslator.generatePreparedSql(chunk.get(0), Collections.emptyMap()).getItem2().isEmpty();
+                                boolean isPrepared = !SqlUtil.sqlTranslator.generatePreparedSql(chunk.get(0), Collections.emptyMap()).getArgNameIndexMapping().isEmpty();
                                 prepared.set(isPrepared);
                             }
                         }
@@ -142,7 +142,7 @@ public class BatchInsertHelper {
             if (!StatusManager.txActive.get()) {
                 Tx.using(() -> {
                     for (String sql : sqls) {
-                        List<String> names = SqlUtil.sqlTranslator.generatePreparedSql(sql, Collections.emptyMap()).getItem2();
+                        Set<String> names = SqlUtil.sqlTranslator.generatePreparedSql(sql, Collections.emptyMap()).getArgNameIndexMapping().keySet();
                         Map<String, Object> arg = new HashMap<>();
                         for (String name : names) {
                             arg.put(name, blobsDir.resolve(name).toFile());
@@ -167,7 +167,7 @@ public class BatchInsertHelper {
         try (MappingIterator<Map<String, Object>> iterator = JSON.reader().forType(Map.class).readValues(path.toFile())) {
             while (iterator.hasNext()) {
                 Map<String, Object> obj = iterator.next();
-                String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, obj, Collections.emptyList(), true);
+                String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, obj.keySet(), obj, true);
                 chunk.add(SqlUtil.sqlTranslator.generateSql(insert, obj));
                 if (example.get().isEmpty()) {
                     example.set(chunk.get(0));
@@ -215,7 +215,7 @@ public class BatchInsertHelper {
                     .skip(next)
                     .map(cols -> {
                         DataRow row = DataRow.of(tableFields.toArray(nameGeneric), cols.toArray());
-                        String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, row, Collections.emptyList(), true);
+                        String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, tableFields, row, true);
                         return SqlUtil.sqlTranslator.generateSql(insert, row);
                     })
                     .forEach(insert -> {
@@ -263,7 +263,7 @@ public class BatchInsertHelper {
                         .peek(d -> d.removeIf((k, v) -> v == null || v.toString().isEmpty()))
                         .filter(d -> !d.isEmpty())
                         .map(d -> {
-                            String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, d, Collections.emptyList(), true);
+                            String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, d.keySet(), d, true);
                             return SqlUtil.sqlTranslator.generateSql(insert, d);
                         })
                         .forEach(insert -> {
@@ -303,6 +303,6 @@ public class BatchInsertHelper {
     }
 
     static BiFunction<Long, Long, String> formatter(String name, String op) {
-        return (v, c) -> "chunk " + v + "(" + v * 1000 + " " + name + ") " + op + ".(" + TimeUtil.format(c) + ")";
+        return (v, c) -> "chunk " + v + " " + op + ".(" + TimeUtil.format(c) + ")";
     }
 }

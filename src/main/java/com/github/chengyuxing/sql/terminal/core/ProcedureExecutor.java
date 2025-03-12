@@ -2,8 +2,8 @@ package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.sql.Baki;
-import com.github.chengyuxing.sql.support.IOutParam;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
+import com.github.chengyuxing.sql.types.OutParamType;
 import com.github.chengyuxing.sql.types.Param;
 
 import java.util.List;
@@ -35,7 +35,7 @@ public class ProcedureExecutor {
         return Stream.of(DataRow.of(key, value));
     }
 
-    public static class OutParam implements IOutParam {
+    public static class OutParam implements OutParamType {
         private final int code;
 
         public OutParam(int code) {
