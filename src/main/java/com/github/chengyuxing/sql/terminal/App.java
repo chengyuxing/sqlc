@@ -14,6 +14,7 @@ import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
+import com.github.lalyos.jfiglet.FigletFont;
 import org.jline.builtins.Completers;
 import org.jline.builtins.ConfigurationPath;
 import org.jline.console.CommandRegistry;
@@ -52,51 +53,57 @@ public class App {
                 System.out.println("-u is required, -h to get some help.");
                 System.exit(0);
             }
-            Arguments argMap = new Arguments(args);
+
+            final Arguments argMap = new Arguments(args);
+
+            final Terminal terminal = TerminalBuilder.builder()
+                    .name("sqlc terminal")
+                    .encoding(StandardCharsets.UTF_8)
+                    .system(true)
+                    .build();
+
+            StatusManager.terminalReference.set(terminal);
+
             if (argMap.containsKey("-u")) {
                 DataSourceLoader.loadDrivers("drivers");
                 DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"));
-                try (Terminal terminal = TerminalBuilder.builder()
-                        .name("sqlc login")
-                        .encoding(StandardCharsets.UTF_8)
-                        .system(true)
-                        .build()) {
-                    LineReader lineReader = LineReaderBuilder.builder().terminal(terminal).build();
-                    if (!argMap.containsKey("-n")) {
+                LineReader lineReader = LineReaderBuilder.builder().terminal(terminal).build();
+                if (!argMap.containsKey("-n")) {
+                    try {
+                        dsLoader.setUsername(lineReader.readLine("username: "));
+                    } catch (UserInterruptException | EndOfFileException e) {
+                        System.out.println("cancel login.");
+                        return;
+                    }
+                } else {
+                    dsLoader.setUsername(argMap.get("-n"));
+                }
+
+                if (!argMap.containsKey("-p")) {
+                    for (int i = 5; i >= 0; i--) {
                         try {
-                            dsLoader.setUsername(lineReader.readLine("username: "));
+                            if (i == 0) {
+                                System.out.println("login denied.");
+                                return;
+                            }
+                            dsLoader.setPassword(lineReader.readLine("password: ", '*'));
+                            dsLoader.init();
+                            break;
                         } catch (UserInterruptException | EndOfFileException e) {
                             System.out.println("cancel login.");
                             return;
+                        } catch (Exception e) {
+                            PrintHelper.printlnError(e);
+                            PrintHelper.printlnDanger("please try again.");
                         }
-                    } else {
-                        dsLoader.setUsername(argMap.get("-n"));
                     }
-
-                    if (!argMap.containsKey("-p")) {
-                        for (int i = 5; i >= 0; i--) {
-                            try {
-                                if (i == 0) {
-                                    System.out.println("login denied.");
-                                    return;
-                                }
-                                dsLoader.setPassword(lineReader.readLine("password: ", '*'));
-                                dsLoader.init();
-                                break;
-                            } catch (UserInterruptException | EndOfFileException e) {
-                                System.out.println("cancel login.");
-                                return;
-                            } catch (Exception e) {
-                                PrintHelper.printlnError(e);
-                                PrintHelper.printlnDanger("please try again.");
-                            }
-                        }
-                    } else {
-                        dsLoader.setPassword(argMap.get("-p"));
-                        dsLoader.init();
-                    }
+                } else {
+                    dsLoader.setPassword(argMap.get("-p"));
+                    dsLoader.init();
                 }
 
+                System.out.println();
+                TerminalColor.print(FigletFont.convertOneLine("SQL cmd"), Color.CYAN);
                 log.info("Welcome to sqlc {} ({}, {})", Version.RELEASE, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
                 log.info("Go to {} get more information about this.", Help.url);
                 if (argMap.containsKey("-d")) {
@@ -107,8 +114,8 @@ public class App {
                     String format = argMap.get("-f");
                     StatusManager.viewMode.set(format.equals("csv") ?
                             View.CSV : format.equals("json") ?
-                            View.JSON : format.equals("excel") ?
-                            View.EXCEL : View.TSV);
+                            View.JSON : format.equals("tsv") ?
+                            View.TSV : View.EXCEL);
                 }
 
                 // 如果有-e参数，就执行命令模式
@@ -117,7 +124,7 @@ public class App {
                     return;
                 }
                 // 进入交互模式
-                startInteractiveMode(dsLoader);
+                startInteractiveMode(dsLoader, terminal);
             } else {
                 Help.get(args[0]);
             }
@@ -193,7 +200,7 @@ public class App {
         });
     }
 
-    public static void startInteractiveMode(DataSourceLoader dataSourceLoader) {
+    public static void startInteractiveMode(DataSourceLoader dataSourceLoader, Terminal terminal) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (StatusManager.txActive.get()) {
                 Tx.rollback();
@@ -209,12 +216,7 @@ public class App {
             System.out.println("Bye bye :(");
         }));
 
-        try (Terminal terminal = TerminalBuilder.builder()
-                .name("sqlc terminal")
-                .encoding(StandardCharsets.UTF_8)
-                .system(true)
-                .build()) {
-
+        try {
             CommandRegistry.CommandSession session = new CommandRegistry.CommandSession(terminal);
 
             final List<String> sqlBuilder = new ArrayList<>();
@@ -431,7 +433,7 @@ public class App {
                                     Matcher vm = VIEW_REGEX.matcher(line);
                                     if (vm.find()) {
                                         String view = vm.group("view");
-                                        View viewMode = view.equals("tsv") ? View.TSV : view.equals("json") ? View.JSON : view.equals("excel") ? View.EXCEL : View.CSV;
+                                        View viewMode = view.equals("tsv") ? View.TSV : view.equals("json") ? View.JSON : view.equals("csv") ? View.CSV : View.EXCEL;
                                         StatusManager.viewMode.set(viewMode);
                                         PrintHelper.printlnNotice("use " + view + " view!");
                                         break;
