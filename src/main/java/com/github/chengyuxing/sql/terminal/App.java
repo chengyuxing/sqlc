@@ -3,7 +3,6 @@ package com.github.chengyuxing.sql.terminal;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.cli.Help;
-import com.github.chengyuxing.sql.terminal.cli.SimpleReadLine;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.cli.cmd.*;
 import com.github.chengyuxing.sql.terminal.cli.completer.CompleterBuilder;
@@ -120,7 +119,7 @@ public class App {
 
                 // 如果有-e参数，就执行命令模式
                 if (argMap.containsKey("-e")) {
-                    startCommandMode(dsLoader, argMap.get("-e"), argMap);
+                    startCommandMode(dsLoader, argMap.get("-e"), argMap, terminal);
                     return;
                 }
                 // 进入交互模式
@@ -133,7 +132,7 @@ public class App {
         }
     }
 
-    public static void startCommandMode(DataSourceLoader dataSourceLoader, String execute, Arguments args) throws Exception {
+    public static void startCommandMode(DataSourceLoader dataSourceLoader, String execute, Arguments args, Terminal terminal) throws Exception {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             dataSourceLoader.release();
             System.out.println("Bye bye :(");
@@ -176,28 +175,27 @@ public class App {
         // for support prepared sql
         // e.g: -e"select ... where id = :id;..."
         // e.g: -e"insert ...(file) values (:path)"
-        SimpleReadLine.readline(lb -> {
-            StatusManager.promptReference.set(new Prompt(""));
-            LineReader reader = lb.completer(new Completers.FilesCompleter(CURRENT_DIR)).build();
-            Exec executor = new Exec(baki, reader);
-            try {
-                if (usingTx) {
-                    Tx.using(() -> {
-                        try {
-                            executor.exec(sql);
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-                } else {
-                    executor.exec(sql);
-                }
-            } catch (UserInterruptException | EndOfFileException e) {
-                System.out.println("canceled.");
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+        LineReaderBuilder lb = LineReaderBuilder.builder().terminal(terminal);
+        StatusManager.promptReference.set(new Prompt(""));
+        LineReader reader = lb.completer(new Completers.FilesCompleter(CURRENT_DIR)).build();
+        Exec executor = new Exec(baki, reader);
+        try {
+            if (usingTx) {
+                Tx.using(() -> {
+                    try {
+                        executor.exec(sql);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            } else {
+                executor.exec(sql);
             }
-        });
+        } catch (UserInterruptException | EndOfFileException e) {
+            System.out.println("canceled.");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void startInteractiveMode(DataSourceLoader dataSourceLoader, Terminal terminal) {
