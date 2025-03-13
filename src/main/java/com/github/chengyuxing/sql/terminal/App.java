@@ -61,8 +61,6 @@ public class App {
                     .system(true)
                     .build();
 
-            StatusManager.terminalReference.set(terminal);
-
             if (argMap.containsKey("-u")) {
                 DataSourceLoader.loadDrivers("drivers");
                 DataSourceLoader dsLoader = DataSourceLoader.of(argMap.get("-u"));
@@ -113,8 +111,8 @@ public class App {
                     String format = argMap.get("-f");
                     StatusManager.viewMode.set(format.equals("csv") ?
                             View.CSV : format.equals("json") ?
-                            View.JSON : format.equals("tsv") ?
-                            View.TSV : View.EXCEL);
+                            View.JSON : format.equals("excel") ?
+                            View.EXCEL : View.TSV);
                 }
 
                 // 如果有-e参数，就执行命令模式
@@ -431,7 +429,7 @@ public class App {
                                     Matcher vm = VIEW_REGEX.matcher(line);
                                     if (vm.find()) {
                                         String view = vm.group("view");
-                                        View viewMode = view.equals("tsv") ? View.TSV : view.equals("json") ? View.JSON : view.equals("csv") ? View.CSV : View.EXCEL;
+                                        View viewMode = view.equals("tsv") ? View.TSV : view.equals("json") ? View.JSON : view.equals("excel") ? View.EXCEL : View.CSV;
                                         StatusManager.viewMode.set(viewMode);
                                         PrintHelper.printlnNotice("use " + view + " view!");
                                         break;

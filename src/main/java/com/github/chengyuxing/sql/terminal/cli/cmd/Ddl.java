@@ -59,10 +59,10 @@ public class Ddl {
             PrintHelper.printlnNotice("ddl script saved to: " + output);
             return;
         }
+        System.out.println();
         PrintHelper.printlnNotice("-------------------" + cmd + "-------------------");
-        System.out.println();
         System.out.println(TerminalColor.highlightSql(dataBaseResource.getDefinition(cmd)));
-        System.out.println();
         PrintHelper.printlnNotice("-----------------" + cmd + " end-----------------");
+        System.out.println();
     }
 }

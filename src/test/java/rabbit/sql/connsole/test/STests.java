@@ -13,7 +13,6 @@ import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.lalyos.jfiglet.FigletFont;
-import de.vandermeer.asciitable.AsciiTable;
 import org.junit.Test;
 
 import java.io.IOException;

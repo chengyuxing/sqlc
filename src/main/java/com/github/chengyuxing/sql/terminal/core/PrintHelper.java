@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
+import com.github.chengyuxing.common.utils.StringUtil;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
@@ -11,14 +12,15 @@ import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
-import de.vandermeer.asciitable.AsciiTable;
 import org.jline.reader.LineReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -51,7 +53,7 @@ public final class PrintHelper {
                 s.forEach(row -> PrintHelper.printDSV(row, ",", first));
                 break;
             case EXCEL:
-                printPrettyTable(s, first);
+                s.forEach(row -> PrintHelper.printDSV(row, " | ", first));
                 break;
         }
     }
@@ -158,20 +160,29 @@ public final class PrintHelper {
     }
 
     public static void printGrid(List<List<String>> gridData) {
-        AsciiTable asciiTable = new AsciiTable();
-        asciiTable.getContext().setWidth(StatusManager.terminalReference.get().getWidth());
-        for (int i = 0; i < gridData.size(); i++) {
-            if (i == 0) {
-                asciiTable.addRule();
-                asciiTable.addRow(gridData.get(i));
-                asciiTable.addRule();
-            } else {
-                asciiTable.addRow(gridData.get(i));
+        int[] maxes = new int[gridData.get(0).size()];
+        Arrays.fill(maxes, 0);
+        StringJoiner fmt = new StringJoiner("\t");
+        for (List<String> gridDatum : gridData) {
+            for (int j = 0; j < gridDatum.size(); j++) {
+                int now = gridDatum.get(j).length();
+                if (maxes[j] < now) {
+                    maxes[j] = now;
+                }
             }
         }
-        asciiTable.addRule();
-        if (asciiTable.getColNumber() > 0) {
-            TerminalColor.println(asciiTable.render(), Color.CYAN);
+        for (int len : maxes) {
+            fmt.add("%-" + len + "s");
+        }
+        for (int i = 0; i < gridData.size(); i++) {
+            String content = String.format(fmt.toString(), gridData.get(i).toArray());
+            if (i == 0) {
+                TerminalColor.println(content, Color.CYAN);
+                TerminalColor.print(StringUtil.repeat("-", content.length()), Color.CYAN);
+            } else {
+                TerminalColor.print(content, Color.DARK_CYAN);
+            }
+            System.out.println();
         }
     }
 
@@ -188,6 +199,7 @@ public final class PrintHelper {
         if (firstLine.get()) {
             String namesLine = String.join(d, data.keySet());
             TerminalColor.println(namesLine, Color.DARK_CYAN);
+            TerminalColor.println(StringUtil.repeat("-", namesLine.length()), Color.CYAN);
             firstLine.set(false);
         }
         String valuesLine = data.values().stream().map(v -> {
@@ -197,29 +209,5 @@ public final class PrintHelper {
             return wrapObjectForSerialized(v).toString();
         }).collect(Collectors.joining(d));
         TerminalColor.println(valuesLine, Color.CYAN);
-    }
-
-    public static void printPrettyTable(Stream<DataRow> s, AtomicBoolean firstLine) {
-        AsciiTable asciiTable = new AsciiTable();
-        asciiTable.getContext().setWidth(StatusManager.terminalReference.get().getWidth());
-        s.forEach(d -> {
-            if (firstLine.get()) {
-                asciiTable.addRule();
-                asciiTable.addRow(d.keySet());
-                asciiTable.addRule();
-                firstLine.set(false);
-            }
-            List<Object> values = d.values().stream().map(v -> {
-                if (null == v) {
-                    return "null";
-                }
-                return wrapObjectForSerialized(v).toString();
-            }).collect(Collectors.toList());
-            asciiTable.addRow(values);
-        });
-        asciiTable.addRule();
-        if (asciiTable.getColNumber() > 0) {
-            TerminalColor.println(asciiTable.render(), Color.CYAN);
-        }
     }
 }
