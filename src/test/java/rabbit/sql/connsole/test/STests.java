@@ -12,6 +12,8 @@ import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
+import com.github.lalyos.jfiglet.FigletFont;
+import de.vandermeer.asciitable.AsciiTable;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -327,5 +329,11 @@ public class STests {
         Date date = new Date(000);
         System.out.println(date instanceof java.util.Date);
         System.out.println(java.util.Date.class.isAssignableFrom(date.getClass()));
+    }
+
+    @Test
+    public void testss() throws IOException {
+        String figletFont = FigletFont.convertOneLine("SQL cmd");
+        System.out.println(figletFont);
     }
 }

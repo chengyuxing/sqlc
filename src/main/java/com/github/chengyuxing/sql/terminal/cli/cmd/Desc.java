@@ -37,8 +37,6 @@ public class Desc {
             PrintHelper.printlnNotice("table fields desc saved to: " + output);
             return;
         }
-        PrintHelper.printlnNotice("\n------------------------" + cmd + "------------------------");
         PrintHelper.printGrid(dataBaseResource.getTableDesc(cmd));
-        PrintHelper.printlnNotice("----------------------" + cmd + " end----------------------\n");
     }
 }

@@ -8,10 +8,10 @@ import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
-import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
+import de.vandermeer.asciitable.AsciiTable;
 import org.jline.reader.LineReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -33,68 +32,30 @@ import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.wrapObjectForS
 public final class PrintHelper {
     private static final Logger log = LoggerFactory.getLogger(PrintHelper.class);
 
-    public static void printQueryResult(Stream<DataRow> s, Consumer<DataRow> eachRowFunc) {
+    public static void printQueryResult(Stream<DataRow> s) {
         AtomicBoolean first = new AtomicBoolean(true);
         switch (StatusManager.viewMode.get()) {
             case JSON:
-                if (eachRowFunc == null) {
-                    s.forEach(row -> {
-                        try {
-                            PrintHelper.printJSON(row, first);
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-                } else {
-                    s.forEach(row -> {
-                        try {
-                            PrintHelper.printJSON(row, first);
-                            eachRowFunc.accept(row);
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-                }
-                if (StatusManager.viewMode.get() == View.JSON) {
-                    printlnWarning("]");
-                    System.out.println();
-                }
+                TerminalColor.print("[", Color.YELLOW);
+                s.forEach(row -> {
+                    try {
+                        PrintHelper.printJSON(row, first);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                TerminalColor.println("]", Color.YELLOW);
                 break;
             case TSV:
-                if (eachRowFunc == null) {
-                    s.forEach(row -> PrintHelper.printDSV(row, "\t", first));
-                } else {
-                    s.forEach(row -> {
-                        PrintHelper.printDSV(row, "\t", first);
-                        eachRowFunc.accept(row);
-                    });
-                }
+                s.forEach(row -> PrintHelper.printDSV(row, "\t", first));
                 break;
             case CSV:
-                if (eachRowFunc == null) {
-                    s.forEach(row -> PrintHelper.printDSV(row, ",", first));
-                } else {
-                    s.forEach(row -> {
-                        PrintHelper.printDSV(row, ",", first);
-                        eachRowFunc.accept(row);
-                    });
-                }
+                s.forEach(row -> PrintHelper.printDSV(row, ",", first));
                 break;
             case EXCEL:
-                if (eachRowFunc == null) {
-                    s.forEach(row -> PrintHelper.printDSV(row, " | ", first));
-                } else {
-                    s.forEach(row -> {
-                        PrintHelper.printDSV(row, " | ", first);
-                        eachRowFunc.accept(row);
-                    });
-                }
+                printPrettyTable(s, first);
                 break;
         }
-    }
-
-    public static void printQueryResult(Stream<DataRow> s) {
-        printQueryResult(s, null);
     }
 
     @SuppressWarnings("unchecked")
@@ -199,54 +160,34 @@ public final class PrintHelper {
     }
 
     public static void printGrid(List<List<String>> gridData) {
-        int[] maxes = new int[gridData.get(0).size()];
-        Arrays.fill(maxes, 0);
-        StringJoiner fmt = new StringJoiner("\t");
-        for (List<String> gridDatum : gridData) {
-            for (int j = 0; j < gridDatum.size(); j++) {
-                int now = gridDatum.get(j).length();
-                if (maxes[j] < now) {
-                    maxes[j] = now;
-                }
-            }
-        }
-        for (int len : maxes) {
-            fmt.add("%-" + len + "s");
-        }
+        AsciiTable asciiTable = new AsciiTable();
+        asciiTable.getContext().setWidth(StatusManager.terminalReference.get().getWidth());
         for (int i = 0; i < gridData.size(); i++) {
             if (i == 0) {
-                TerminalColor.printf(fmt.toString(), Color.CYAN, gridData.get(i).toArray());
+                asciiTable.addRule();
+                asciiTable.addRow(gridData.get(i));
+                asciiTable.addRule();
             } else {
-                TerminalColor.printf(fmt.toString(), Color.DARK_CYAN, gridData.get(i).toArray());
+                asciiTable.addRow(gridData.get(i));
             }
-            System.out.println();
+        }
+        asciiTable.addRule();
+        if (asciiTable.getColNumber() > 0) {
+            TerminalColor.println(asciiTable.render(), Color.CYAN);
         }
     }
 
     public static void printJSON(DataRow data, AtomicBoolean firstLine) throws JsonProcessingException {
-        if (!firstLine.get()) {
-            TerminalColor.print(", " + getJson(data), Color.CYAN);
-        } else {
-            System.out.print(TerminalColor.colorful("[", Color.YELLOW) + TerminalColor.colorful(getJson(data), Color.CYAN));
+        if (firstLine.get()) {
+            TerminalColor.print(getJson(data), Color.CYAN);
             firstLine.set(false);
+        } else {
+            TerminalColor.print(", " + getJson(data), Color.CYAN);
         }
     }
 
     public static void printDSV(DataRow data, String d, AtomicBoolean firstLine) {
         if (firstLine.get()) {
-            String typesLine = data.values().stream()
-                    .map(v -> {
-                        if (v == null) {
-                            return "unKnow";
-                        }
-                        String name = v.getClass().getName();
-                        int idx = name.lastIndexOf(".");
-                        if (idx == -1) {
-                            return name;
-                        }
-                        return name.substring(idx + 1);
-                    }).collect(Collectors.joining(d));
-            TerminalColor.println(typesLine, Color.DARK_CYAN);
             String namesLine = String.join(d, data.keySet());
             TerminalColor.println(namesLine, Color.DARK_CYAN);
             firstLine.set(false);
@@ -258,5 +199,29 @@ public final class PrintHelper {
             return wrapObjectForSerialized(v).toString();
         }).collect(Collectors.joining(d));
         TerminalColor.println(valuesLine, Color.CYAN);
+    }
+
+    public static void printPrettyTable(Stream<DataRow> s, AtomicBoolean firstLine) {
+        AsciiTable asciiTable = new AsciiTable();
+        asciiTable.getContext().setWidth(StatusManager.terminalReference.get().getWidth());
+        s.forEach(d -> {
+            if (firstLine.get()) {
+                asciiTable.addRule();
+                asciiTable.addRow(d.keySet());
+                asciiTable.addRule();
+                firstLine.set(false);
+            }
+            List<Object> values = d.values().stream().map(v -> {
+                if (null == v) {
+                    return "null";
+                }
+                return wrapObjectForSerialized(v).toString();
+            }).collect(Collectors.toList());
+            asciiTable.addRow(values);
+        });
+        asciiTable.addRule();
+        if (asciiTable.getColNumber() > 0) {
+            TerminalColor.println(asciiTable.render(), Color.CYAN);
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.github.chengyuxing.sql.terminal.vars;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.types.View;
+import org.jline.terminal.Terminal;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -15,7 +16,7 @@ public abstract class StatusManager {
     /**
      * 输出的结果视图与结果保存类型
      */
-    public static final AtomicReference<View> viewMode = new AtomicReference<>(View.TSV);
+    public static final AtomicReference<View> viewMode = new AtomicReference<>(View.EXCEL);
     /**
      * 多行sql分隔符
      */
@@ -28,6 +29,10 @@ public abstract class StatusManager {
      * 命令行终端题词
      */
     public static final AtomicReference<Prompt> promptReference = new AtomicReference<>();
+    /**
+     * 命令行对象
+     */
+    public static final AtomicReference<Terminal> terminalReference = new AtomicReference<>();
 
     /**
      * 设置事务状态
