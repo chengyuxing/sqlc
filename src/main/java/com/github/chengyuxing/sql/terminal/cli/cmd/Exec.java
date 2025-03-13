@@ -9,6 +9,8 @@ import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import org.jline.reader.LineReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,6 +25,8 @@ import static com.github.chengyuxing.sql.terminal.vars.Constants.REDIRECT_SYMBOL
  * exec指令执行器
  */
 public class Exec {
+    private static final Logger log = LoggerFactory.getLogger(Exec.class);
+
     private final Baki baki;
     private final LineReader lineReader;
 
@@ -57,6 +61,7 @@ public class Exec {
                             FileHelper.writeFile(s, output.toString());
                             return;
                         } catch (Exception e) {
+                            log.error("exec error", e);
                             throw new RuntimeException("an error when waiting execute: " + sql, e);
                         }
                     }

@@ -10,6 +10,8 @@ import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.vars.Data;
 import org.jline.reader.LineReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,6 +22,8 @@ import java.util.stream.Stream;
 import static com.github.chengyuxing.sql.terminal.vars.Constants.REDIRECT_SYMBOL;
 
 public class XqlExec {
+    private static final Logger log = LoggerFactory.getLogger(XqlExec.class);
+
     private final UserBaki baki;
     private final LineReader lineReader;
 
@@ -48,6 +52,7 @@ public class XqlExec {
                     FileHelper.writeFile(s, output.toString());
                     return;
                 } catch (Exception e) {
+                    log.error("xql exec error", e);
                     throw new RuntimeException("an error when waiting execute: " + sql, e);
                 }
             }

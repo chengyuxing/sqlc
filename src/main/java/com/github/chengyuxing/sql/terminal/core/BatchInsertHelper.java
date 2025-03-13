@@ -12,6 +12,8 @@ import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -27,6 +29,8 @@ import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 public class BatchInsertHelper {
+    private static final Logger log = LoggerFactory.getLogger(BatchInsertHelper.class);
+
     static final ObjectMapper JSON = new ObjectMapper();
 
     public static void readFile4batch(UserBaki baki, String filePath, int sheetIdx, int headerIdx) throws Exception {
@@ -108,6 +112,7 @@ public class BatchInsertHelper {
                                 try {
                                     preparedInsert4BlobBatchExecute(baki, chunk, path);
                                 } catch (IOException e) {
+                                    log.error("batch insert sql file error", e);
                                     throw new RuntimeException(e);
                                 }
                             } else {
@@ -131,6 +136,7 @@ public class BatchInsertHelper {
             }
             pp.stop();
         } catch (Exception e) {
+            log.error("batch insert sql file error", e);
             pp.interrupt();
             throw new RuntimeException(e);
         }
@@ -184,6 +190,7 @@ public class BatchInsertHelper {
             }
             pp.stop();
         } catch (Exception e) {
+            log.error("batch insert json file error", e);
             pp.interrupt();
             throw new RuntimeException(e);
         }
@@ -235,6 +242,7 @@ public class BatchInsertHelper {
             }
             pp.stop();
         } catch (Exception e) {
+            log.error("batch insert dsv file error", e);
             pp.interrupt();
             throw new RuntimeException(e);
         }
@@ -284,6 +292,7 @@ public class BatchInsertHelper {
                 pp.stop();
             }
         } catch (Exception e) {
+            log.error("batch insert excel file error", e);
             pp.interrupt();
             throw new RuntimeException(e);
         }

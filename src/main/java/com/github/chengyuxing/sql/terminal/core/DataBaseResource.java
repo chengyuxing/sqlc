@@ -78,6 +78,7 @@ public class DataBaseResource {
                         int version = baki.metaData().getDatabaseMajorVersion();
                         args.add("version", version);
                     } catch (SQLException e) {
+                        log.error("query table definition error", e);
                         PrintHelper.printlnError(e);
                     }
                     return Pair.of("pg.table_def", args);
@@ -124,6 +125,7 @@ public class DataBaseResource {
                         return d.getString(1) + ":" + d.getString(0);
                     }).collect(Collectors.toList());
                 } catch (Exception e) {
+                    log.error("fetch table names error", e);
                     PrintHelper.printlnError(e);
                     return Collections.emptyList();
                 }
@@ -283,6 +285,7 @@ public class DataBaseResource {
                     .flatMap(Collection::stream)
                     .collect(Collectors.toSet());
         } catch (Exception e) {
+            log.error("load sql keywords error", e);
             PrintHelper.printlnError(e);
             return Collections.emptySet();
         }

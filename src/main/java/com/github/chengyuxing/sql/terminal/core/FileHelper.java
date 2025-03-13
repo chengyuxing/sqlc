@@ -13,6 +13,8 @@ import org.apache.poi.ss.usermodel.Sheet;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +29,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class FileHelper {
+    private static final Logger log = LoggerFactory.getLogger(FileHelper.class);
+
     public static void writeFile(Stream<DataRow> stream, String path) {
         path = Paths.get(path).toAbsolutePath().toString();
         if (path.endsWith(".sql")) {
@@ -79,12 +83,14 @@ public final class FileHelper {
                     out.write("\n".getBytes(StandardCharsets.UTF_8));
                     pp.increment();
                 } catch (IOException e) {
+                    log.error("write dsv({}) error", d, e);
                     throw new UncheckedIOException(e);
                 }
             });
             out.close();
             pp.stop();
         } catch (Exception e) {
+            log.error("write dsv error", e);
             pp.interrupt();
             try {
                 FileOutputStream out = outputStreamAtomicReference.get();
@@ -127,6 +133,7 @@ public final class FileHelper {
                     }
                     pp.increment();
                 } catch (IOException e) {
+                    log.error("write json error", e);
                     throw new RuntimeException(e);
                 }
             });
@@ -176,6 +183,7 @@ public final class FileHelper {
             writer.close();
             pp.stop();
         } catch (Exception e) {
+            log.error("write excel error", e);
             pp.interrupt();
             try {
                 writer.close();
@@ -217,6 +225,7 @@ public final class FileHelper {
                         Files.write(Paths.get(fileDir.get(), "readme.txt"), readme.getBytes(StandardCharsets.UTF_8));
                         PrintHelper.printlnNotice(StringUtil.FMT.format("${a}(${b} and blobs) saved!", Args.of("a", fileDir, "b", fileName)));
                     } catch (IOException e) {
+                        log.error("write sql insert file error", e);
                         throw new RuntimeException(e);
                     }
                 } else {
@@ -245,12 +254,14 @@ public final class FileHelper {
                     }
                     pp.increment();
                 } catch (IOException e) {
+                    log.error("write sql insert file with blob error", e);
                     throw new UncheckedIOException("write blob file error:" + blobsDir + "; " + fileDir, e);
                 }
             });
             writer.close();
             pp.stop();
         } catch (IOException e) {
+            log.error("write sql insert file error", e);
             pp.interrupt();
             try {
                 BufferedWriter writer = bufferedWriterAtomicReference.get();

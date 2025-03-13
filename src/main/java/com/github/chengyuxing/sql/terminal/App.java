@@ -90,6 +90,7 @@ public class App {
                             System.out.println("cancel login.");
                             return;
                         } catch (Exception e) {
+                            log.error("password login", e);
                             PrintHelper.printlnError(e);
                             PrintHelper.printlnDanger("please try again.");
                         }
@@ -126,6 +127,7 @@ public class App {
                 Help.get(args[0]);
             }
         } catch (Exception e) {
+            log.error("startup sqlc", e);
             PrintHelper.printlnError(e);
         }
     }
@@ -149,6 +151,7 @@ public class App {
                     try {
                         BatchInsertHelper.readFile4batch(baki, filePath, sheetIdx, headerIdx);
                     } catch (Exception e) {
+                        log.error("batch insert", e);
                         throw new RuntimeException(e);
                     }
                 });
@@ -183,6 +186,7 @@ public class App {
                     try {
                         executor.exec(sql);
                     } catch (Exception e) {
+                        log.error("exec sql with transaction", e);
                         throw new RuntimeException(e);
                     }
                 });
@@ -192,6 +196,7 @@ public class App {
         } catch (UserInterruptException | EndOfFileException e) {
             System.out.println("canceled.");
         } catch (Exception e) {
+            log.error("exec sql", e);
             throw new RuntimeException(e);
         }
     }
@@ -206,6 +211,7 @@ public class App {
                 try {
                     Files.deleteIfExists(p);
                 } catch (Exception e) {
+                    log.error("temp file deleted", e);
                     PrintHelper.printlnError(e);
                 }
             });
@@ -474,6 +480,7 @@ public class App {
                     // ctrl+d
                     break;
                 } catch (Exception e) {
+                    log.error("error", e);
                     PrintHelper.printlnError(e);
                     sqlBuilder.clear();
                     prompt.newLine();
@@ -482,6 +489,7 @@ public class App {
             // close another thread pool 4 trigger shutdown hock.
             cat.close();
         } catch (Exception e) {
+            log.error("error", e);
             PrintHelper.printlnError(e);
         }
     }

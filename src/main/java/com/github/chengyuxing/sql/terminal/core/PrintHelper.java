@@ -41,6 +41,7 @@ public final class PrintHelper {
                     try {
                         PrintHelper.printJSON(row, first);
                     } catch (JsonProcessingException e) {
+                        log.error("print query result as json.", e);
                         throw new RuntimeException(e);
                     }
                 });
@@ -96,6 +97,7 @@ public final class PrintHelper {
                 printQueryResult(executedRow2Stream(baki, pair.getItem1(), pair.getItem2()));
                 success.incrementAndGet();
             } catch (Exception e) {
+                log.error("print multiple sql result error", e);
                 printlnNotice("Execute " + success + "/" + sqls.size() + " finished.");
                 throw new RuntimeException(e);
             }
@@ -123,6 +125,7 @@ public final class PrintHelper {
                 });
                 printlnDanger(out.toString());
             } catch (IOException ioException) {
+                log.error("println error", ioException);
                 printlnDanger(ioException.toString());
             }
         } else {
