@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,12 +37,7 @@ public class UserBaki extends BakiDao {
     }
 
     protected List<String> getTableFields(String tableName) {
-        return execute("select * from " + tableName + " where 1 = 2", sc -> {
-            ResultSet resultSet = sc.executeQuery();
-            List<String> fields = Arrays.asList(JdbcUtil.createNames(resultSet, ""));
-            JdbcUtil.closeResultSet(resultSet);
-            return fields;
-        });
+        return table(tableName).fields();
     }
 
     public void initDbConfig(Connection connection) {

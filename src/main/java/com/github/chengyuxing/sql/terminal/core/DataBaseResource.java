@@ -51,7 +51,6 @@ public class DataBaseResource {
         this.dataSourceLoader = dataSourceLoader;
         this.baki = this.dataSourceLoader.getSysBaki();
         this.xqlFileManager = new XQLFileManager();
-        this.xqlFileManager.setDelimiter(";;");
         init();
     }
 
@@ -195,7 +194,7 @@ public class DataBaseResource {
 
     public String getTableDefinition(String name) {
         if (dbName.equals("oracle")) {
-            baki.of(xqlFileManager.get("oracle.table_def_init")).execute();
+            baki.execute(xqlFileManager.get("oracle.table_def_init"), Args.of());
         }
         String table = getDefinition(queryTableDef, name).trim();
         String indexes = getDefinitions(queryTableIndexesFunc, name).stream().map(this::formatIndex).collect(Collectors.joining("\n\n"));
@@ -306,7 +305,7 @@ public class DataBaseResource {
         if (appendReplace) {
             Matcher m = TRIGGER_PREFIX_REGEX.matcher(trigger);
             if (!m.find()) {
-                trigger = StringUtil.replaceFirstIgnoreCase(trigger, "create", "CREATE OR REPLACE");
+                trigger = trigger.replaceFirst("(?i)create", "CREATE OR REPLACE");
             }
         }
         StringJoiner sb = new StringJoiner(" ");

@@ -31,7 +31,7 @@ public class ObjectUtil {
         }
         if (obj instanceof byte[]) {
             byte[] bytesArr = (byte[]) obj;
-            return "blob:" + FileResource.formatFileSize(bytesArr);
+            return "blob:" + FileResource.formatFileSize(bytesArr.length);
         }
         return obj;
     }

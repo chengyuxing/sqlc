@@ -127,6 +127,16 @@ public class SqlUtil {
         return value;
     }
 
+    public static String safeQuote(Object value) {
+        if (value instanceof byte[]) {
+            return "0x" + Arrays.toString((byte[]) value);
+        }
+        if (value instanceof String) {
+            return "'" + ((String) value).replace("'", "''") + "'";
+        }
+        return "null";
+    }
+
     public static Pair<String, List<String>> generateInsert(final String tableName, final Map<String, ?> row, long blobRowNum) {
         StringJoiner f = new StringJoiner(", ");
         StringJoiner v = new StringJoiner(", ");
@@ -138,7 +148,7 @@ public class SqlUtil {
                 blobKeys.add(e.getKey());
             } else {
                 f.add(e.getKey());
-                v.add(com.github.chengyuxing.sql.utils.SqlUtil.safeQuote(e.getValue()));
+                v.add(safeQuote(e.getValue()));
             }
         }
         return Pair.of("insert into " + tableName + "(" + f + ") values (" + v + ")", blobKeys);
@@ -177,7 +187,7 @@ public class SqlUtil {
         if (!sql.equals(fmtSql)) {
             PrintHelper.printlnHighlightSql(fmtSql);
         }
-        SqlGenerator.GeneratedSqlMetaData pSql = sqlTranslator.generatePreparedSql(fmtSql, Collections.emptyMap());
+        SqlGenerator.PreparedSqlMetaData pSql = sqlTranslator.generatePreparedSql(fmtSql, Collections.emptyMap());
         Set<String> distinctArgs = pSql.getArgNameIndexMapping().keySet();
         if (distinctArgs.isEmpty()) {
             return Pair.of(fmtSql, Collections.emptyMap());

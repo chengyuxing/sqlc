@@ -138,8 +138,9 @@ public class App {
             System.out.println("Bye bye :(");
         }));
         UserBaki baki = dataSourceLoader.getUserBaki();
+        //noinspection ResultOfMethodCallIgnored
         baki.metaData();
-        String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(execute);
+        String sql = execute.replaceAll("[\\s;]$", "");
         boolean usingTx = args.containsKey("--with-tx");
         // just execute batch insert
         if (sql.startsWith("@")) {
@@ -239,6 +240,7 @@ public class App {
             JlineCommandRegistry commandRegistry = new Builtins(CURRENT_DIR, new ConfigurationPath(APP_DIR, USER_HOME), s -> lineReader.getBuiltinWidgets().get(s));
 
             UserBaki baki = dataSourceLoader.getUserBaki();
+            //noinspection ResultOfMethodCallIgnored
             baki.metaData();
 
             DataBaseResource dataBaseResource = new DataBaseResource(dataSourceLoader);
@@ -372,9 +374,8 @@ public class App {
                                             break;
                                         }
                                         Data.xqlFileManager.add(alias, "file:" + filePath);
-                                        Data.xqlFileManager.setDelimiter(StatusManager.sqlDelimiter.get());
                                         Data.xqlFileManager.init();
-                                        Data.xqlFileManager.foreach((k, v) -> v.getEntry().forEach((name, sql) -> System.out.println("+[" + TerminalColor.colorful(name, Color.DARK_CYAN) + "]:" + TerminalColor.highlightSql(sql.getContent()))));
+                                        Data.xqlFileManager.foreach((k, v) -> v.getEntry().forEach((name, sql) -> System.out.println("+[" + TerminalColor.colorful(name, Color.DARK_CYAN) + "]:" + TerminalColor.highlightSql(sql.getSource()))));
                                         if (baki.getXqlFileManager() == null) {
                                             baki.setXqlFileManager(Data.xqlFileManager);
                                         }
@@ -455,7 +456,7 @@ public class App {
                         } else {
                             if (line.endsWith(";")) {
                                 sqlBuilder.add(line);
-                                String sql = com.github.chengyuxing.sql.utils.SqlUtil.trimEnd(String.join(" ", sqlBuilder));
+                                String sql = String.join(" ", sqlBuilder).replaceAll("[\\s;]$","");
                                 // execute sql
                                 // ---------
                                 if (!sql.isEmpty()) {

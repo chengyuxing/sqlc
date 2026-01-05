@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class BatchInsertHelper {
@@ -153,7 +154,7 @@ public class BatchInsertHelper {
                         for (String name : names) {
                             arg.put(name, blobsDir.resolve(name).toFile());
                         }
-                        baki.executeBatchUpdate(sql, Collections.singletonList(arg), 1000);
+                        baki.executeBatchUpdate(sql, Collections.singletonList(arg), Function.identity(), 1000);
                     }
                 });
             }
@@ -173,8 +174,9 @@ public class BatchInsertHelper {
         try (MappingIterator<Map<String, Object>> iterator = JSON.reader().forType(Map.class).readValues(path.toFile())) {
             while (iterator.hasNext()) {
                 Map<String, Object> obj = iterator.next();
-                String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, obj.keySet(), obj, true);
-                chunk.add(SqlUtil.sqlTranslator.generateSql(insert, obj));
+                obj.entrySet().removeIf(e -> e.getValue() == null);
+                String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, obj.keySet());
+                chunk.add(SqlUtil.sqlTranslator.generateSql(insert, obj, v -> com.github.chengyuxing.sql.utils.SqlUtil.toSqlLiteral(v, true)));
                 if (example.get().isEmpty()) {
                     example.set(chunk.get(0));
                 }
@@ -222,8 +224,8 @@ public class BatchInsertHelper {
                     .skip(next)
                     .map(cols -> {
                         DataRow row = DataRow.of(tableFields.toArray(nameGeneric), cols.toArray());
-                        String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, tableFields, row, true);
-                        return SqlUtil.sqlTranslator.generateSql(insert, row);
+                        String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, tableFields);
+                        return SqlUtil.sqlTranslator.generateSql(insert, row, v -> com.github.chengyuxing.sql.utils.SqlUtil.toSqlLiteral(v, true));
                     })
                     .forEach(insert -> {
                         chunk.add(insert);
@@ -271,8 +273,8 @@ public class BatchInsertHelper {
                         .peek(d -> d.removeIf((k, v) -> v == null || v.toString().isEmpty()))
                         .filter(d -> !d.isEmpty())
                         .map(d -> {
-                            String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, d.keySet(), d, true);
-                            return SqlUtil.sqlTranslator.generateSql(insert, d);
+                            String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, d.keySet());
+                            return SqlUtil.sqlTranslator.generateSql(insert, d, v -> com.github.chengyuxing.sql.utils.SqlUtil.toSqlLiteral(v, true));
                         })
                         .forEach(insert -> {
                             chunk.add(insert);
