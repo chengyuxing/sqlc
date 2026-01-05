@@ -1,5 +1,6 @@
 package com.github.chengyuxing.sql.terminal.cli.cmd;
 
+import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.terminal.core.DataBaseResource;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.core.UserBaki;
@@ -47,7 +48,7 @@ public class Edit {
             commandRegistry.invoke(session, "nano", "-$", procedurePath);
             String newDef = String.join("\n", Files.readAllLines(procedurePath, StandardCharsets.UTF_8));
             if (!def.trim().equals(newDef.trim())) {
-                baki.of(newDef).execute();
+                baki.execute(newDef, Args.of());
                 PrintHelper.printlnNotice(cmd + " change submitted!");
             }
         } finally {
