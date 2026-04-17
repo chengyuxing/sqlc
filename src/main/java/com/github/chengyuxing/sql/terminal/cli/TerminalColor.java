@@ -2,7 +2,7 @@ package com.github.chengyuxing.sql.terminal.cli;
 
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.console.Printer;
-import com.github.chengyuxing.sql.utils.SqlHighlighter;
+import com.github.chengyuxing.sql.util.SqlHighlighter;
 
 import static com.github.chengyuxing.sql.terminal.vars.Constants.IS_XTERM;
 

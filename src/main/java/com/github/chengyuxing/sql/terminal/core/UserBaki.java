@@ -4,7 +4,7 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
-import com.github.chengyuxing.sql.utils.JdbcUtil;
+import com.github.chengyuxing.sql.util.JdbcUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,16 +56,16 @@ public class UserBaki extends BakiDao {
                         PreparedStatement preparedStatement = connection.prepareStatement("select schema_name from information_schema.schemata where schema_owner = ?");
                         preparedStatement.setObject(1, username);
                         ResultSet resultSet = preparedStatement.executeQuery();
-                        List<DataRow> paths = JdbcUtil.createDataRows(resultSet, "", -1);
-                        JdbcUtil.closeResultSet(resultSet);
-                        JdbcUtil.closeStatement(preparedStatement);
+                        List<DataRow> paths = JdbcUtils.createDataRows(resultSet, "", -1);
+                        JdbcUtils.closeResultSet(resultSet);
+                        JdbcUtils.closeStatement(preparedStatement);
                         String schemas = paths.stream().map(d -> "\"" + d.getFirst() + "\"")
                                 .collect(Collectors.joining(","));
                         if (!schemas.trim().isEmpty()) {
                             String searchPath = "set search_path = " + schemas;
                             PreparedStatement statement = connection.prepareStatement(searchPath);
                             statement.execute();
-                            JdbcUtil.closeStatement(statement);
+                            JdbcUtils.closeStatement(statement);
                             if (firstLoad) {
                                 log.info(TerminalColor.highlightSql(searchPath));
                             }

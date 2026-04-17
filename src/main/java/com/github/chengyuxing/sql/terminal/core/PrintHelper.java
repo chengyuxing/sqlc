@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
-import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
@@ -181,7 +181,7 @@ public final class PrintHelper {
             String content = String.format(fmt.toString(), gridData.get(i).toArray());
             if (i == 0) {
                 TerminalColor.println(content, Color.CYAN);
-                TerminalColor.print(StringUtil.repeat("-", content.length()), Color.CYAN);
+                TerminalColor.print(StringUtils.repeat("-", content.length()), Color.CYAN);
             } else {
                 TerminalColor.print(content, Color.DARK_CYAN);
             }
@@ -202,7 +202,7 @@ public final class PrintHelper {
         if (firstLine.get()) {
             String namesLine = String.join(d, data.keySet());
             TerminalColor.println(namesLine, Color.DARK_CYAN);
-            TerminalColor.println(StringUtil.repeat("-", namesLine.length()), Color.CYAN);
+            TerminalColor.println(StringUtils.repeat("-", namesLine.length()), Color.CYAN);
             firstLine.set(false);
         }
         String valuesLine = data.values().stream().map(v -> {

@@ -3,7 +3,7 @@ package com.github.chengyuxing.sql.terminal.util;
 import com.github.chengyuxing.common.MostDateTime;
 import com.github.chengyuxing.common.console.Color;
 import com.github.chengyuxing.common.tuple.Pair;
-import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
@@ -12,7 +12,7 @@ import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.github.chengyuxing.sql.terminal.vars.StatusManager;
 import com.github.chengyuxing.sql.types.Param;
-import com.github.chengyuxing.sql.utils.SqlGenerator;
+import com.github.chengyuxing.sql.util.SqlGenerator;
 import org.jline.reader.LineReader;
 
 import java.io.FileNotFoundException;
@@ -115,10 +115,10 @@ public class SqlUtil {
         if (value.matches("-?(0|[1-9]\\d*)\\.\\d+")) {
             return Double.parseDouble(value);
         }
-        if (StringUtil.equalsAnyIgnoreCase(value, "true", "false")) {
+        if (StringUtils.equalsAnyIgnoreCase(value, "true", "false")) {
             return Boolean.parseBoolean(value);
         }
-        if (StringUtil.equalsAnyIgnoreCase(value, "null")) {
+        if (StringUtils.equalsAnyIgnoreCase(value, "null")) {
             return null;
         }
         if (FileHelper.isFilePath(value)) {
@@ -172,7 +172,7 @@ public class SqlUtil {
             String template = lineReader.readLine(StatusManager.promptReference.get().getValue()).trim();
             templates.put(name, template);
         }
-        return formatSql(com.github.chengyuxing.sql.utils.SqlUtil.formatSql(sql, templates), lineReader);
+        return formatSql(com.github.chengyuxing.sql.util.SqlUtils.formatSqlTemplate(sql, templates), lineReader);
     }
 
     /**

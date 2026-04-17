@@ -2,7 +2,7 @@ package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.tuple.Pair;
-import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
@@ -113,12 +113,12 @@ public class DataBaseResource {
             Pair<String, Map<String, Object>> sqlMap = xqlFileManager.get(pair.getItem1(), pair.getItem2());
             String sql = sqlMap.getItem1();
             Map<String, Object> params = new HashMap<>(pair.getItem2());
-            params.put(XQLFileManager.DynamicSqlParser.FOR_VARS_KEY, sqlMap.getItem2());
+            params.put(XQLFileManager.DynamicSqlEvalContext.GENERATED_VAR_KEY, sqlMap.getItem2());
             if (!sql.isEmpty()) {
                 try (Stream<DataRow> s = baki.query(sql).args(params).stream()) {
                     return s.map(d -> {
                         // type
-                        if (StringUtil.isEmpty(d.getString(1))) {
+                        if (StringUtils.isEmpty(d.getString(1))) {
                             return d.getString(0);
                         }
                         return d.getString(1) + ":" + d.getString(0);
@@ -140,7 +140,7 @@ public class DataBaseResource {
             Pair<String, Map<String, Object>> sqlMap = xqlFileManager.get(pair.getItem1(), pair.getItem2());
             String sql = sqlMap.getItem1();
             Map<String, Object> params = new HashMap<>(pair.getItem2());
-            params.put(XQLFileManager.DynamicSqlParser.FOR_VARS_KEY, sqlMap.getItem2());
+            params.put(XQLFileManager.DynamicSqlEvalContext.GENERATED_VAR_KEY, sqlMap.getItem2());
             if (!sql.isEmpty()) {
                 return baki.query(sql).args(params)
                         .findFirst()
@@ -163,7 +163,7 @@ public class DataBaseResource {
             Pair<String, Map<String, Object>> sqlMap = xqlFileManager.get(pair.getItem1(), pair.getItem2());
             String sql = sqlMap.getItem1();
             Map<String, Object> params = new HashMap<>(pair.getItem2());
-            params.put(XQLFileManager.DynamicSqlParser.FOR_VARS_KEY, sqlMap.getItem2());
+            params.put(XQLFileManager.DynamicSqlEvalContext.GENERATED_VAR_KEY, sqlMap.getItem2());
             if (!sql.isEmpty()) {
                 try (Stream<DataRow> s = baki.query(sql).args(params).stream()) {
                     return s.map(d -> {
@@ -186,7 +186,7 @@ public class DataBaseResource {
 
     public String getViewDefinition(String name) {
         String view = getDefinition(queryViewDefFunc, name).trim();
-        if (!StringUtil.startsWiths(view, "create")) {
+        if (!StringUtils.startsWiths(view, "create")) {
             return "CREATE OR REPLACE VIEW " + name + " AS " + view;
         }
         return view;
@@ -233,7 +233,7 @@ public class DataBaseResource {
             Pair<String, Map<String, Object>> sqlMap = xqlFileManager.get(pair.getItem1(), pair.getItem2());
             String sql = sqlMap.getItem1();
             Map<String, Object> params = new HashMap<>(pair.getItem2());
-            params.put(XQLFileManager.DynamicSqlParser.FOR_VARS_KEY, sqlMap.getItem2());
+            params.put(XQLFileManager.DynamicSqlEvalContext.GENERATED_VAR_KEY, sqlMap.getItem2());
             try (Stream<DataRow> s = baki.query(sql).args(params).stream()) {
                 AtomicBoolean first = new AtomicBoolean(true);
                 List<List<String>> rows = new ArrayList<>();
@@ -311,7 +311,7 @@ public class DataBaseResource {
         StringJoiner sb = new StringJoiner(" ");
         String[] words = trigger.split("\\s+");
         for (String w : words) {
-            if (StringUtil.equalsAnyIgnoreCase(w, "before", "after", "on", "for")) {
+            if (StringUtils.equalsAnyIgnoreCase(w, "before", "after", "on", "for")) {
                 sb.add("\n\t").add(w);
             } else if (w.equalsIgnoreCase("execute")) {
                 sb.add("\n").add(w);

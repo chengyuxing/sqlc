@@ -1,6 +1,6 @@
 package com.github.chengyuxing.sql.terminal.cli;
 
-import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.common.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +27,7 @@ public class Arguments {
     }
 
     void init() {
-        argMap = Stream.of(args).filter(arg -> StringUtil.startsWiths(arg, argNames))
+        argMap = Stream.of(args).filter(arg -> StringUtils.startsWiths(arg, argNames))
                 .reduce(new HashMap<>(), (acc, curr) -> {
                     for (String name : argNames) {
                         if (curr.startsWith(name)) {

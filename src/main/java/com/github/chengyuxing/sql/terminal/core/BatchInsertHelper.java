@@ -3,7 +3,7 @@ package com.github.chengyuxing.sql.terminal.core;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.excel.Excels;
 import com.github.chengyuxing.excel.io.ExcelReader;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
@@ -90,7 +90,7 @@ public class BatchInsertHelper {
         try (Stream<String> lineStream = Files.lines(path, StandardCharsets.UTF_8)) {
             StringBuilder sb = new StringBuilder();
             lineStream.map(String::trim)
-                    .filter(sql -> !sql.isEmpty() && !StringUtil.startsWithsIgnoreCase(sql, "--", "#", "/*"))
+                    .filter(sql -> !sql.isEmpty() && !StringUtils.startsWithsIgnoreCase(sql, "--", "#", "/*"))
                     .forEach(sql -> {
                         if (delimiter.isEmpty()) {
                             chunk.add(sql);
@@ -176,7 +176,7 @@ public class BatchInsertHelper {
                 Map<String, Object> obj = iterator.next();
                 obj.entrySet().removeIf(e -> e.getValue() == null);
                 String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, obj.keySet());
-                chunk.add(SqlUtil.sqlTranslator.generateSql(insert, obj, v -> com.github.chengyuxing.sql.utils.SqlUtil.toSqlLiteral(v, true)));
+                chunk.add(SqlUtil.sqlTranslator.generateSql(insert, obj, v -> com.github.chengyuxing.sql.util.SqlUtils.toSqlLiteral(v, true)));
                 if (example.get().isEmpty()) {
                     example.set(chunk.get(0));
                 }
@@ -225,7 +225,7 @@ public class BatchInsertHelper {
                     .map(cols -> {
                         DataRow row = DataRow.of(tableFields.toArray(nameGeneric), cols.toArray());
                         String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, tableFields);
-                        return SqlUtil.sqlTranslator.generateSql(insert, row, v -> com.github.chengyuxing.sql.utils.SqlUtil.toSqlLiteral(v, true));
+                        return SqlUtil.sqlTranslator.generateSql(insert, row, v -> com.github.chengyuxing.sql.util.SqlUtils.toSqlLiteral(v, true));
                     })
                     .forEach(insert -> {
                         chunk.add(insert);
@@ -274,7 +274,7 @@ public class BatchInsertHelper {
                         .filter(d -> !d.isEmpty())
                         .map(d -> {
                             String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, d.keySet());
-                            return SqlUtil.sqlTranslator.generateSql(insert, d, v -> com.github.chengyuxing.sql.utils.SqlUtil.toSqlLiteral(v, true));
+                            return SqlUtil.sqlTranslator.generateSql(insert, d, v -> com.github.chengyuxing.sql.util.SqlUtils.toSqlLiteral(v, true));
                         })
                         .forEach(insert -> {
                             chunk.add(insert);

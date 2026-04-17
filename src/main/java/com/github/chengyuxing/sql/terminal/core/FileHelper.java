@@ -2,7 +2,7 @@ package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.tuple.Pair;
-import com.github.chengyuxing.common.utils.StringUtil;
+import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.terminal.util.Bytes2File;
@@ -53,7 +53,7 @@ public final class FileHelper {
 
     public static void writeDSV(Stream<DataRow> s, String path) {
         String fileName = path;
-        if (!StringUtil.endsWithsIgnoreCase(fileName, ".tsv", ".csv")) {
+        if (!StringUtils.endsWithsIgnoreCase(fileName, ".tsv", ".csv")) {
             String suffix = StatusManager.viewMode.get() == View.TSV ? ".tsv" : ".csv";
             fileName += suffix;
         }
@@ -221,9 +221,9 @@ public final class FileHelper {
                 if (hasBlob.get()) {
                     try {
                         Files.move(path, Paths.get(fileDir.get(), fileName));
-                        String readme = StringUtil.FMT.format("please do not change files if you will batch insert to another table:\n-----------------\n${blobs}\n${insert}", Args.of("blobs", blobsDir, "insert", path));
+                        String readme = StringUtils.FMT.format("please do not change files if you will batch insert to another table:\n-----------------\n${blobs}\n${insert}", Args.of("blobs", blobsDir, "insert", path));
                         Files.write(Paths.get(fileDir.get(), "readme.txt"), readme.getBytes(StandardCharsets.UTF_8));
-                        PrintHelper.printlnNotice(StringUtil.FMT.format("${a}(${b} and blobs) saved!", Args.of("a", fileDir, "b", fileName)));
+                        PrintHelper.printlnNotice(StringUtils.FMT.format("${a}(${b} and blobs) saved!", Args.of("a", fileDir, "b", fileName)));
                     } catch (IOException e) {
                         log.error("write sql insert file error", e);
                         throw new RuntimeException(e);
