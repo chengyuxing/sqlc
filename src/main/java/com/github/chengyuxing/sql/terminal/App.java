@@ -112,8 +112,8 @@ public class App {
                     String format = argMap.get("-f");
                     StatusManager.viewMode.set(format.equals("csv") ?
                             View.CSV : format.equals("json") ?
-                            View.JSON : format.equals("excel") ?
-                            View.EXCEL : View.TSV);
+                                       View.JSON : format.equals("excel") ?
+                                                   View.EXCEL : View.TSV);
                 }
 
                 // 如果有-e参数，就执行命令模式
@@ -454,9 +454,11 @@ public class App {
                                     break;
                             }
                         } else {
-                            if (line.endsWith(";")) {
-                                sqlBuilder.add(line);
-                                String sql = String.join(" ", sqlBuilder).replaceAll("[\\s;]$","");
+                            if (line.trim().endsWith(";")) {
+                                String end = line.trim();
+                                end = end.substring(0, end.length() - 1);
+                                sqlBuilder.add(end);
+                                String sql = String.join("\n", sqlBuilder);
                                 // execute sql
                                 // ---------
                                 if (!sql.isEmpty()) {
