@@ -27,6 +27,9 @@ public class DataSourceLoader {
     DataSourceLoader(String jdbcUrl) {
         this.jdbcUrl = jdbcUrl;
         this.config.setJdbcUrl(jdbcUrl);
+        if (jdbcUrl.startsWith("jdbc:redis://")) {
+            this.config.setDriverClassName("jdbc.RedisDriver");
+        }
     }
 
     public static DataSourceLoader of(String jdbcUrl) {

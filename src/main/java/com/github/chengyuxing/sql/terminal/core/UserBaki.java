@@ -77,7 +77,7 @@ public class UserBaki extends BakiDao {
                     break;
             }
         } catch (SQLException e) {
-            log.error("init postgresql", e);
+            log.error("init", e);
             throw new RuntimeException(e);
         }
     }
