@@ -1,5 +1,6 @@
 package com.github.chengyuxing.sql.terminal.core;
 
+import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.vars.Constants;
 import com.zaxxer.hikari.HikariConfig;
@@ -58,8 +59,13 @@ public class DataSourceLoader {
 
     public void init() throws SQLException {
         config.setMaximumPoolSize(2);
-        config.setUsername(username);
-        config.setPassword(password);
+
+        if (!StringUtils.isEmpty(username)) {
+            config.setUsername(username);
+        }
+        if (!StringUtils.isEmpty(password)) {
+            config.setPassword(password);
+        }
 
         dataSource = new HikariDataSource(config);
         sysDataSource = new HikariDataSource(config);
