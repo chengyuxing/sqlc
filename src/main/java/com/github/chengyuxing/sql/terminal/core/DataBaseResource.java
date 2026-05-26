@@ -268,7 +268,9 @@ public class DataBaseResource {
     }
 
     public Set<String> getSqlKeyWordsWithDefault() {
-        Set<String> keywords = getSqlKeywords("default");
+        Set<String> keywords = Objects.equals(dbName, "redis")
+                ? new HashSet<>()
+                : getSqlKeywords("default");
         keywords.addAll(getSqlKeywords(dbName));
         return keywords;
     }
