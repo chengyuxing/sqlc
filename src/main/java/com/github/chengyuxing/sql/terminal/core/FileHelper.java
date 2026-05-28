@@ -38,14 +38,14 @@ public final class FileHelper {
             return;
         }
         switch (StatusManager.viewMode.get()) {
-            case JSON:
+            case json:
                 writeJSON(stream, path);
                 break;
-            case TSV:
-            case CSV:
+            case tsv:
+            case csv:
                 writeDSV(stream, path);
                 break;
-            case EXCEL:
+            case excel:
                 writeExcel(stream, path);
                 break;
         }
@@ -54,7 +54,7 @@ public final class FileHelper {
     public static void writeDSV(Stream<DataRow> s, String path) {
         String fileName = path;
         if (!StringUtils.endsWithsIgnoreCase(fileName, ".tsv", ".csv")) {
-            String suffix = StatusManager.viewMode.get() == View.TSV ? ".tsv" : ".csv";
+            String suffix = StatusManager.viewMode.get() == View.tsv ? ".tsv" : ".csv";
             fileName += suffix;
         }
         final String resultFileName = fileName;
@@ -63,7 +63,7 @@ public final class FileHelper {
         try {
             outputStreamAtomicReference.set(new FileOutputStream(fileName));
             BufferedOutputStream out = new BufferedOutputStream(outputStreamAtomicReference.get());
-            String d = StatusManager.viewMode.get() == View.TSV ? "\t" : ",";
+            String d = StatusManager.viewMode.get() == View.tsv ? "\t" : ",";
             PrintHelper.printlnPrimary("waiting...");
             pp.whenStopped((value, during) -> {
                 PrintHelper.printlnPrimary(value + " rows write completed.( " + TimeUtil.format(during) + ")");
