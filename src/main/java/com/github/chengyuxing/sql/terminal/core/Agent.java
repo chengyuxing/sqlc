@@ -7,6 +7,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.ServiceLoader;
 import java.util.jar.JarFile;
 
 public class Agent {
@@ -28,7 +32,12 @@ public class Agent {
             Method m = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
             m.setAccessible(true);
             m.invoke(classLoader, jar.toURI().toURL());
-        } catch (IOException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            ServiceLoader<Driver> drivers = ServiceLoader.load(Driver.class, classLoader);
+            for (Driver driver : drivers) {
+                DriverManager.registerDriver(driver);
+            }
+        } catch (IOException | NoSuchMethodException | IllegalAccessException | InvocationTargetException |
+                 SQLException e) {
             throw new RuntimeException(e);
         }
     }
