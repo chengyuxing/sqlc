@@ -15,15 +15,11 @@ public abstract class StatusManager {
     /**
      * 输出的结果视图与结果保存类型
      */
-    public static final AtomicReference<View> viewMode = new AtomicReference<>(View.TSV);
+    public static final AtomicReference<View> viewMode = new AtomicReference<>(View.tsv);
     /**
      * 多行sql分隔符
      */
     public static final AtomicReference<String> sqlDelimiter = new AtomicReference<>(";");
-    /**
-     * baki是否第一次加载
-     */
-    public static final AtomicBoolean bakiFirstLoad = new AtomicBoolean(true);
     /**
      * 命令行终端题词
      */
