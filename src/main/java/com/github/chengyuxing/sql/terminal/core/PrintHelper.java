@@ -35,7 +35,7 @@ public final class PrintHelper {
     public static void printQueryResult(Stream<DataRow> s) {
         AtomicBoolean first = new AtomicBoolean(true);
         switch (StatusManager.viewMode.get()) {
-            case JSON:
+            case json:
                 TerminalColor.print("[", Color.YELLOW);
                 s.forEach(row -> {
                     try {
@@ -47,13 +47,13 @@ public final class PrintHelper {
                 });
                 TerminalColor.println("]", Color.YELLOW);
                 break;
-            case TSV:
+            case tsv:
                 s.forEach(row -> PrintHelper.printDSV(row, "\t", first));
                 break;
-            case CSV:
+            case csv:
                 s.forEach(row -> PrintHelper.printDSV(row, ",", first));
                 break;
-            case EXCEL:
+            case excel:
                 s.forEach(row -> PrintHelper.printDSV(row, " | ", first));
                 break;
         }
@@ -106,7 +106,7 @@ public final class PrintHelper {
 
     public static void printlnHighlightSql(String sql) {
         TerminalColor.print(">>> ", Color.SILVER);
-        System.out.println(TerminalColor.highlightSql(sql.trim()));
+        System.err.println(TerminalColor.highlightSql(sql.trim()));
     }
 
     public static void printlnError(Throwable e) {
@@ -162,6 +162,10 @@ public final class PrintHelper {
         TerminalColor.print(msg, Color.DARK_CYAN);
     }
 
+    public static void println() {
+        System.err.println();
+    }
+
     public static void printGrid(List<List<String>> gridData) {
         int[] maxes = new int[gridData.get(0).size()];
         Arrays.fill(maxes, 0);
@@ -185,7 +189,7 @@ public final class PrintHelper {
             } else {
                 TerminalColor.print(content, Color.DARK_CYAN);
             }
-            System.out.println();
+            System.err.println();
         }
     }
 
