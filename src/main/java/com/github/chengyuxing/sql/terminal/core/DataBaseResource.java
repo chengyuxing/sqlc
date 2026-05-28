@@ -31,7 +31,7 @@ public class DataBaseResource {
     private final Pattern TRIGGER_PREFIX_REGEX = Pattern.compile("^create\\s+or\\s+replace\\s[\\s\\S]+", Pattern.CASE_INSENSITIVE);
 
     private final String dbName;
-    private final DataSourceLoader dataSourceLoader;
+    private final BakiLoader BakiLoader;
     private final Baki baki;
     private final XQLFileManager xqlFileManager;
     private Supplier<Pair<String, Map<String, Object>>> queryTablesFunc;
@@ -46,10 +46,10 @@ public class DataBaseResource {
     private Function<String, Pair<String, Map<String, Object>>> queryTableTriggersFunc;
     private Function<String, Pair<String, Map<String, Object>>> queryTableDescFunc;
 
-    public DataBaseResource(DataSourceLoader dataSourceLoader) {
-        this.dbName = dataSourceLoader.getDbName();
-        this.dataSourceLoader = dataSourceLoader;
-        this.baki = this.dataSourceLoader.getSysBaki();
+    public DataBaseResource(BakiLoader BakiLoader) {
+        this.dbName = BakiLoader.getDbName();
+        this.BakiLoader = BakiLoader;
+        this.baki = this.BakiLoader.getSysBaki();
         this.xqlFileManager = new XQLFileManager();
         init();
     }
@@ -58,10 +58,10 @@ public class DataBaseResource {
         switch (dbName) {
             case "postgresql":
                 xqlFileManager.add("pg", "xqls/postgresql.sql");
-                queryTablesFunc = () -> Pair.of("pg.user_tables", Args.of("username", dataSourceLoader.getUsername()));
-                queryProceduresFunc = () -> Pair.of("pg.user_procedures", Args.of("username", dataSourceLoader.getUsername()));
+                queryTablesFunc = () -> Pair.of("pg.user_tables", Args.of("username", BakiLoader.getUsername()));
+                queryProceduresFunc = () -> Pair.of("pg.user_procedures", Args.of("username", BakiLoader.getUsername()));
                 queryProcedureDefFunc = name -> Pair.of("pg.procedure_def", Args.of("procedure_name", name));
-                queryViewsFunc = () -> Pair.of("pg.user_views", Args.of("username", dataSourceLoader.getUsername()));
+                queryViewsFunc = () -> Pair.of("pg.user_views", Args.of("username", BakiLoader.getUsername()));
                 queryViewDefFunc = name -> Pair.of("pg.view_def", Args.of("view_name", name));
                 queryTriggersFunc = () -> Pair.of("pg.user_triggers", Collections.emptyMap());
                 queryTriggerDefFunc = name -> {
@@ -95,7 +95,7 @@ public class DataBaseResource {
             case "mysql":
                 xqlFileManager.add("mysql", "xqls/mysql.sql");
                 queryTablesFunc = () -> {
-                    Matcher m = GET_MYSQL_SCHEMA.matcher(dataSourceLoader.getJdbcUrl());
+                    Matcher m = GET_MYSQL_SCHEMA.matcher(BakiLoader.getJdbcUrl());
                     if (m.find()) {
                         return Pair.of("mysql.user_tables", Args.of("schema", m.group("schema")));
                     }
@@ -326,8 +326,8 @@ public class DataBaseResource {
         return dbName;
     }
 
-    public DataSourceLoader getDataSourceLoader() {
-        return dataSourceLoader;
+    public BakiLoader getDataSourceLoader() {
+        return BakiLoader;
     }
 
     public static Args<Object> getSchemaAndTable(String s) {

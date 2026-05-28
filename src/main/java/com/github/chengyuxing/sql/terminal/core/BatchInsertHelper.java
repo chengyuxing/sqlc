@@ -6,6 +6,7 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.excel.Excels;
 import com.github.chengyuxing.excel.io.ExcelReader;
+import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
@@ -34,7 +35,7 @@ public class BatchInsertHelper {
 
     static final ObjectMapper JSON = new ObjectMapper();
 
-    public static void readFile4batch(UserBaki baki, String filePath, int sheetIdx, int headerIdx) throws Exception {
+    public static void readFile4batch(BakiDao baki, String filePath, int sheetIdx, int headerIdx) throws Exception {
         Path file = Paths.get(filePath.trim());
         if (Files.exists(file)) {
             String fileName = file.getFileName().toString();
@@ -69,15 +70,15 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void readFile4batch(UserBaki baki, String filePath, int headerIdx) throws Exception {
+    public static void readFile4batch(BakiDao baki, String filePath, int headerIdx) throws Exception {
         readFile4batch(baki, filePath, 0, headerIdx);
     }
 
-    public static void readFile4batch(UserBaki baki, String filePath) throws Exception {
+    public static void readFile4batch(BakiDao baki, String filePath) throws Exception {
         readFile4batch(baki, filePath, 0);
     }
 
-    public static void readInsertSqlScriptBatchExecute(UserBaki baki, Path path) {
+    public static void readInsertSqlScriptBatchExecute(BakiDao baki, Path path) {
         String delimiter = StatusManager.sqlDelimiter.get();
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
@@ -143,7 +144,7 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void preparedInsert4BlobBatchExecute(UserBaki baki, List<String> sqls, Path path) throws IOException {
+    public static void preparedInsert4BlobBatchExecute(BakiDao baki, List<String> sqls, Path path) throws IOException {
         Path blobsDir = path.getParent().resolve("blobs");
         if (Files.exists(blobsDir)) {
             if (!StatusManager.txActive.get()) {
@@ -164,7 +165,7 @@ public class BatchInsertHelper {
     }
 
 
-    public static void readJson4batch(UserBaki baki, Path path, String tableName) {
+    public static void readJson4batch(BakiDao baki, Path path, String tableName) {
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         ProgressPrinter pp = new ProgressPrinter();
@@ -198,7 +199,7 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void readDSV4batch(UserBaki baki, Path path, String tableName, String delimiter, int headerIdx) {
+    public static void readDSV4batch(BakiDao baki, Path path, String tableName, String delimiter, int headerIdx) {
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         ProgressPrinter pp = new ProgressPrinter();
@@ -211,7 +212,7 @@ public class BatchInsertHelper {
             Stream<List<String>> lines = s.map(l -> Arrays.asList(l.split(delimiter)));
             List<String> tableFields = new ArrayList<>();
             if (start < 0) {
-                tableFields.addAll(baki.getTableFields(tableName));
+                tableFields.addAll(baki.table(tableName).fields());
                 start = 0;
             }
             int next = headerIdx < 0 ? 0 : 1;
@@ -250,7 +251,7 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void readExcel4batch(UserBaki baki, Path path, String tableName, int sheetIdx, int headerIdx) {
+    public static void readExcel4batch(BakiDao baki, Path path, String tableName, int sheetIdx, int headerIdx) {
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         ProgressPrinter pp = new ProgressPrinter();
@@ -265,7 +266,7 @@ public class BatchInsertHelper {
                 skip = 1;
             } else {
                 reader.namedHeaderAt(-1, true);
-                reader.fieldMap(baki.getTableFields(tableName).toArray(new String[0]));
+                reader.fieldMap(baki.table(tableName).fields().toArray(new String[0]));
             }
             try (Stream<DataRow> s = reader.stream()) {
                 s.skip(skip)

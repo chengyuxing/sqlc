@@ -2,9 +2,9 @@ package com.github.chengyuxing.sql.terminal.cli.cmd;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.tuple.Pair;
+import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
-import com.github.chengyuxing.sql.terminal.core.UserBaki;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
@@ -24,10 +24,10 @@ import static com.github.chengyuxing.sql.terminal.vars.Constants.REDIRECT_SYMBOL
 public class XqlExec {
     private static final Logger log = LoggerFactory.getLogger(XqlExec.class);
 
-    private final UserBaki baki;
+    private final BakiDao baki;
     private final LineReader lineReader;
 
-    public XqlExec(UserBaki baki, LineReader lineReader) {
+    public XqlExec(BakiDao baki, LineReader lineReader) {
         this.baki = baki;
         this.lineReader = lineReader;
     }
