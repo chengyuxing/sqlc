@@ -6,6 +6,7 @@ import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 import com.github.chengyuxing.sql.terminal.util.Stdout;
 import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
+import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 
@@ -77,7 +78,15 @@ public class Commands {
     public static Completer[] getCompleters() {
         Completer[] completers = new Completer[builtin.length];
         for (int i = 0; i < completers.length; i++) {
-            completers[i] = builtin[i].getCompleter();
+            ArgumentCompleter completer = builtin[i].getCompleter();
+            // 1 argument completer just take the actually completer.
+            // e.g. sqlKeywords
+            // Fixed typing 'select * fr' should suggest 'form' word but it doesn't
+            if (completer.getCompleters().size() == 1) {
+                completers[i] = completer.getCompleters().get(0);
+            } else {
+                completers[i] = builtin[i].getCompleter();
+            }
         }
         return completers;
     }
