@@ -3,6 +3,7 @@ package com.github.chengyuxing.sql.terminal.progress.impl;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.progress.Progress;
 import com.github.chengyuxing.sql.terminal.progress.UncheckedInterruptedException;
+import com.github.chengyuxing.sql.terminal.util.Stdout;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 
 import java.util.concurrent.TimeUnit;
@@ -32,7 +33,7 @@ public class ProgressPrinter extends Progress {
 
     protected void updateValue(String content) throws InterruptedException {
         if (content != null && !content.isEmpty()) {
-            PrintHelper.printPrimary(content + '\r');
+            Stdout.printPrimary(content + '\r');
             TimeUnit.MILLISECONDS.sleep(100);
             if (stop.get()) {
                 System.out.println();

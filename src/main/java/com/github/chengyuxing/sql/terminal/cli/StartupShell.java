@@ -32,7 +32,7 @@ import java.util.concurrent.Callable;
         optionListHeading = "%nCommand Mode Options:%n",
         header = {
                 "A Command Line SQL tool, supporting Query, DDL, DML, Procedure/Function, Transaction, Batch Execute, Export File!",
-                "Home page: https://github.com/chengyuxing/sqlc/tree/3.x",
+                "Home page: " + Help.url,
                 ""
         }
 )
@@ -151,7 +151,7 @@ public class StartupShell implements Callable<Integer> {
 
             Stdout.print(FigletFont.convertOneLine("Rabbit SQL"), Style.CYAN);
             Stdout.printf("Welcome to Rabbit SQL CLI %s (%s, %s)%n", Help.version, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
-            Stdout.printf("Go to %s get more information about this.%n", Help.url);
+            Stdout.printf("Go to %s get more information about this.%n", Stdout.colorful(Help.url, Style.UNDERLINE));
             Stdout.printf("DataBase: %s%n", datasource.dbName() + " " + datasource.dbVersion());
 
             if (ping) {

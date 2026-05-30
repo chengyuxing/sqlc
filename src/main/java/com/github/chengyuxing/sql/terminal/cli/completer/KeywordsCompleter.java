@@ -1,7 +1,7 @@
 package com.github.chengyuxing.sql.terminal.cli.completer;
 
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
-import com.github.chengyuxing.sql.terminal.vars.StatusManager;
+import com.github.chengyuxing.sql.terminal.common.Context;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
@@ -28,7 +28,7 @@ public class KeywordsCompleter implements Completer {
         if (l.isEmpty()) {
             return;
         }
-        if (!l.startsWith(":") && StatusManager.promptReference.get().getStatus() != Prompt.Status.CUSTOM) {
+        if (!l.startsWith(":") && Context.promptReference.get().getStatus() != Prompt.Status.CUSTOM) {
             completer.complete(reader, line, candidates);
         }
     }

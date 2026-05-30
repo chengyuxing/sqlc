@@ -9,8 +9,9 @@ import com.github.chengyuxing.excel.io.ExcelReader;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.Stdout;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
-import com.github.chengyuxing.sql.terminal.vars.StatusManager;
+import com.github.chengyuxing.sql.terminal.common.Context;
 import com.github.chengyuxing.sql.transaction.Tx;
 import com.zaxxer.hikari.util.FastList;
 import org.slf4j.Logger;
@@ -43,7 +44,7 @@ public class BatchInsertHelper {
             if (dotIdx != -1) {
                 String ext = fileName.substring(dotIdx);
                 String tableName = fileName.substring(0, fileName.lastIndexOf(ext));
-                PrintHelper.printlnPrimary("prepare to batch execute, default chunk size is 1000, waiting...");
+                Stdout.printlnPrimary("prepare to batch execute, default chunk size is 1000, waiting...");
                 switch (ext) {
                     case ".sql":
                         readInsertSqlScriptBatchExecute(baki, file);
@@ -79,7 +80,7 @@ public class BatchInsertHelper {
     }
 
     public static void readInsertSqlScriptBatchExecute(BakiDao baki, Path path) {
-        String delimiter = StatusManager.sqlDelimiter.get();
+        String delimiter = ";";
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         AtomicBoolean prepared = new AtomicBoolean(false);
@@ -93,14 +94,10 @@ public class BatchInsertHelper {
             lineStream.map(String::trim)
                     .filter(sql -> !sql.isEmpty() && !StringUtils.startsWithsIgnoreCase(sql, "--", "#", "/*"))
                     .forEach(sql -> {
-                        if (delimiter.isEmpty()) {
-                            chunk.add(sql);
-                        } else {
-                            sb.append(sql).append("\n");
-                            if (sql.endsWith(delimiter)) {
-                                chunk.add(sb.substring(0, sb.length() - delimiter.length() - 1));
-                                sb.setLength(0);
-                            }
+                        sb.append(sql).append("\n");
+                        if (sql.endsWith(";")) {
+                            chunk.add(sb.substring(0, sb.length()));
+                            sb.setLength(0);
                         }
                         if (example.get().isEmpty()) {
                             if (!chunk.isEmpty()) {
@@ -147,7 +144,7 @@ public class BatchInsertHelper {
     public static void preparedInsert4BlobBatchExecute(BakiDao baki, List<String> sqls, Path path) throws IOException {
         Path blobsDir = path.getParent().resolve("blobs");
         if (Files.exists(blobsDir)) {
-            if (!StatusManager.txActive.get()) {
+            if (!Context.txActive.get()) {
                 Tx.using(() -> {
                     for (String sql : sqls) {
                         Set<String> names = SqlUtil.sqlTranslator.generatePreparedSql(sql, Collections.emptyMap()).getArgNameIndexMapping().keySet();
@@ -308,8 +305,8 @@ public class BatchInsertHelper {
                 i -= 1;
             }
             long rows = i * 1000 + chunk.size();
-            PrintHelper.printlnHighlightSql(example.get() + ", more...");
-            PrintHelper.printlnPrimary("all of " + v + " chunks(" + rows + " " + name + ") " + op + " completed.(" + TimeUtil.format(c) + ")");
+            Stdout.printlnHighlightSql(example.get() + ", more...");
+            Stdout.printlnPrimary("all of " + v + " chunks(" + rows + " " + name + ") " + op + " completed.(" + TimeUtil.format(c) + ")");
             chunk.clear();
         };
     }

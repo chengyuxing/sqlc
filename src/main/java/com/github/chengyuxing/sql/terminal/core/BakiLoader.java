@@ -1,24 +1,18 @@
 package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.sql.BakiDao;
-import com.github.chengyuxing.sql.terminal.vars.Constants;
+import com.github.chengyuxing.sql.terminal.common.Constants;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.stream.Stream;
 
 public class BakiLoader implements AutoCloseable {
-    private static final Logger log = LoggerFactory.getLogger(BakiLoader.class);
 
     private final HikariConfig config = new HikariConfig();
     private HikariDataSource userDataSource;
@@ -29,8 +23,6 @@ public class BakiLoader implements AutoCloseable {
     private String username = "";
     private String password = "";
     private String driver = "";
-
-    private boolean firstLoad = true;
 
     BakiLoader(String jdbcUrl) {
         this.jdbcUrl = jdbcUrl;
@@ -81,22 +73,7 @@ public class BakiLoader implements AutoCloseable {
         }
         userDataSource = new HikariDataSource(config);
         sysDataSource = new HikariDataSource(config);
-        userBaki = new BakiDao(userDataSource) {
-            @Override
-            protected @NotNull Connection getConnection() {
-                if (firstLoad) {
-                    try {
-                        DatabaseMetaData metaData = super.getConnection().getMetaData();
-                        log.info("DataBase: {}", metaData.getDatabaseProductName() + " " + metaData.getDatabaseProductVersion());
-                    } catch (SQLException e) {
-                        log.error("init connection failed", e);
-                        PrintHelper.printlnError(e);
-                    }
-                    firstLoad = false;
-                }
-                return super.getConnection();
-            }
-        };
+        userBaki = new BakiDao(userDataSource);
         sysBaki = new BakiDao(sysDataSource);
     }
 
@@ -115,6 +92,14 @@ public class BakiLoader implements AutoCloseable {
                     .map(Path::toFile)
                     .forEach(Agent::addClassPath);
         }
+    }
+
+    public String dbName() {
+        return userBaki.databaseId();
+    }
+
+    public String dbVersion() throws SQLException {
+        return userBaki.metaData().getDatabaseProductVersion();
     }
 
     public BakiDao getUserBaki() {

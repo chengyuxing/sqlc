@@ -1,32 +1,24 @@
 package com.github.chengyuxing.sql.terminal.util;
 
 import com.github.chengyuxing.common.MostDateTime;
-import com.github.chengyuxing.common.console.Color;
+import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.util.StringUtils;
-import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
-import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.core.ProcedureExecutor;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
-import com.github.chengyuxing.sql.terminal.vars.Constants;
-import com.github.chengyuxing.sql.terminal.vars.StatusManager;
+import com.github.chengyuxing.sql.terminal.common.Constants;
+import com.github.chengyuxing.sql.terminal.common.Context;
 import com.github.chengyuxing.sql.types.Param;
 import com.github.chengyuxing.sql.util.SqlGenerator;
 import org.jline.reader.LineReader;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Types;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SqlUtil {
@@ -128,13 +120,16 @@ public class SqlUtil {
     }
 
     public static String safeQuote(Object value) {
+        if (value == null) {
+            return null;
+        }
         if (value instanceof byte[]) {
             return "0x" + Arrays.toString((byte[]) value);
         }
         if (value instanceof String) {
             return "'" + ((String) value).replace("'", "''") + "'";
         }
-        return "null";
+        return value.toString();
     }
 
     public static Pair<String, List<String>> generateInsert(final String tableName, final Map<String, ?> row, long blobRowNum) {
@@ -168,8 +163,8 @@ public class SqlUtil {
         }
         Map<String, Object> templates = new HashMap<>();
         for (String name : tempNames) {
-            StatusManager.promptReference.get().custom("${" + name + "} = ");
-            String template = lineReader.readLine(StatusManager.promptReference.get().getValue()).trim();
+            Context.promptReference.get().custom("${" + name + "} = ");
+            String template = lineReader.readLine(Context.promptReference.get().getValue()).trim();
             templates.put(name, template);
         }
         return formatSql(com.github.chengyuxing.sql.util.SqlUtils.formatSqlTemplate(sql, templates), lineReader);
@@ -185,7 +180,7 @@ public class SqlUtil {
     public static Pair<String, Map<String, Object>> prepareSqlWithArgs(String sql, LineReader lineReader) {
         String fmtSql = formatSql(sql, lineReader);
         if (!sql.equals(fmtSql)) {
-            PrintHelper.printlnHighlightSql(fmtSql);
+            Stdout.printlnHighlightSql(fmtSql);
         }
         SqlGenerator.PreparedSqlMetaData pSql = sqlTranslator.generatePreparedSql(fmtSql, Collections.emptyMap());
         Set<String> distinctArgs = pSql.getArgNameIndexMapping().keySet();
@@ -198,19 +193,19 @@ public class SqlUtil {
             // OUT formatter: num1 = OUT -2017
             // IN_OUT formatter: num1 = IN_OUT -5 126
             // IN formatter: num1 = 180
-            PrintHelper.printlnDarkWarning("OUT param type constants(java.sql.Types):");
+            Stdout.printlnDarkWarning("OUT param type constants(java.sql.Types):");
             System.out.println(String.join(", ", getProcedureParamTypes()));
-            PrintHelper.printlnDarkWarning("some db has it's own special constants, e.g: ORACLE_CURSOR(-10), just use it's value.");
-            PrintHelper.printlnDarkWarning("Param formatter: out [OUT code] | inout [OUT code] [IN value] | [IN value]\ne.g: out -5; inout 2012 abc; abc");
+            Stdout.printlnDarkWarning("some db has it's own special constants, e.g: ORACLE_CURSOR(-10), just use it's value.");
+            Stdout.printlnDarkWarning("Param formatter: out [OUT code] | inout [OUT code] [IN value] | [IN value]\ne.g: out -5; inout 2012 abc; abc");
             for (String name : distinctArgs) {
-                StatusManager.promptReference.get().custom(name + " = ");
-                Param param = resolveProcedureArgs(lineReader.readLine(StatusManager.promptReference.get().getValue()).trim());
+                Context.promptReference.get().custom(name + " = ");
+                Param param = resolveProcedureArgs(lineReader.readLine(Context.promptReference.get().getValue()).trim());
                 args.put(name, param);
             }
         } else {
             for (String name : distinctArgs) {
-                StatusManager.promptReference.get().custom(name + " = ");
-                Object value = stringValue2Object(lineReader.readLine(StatusManager.promptReference.get().getValue()).trim());
+                Context.promptReference.get().custom(name + " = ");
+                Object value = stringValue2Object(lineReader.readLine(Context.promptReference.get().getValue()).trim());
                 args.put(name, value);
             }
         }
@@ -222,7 +217,7 @@ public class SqlUtil {
         List<String> types = new ArrayList<>();
         try {
             for (Field f : fields) {
-                types.add(TerminalColor.colorful(f.getName() + "(", Color.SILVER) + TerminalColor.colorful(f.get(null).toString(), Color.DARK_CYAN) + TerminalColor.colorful(")", Color.SILVER));
+                types.add(Stdout.colorful(f.getName() + "(", Style.SILVER) + Stdout.colorful(f.get(null).toString(), Style.DARK_CYAN) + Stdout.colorful(")", Style.SILVER));
             }
             return types;
         } catch (IllegalAccessException e) {
@@ -248,43 +243,6 @@ public class SqlUtil {
             return Param.IN_OUT(stringValue2Object(in), new ProcedureExecutor.OutParam(Integer.parseInt(out)));
         }
         return Param.IN(stringValue2Object(input));
-    }
-
-    /**
-     * 整个大字符串或sql文件根据分隔符分块
-     *
-     * @param multiSqlOrFilePath sql或文件路径
-     * @return 一组sql
-     * @throws IOException 如果读取文件发生异常或文件不存在
-     */
-    public static List<String> multiSqlList(String multiSqlOrFilePath) throws IOException {
-        String sqls = multiSqlOrFilePath;
-        if (FileHelper.isFilePath(multiSqlOrFilePath)) {
-            sqls = getSqlsByFile(multiSqlOrFilePath);
-        }
-        return Stream.of(sqls.split(StatusManager.sqlDelimiter.get()))
-                .filter(sql -> !sql.trim().isEmpty() && !sql.matches("^[;\r\t\n]$"))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 读取sql文件中的所有sql
-     *
-     * @param sqlFilePath sql文件路径
-     * @return sql字符串
-     * @throws IOException 如果读取文件发生异常或文件不存在
-     */
-    public static String getSqlsByFile(String sqlFilePath) throws IOException {
-        Path path = Paths.get(sqlFilePath).toAbsolutePath();
-        if (!Files.exists(path)) {
-            throw new FileNotFoundException("sql file [" + sqlFilePath + "] not exists.");
-        }
-        return String.join("\n", Files.readAllLines(path, StandardCharsets.UTF_8));
-    }
-
-    public static Pair<String, String> getSqlAndRedirect(String s) {
-        String[] parts = s.split(Constants.REDIRECT_SYMBOL);
-        return Pair.of(parts[0].trim(), parts[1].trim());
     }
 
     public static List<String> getTemplateNames(String sql) {

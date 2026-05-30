@@ -3,6 +3,7 @@ package com.github.chengyuxing.sql.terminal.core;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
+import com.github.chengyuxing.sql.terminal.util.Stdout;
 import com.github.chengyuxing.sql.types.OutParamType;
 import com.github.chengyuxing.sql.types.Param;
 
@@ -22,7 +23,7 @@ public class ProcedureExecutor {
     public void exec(Map<String, Param> args) {
         DataRow result = WaitingPrinter.waiting(() -> baki.call(procedure, args));
         result.forEach((k, v) -> {
-            PrintHelper.printlnDarkWarning(k + ":");
+            Stdout.printlnDarkWarning(k + ":");
             PrintHelper.printQueryResult(value2stream(k, v));
         });
     }

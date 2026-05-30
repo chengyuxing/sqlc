@@ -25,6 +25,8 @@ import org.jline.reader.*;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.widget.AutosuggestionWidgets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -34,13 +36,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 
 import static com.github.chengyuxing.sql.terminal.common.Constants.*;
 import static com.github.chengyuxing.sql.terminal.common.Constants.APP_DIR;
 import static com.github.chengyuxing.sql.terminal.common.Constants.USER_HOME;
 
 public class InteractiveMode extends AbstractMode implements Callable<Integer> {
-    private final AsyncCat cat = new AsyncCat();
+    private static final Logger log = LoggerFactory.getLogger(InteractiveMode.class);
+
     private final CommandRegistry.CommandSession session;
     private final List<String> sqlBuilder;
     private final LineReader lineReader;
@@ -59,7 +63,6 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                 Stdout.printlnWarning("Transaction rollback!");
             }
             bakiLoader.close();
-            cat.close();
             Context.tempFiles.forEach(p -> {
                 try {
                     Files.deleteIfExists(p);
@@ -76,7 +79,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                 .terminal(terminal)
                 .parser(cliParser)
                 .completer(new AggregateCompleter(Commands.getCompleters()))
-                .variable(LineReader.HISTORY_FILE, SQLC_USER_PATH.resolve("history_" + StringUtils.hash(shell.username + "@" + shell.jdbcUrl, "md5")))
+                .variable(LineReader.HISTORY_FILE, SQLC_TEMP_PATH.resolve("history_" + StringUtils.hash(shell.username + "@" + shell.jdbcUrl, "md5")))
                 .history(new SqlHistory(sqlBuilder))
                 .build();
         this.baki = bakiLoader.getUserBaki();
@@ -98,9 +101,14 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
         KeywordsCompleter keywordsCompleter = (KeywordsCompleter) Commands.sqlKeywords.getCompleter().getCompleters().get(0);
 
         keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
-        cat.supplyAsync(dataBaseResource::getUserTableNames)
-                .whenCompleteAsync((tables, e) ->
-                        keywordsCompleter.addVarsNames(tables));
+        CompletableFuture.supplyAsync(dataBaseResource::getNames)
+                .whenCompleteAsync((tables, e) -> {
+                    if (e != null) {
+                        log.error("Load database objects", e);
+                        return;
+                    }
+                    keywordsCompleter.addVarsNames(tables);
+                });
 
         Context.promptReference.set(prompt);
 
@@ -240,8 +248,8 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
     }
 
     private void pasteAction() throws Exception {
-        String temp = "~sqlc_paste_temp_" + System.currentTimeMillis();
-        Path path = SQLC_USER_PATH.resolve(temp);
+        String temp = "~paste_" + System.currentTimeMillis();
+        Path path = SQLC_TEMP_PATH.resolve(temp);
         Context.tempFiles.add(path);
         try {
             commandRegistry.invoke(session, "nano", "-$", path);

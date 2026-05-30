@@ -1,6 +1,6 @@
 package com.github.chengyuxing.sql.terminal.cli.component;
 
-import com.github.chengyuxing.sql.terminal.vars.StatusManager;
+import com.github.chengyuxing.sql.terminal.common.Context;
 import org.jline.reader.impl.history.DefaultHistory;
 
 import java.time.Instant;
@@ -16,7 +16,7 @@ public class SqlHistory extends DefaultHistory {
     @Override
     public void add(Instant time, String line) {
         // for remember the prepared sql's args.
-        if (StatusManager.promptReference.get().getStatus() == Prompt.Status.CUSTOM) {
+        if (Context.promptReference.get().getStatus() == Prompt.Status.CUSTOM) {
             super.add(time, line);
             return;
         }

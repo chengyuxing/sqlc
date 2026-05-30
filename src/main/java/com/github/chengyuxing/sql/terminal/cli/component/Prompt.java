@@ -1,7 +1,7 @@
 package com.github.chengyuxing.sql.terminal.cli.component;
 
-import com.github.chengyuxing.common.console.Color;
-import com.github.chengyuxing.sql.terminal.cli.TerminalColor;
+import com.github.chengyuxing.common.console.Style;
+import com.github.chengyuxing.sql.terminal.util.Stdout;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -11,7 +11,7 @@ public class Prompt {
     private String value;
     private static final String DEFAULT = "sqlc> ";
     private static final String APPEND = ">> ";
-    private Color color = Color.PURPLE;
+    private Style style = Style.PURPLE;
     private Status status = Status.NEWLINE;
 
     public Prompt(String jdbcUrl) {
@@ -41,18 +41,18 @@ public class Prompt {
     }
 
     public String getValue() {
-        return TerminalColor.colorful(value, color);
+        return Stdout.colorful(value, style);
     }
 
-    public void setColor(Color color) {
-        this.color = color;
+    public void setStyle(Style style) {
+        this.style = style;
     }
 
     public Status getStatus() {
         return status;
     }
 
-    public static enum Status {
+    public enum Status {
         NEWLINE,
         APPEND,
         CUSTOM

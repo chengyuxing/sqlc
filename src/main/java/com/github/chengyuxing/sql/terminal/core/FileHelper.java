@@ -5,14 +5,11 @@ import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
 import com.github.chengyuxing.sql.Args;
-import com.github.chengyuxing.sql.terminal.util.Bytes2File;
-import com.github.chengyuxing.sql.terminal.util.ObjectUtil;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
-import com.github.chengyuxing.sql.terminal.vars.StatusManager;
+import com.github.chengyuxing.sql.terminal.util.*;
+import com.github.chengyuxing.sql.terminal.common.Context;
 import org.apache.poi.ss.usermodel.Sheet;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.types.View;
-import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +34,7 @@ public final class FileHelper {
             writeInsertSqlFile(stream, path);
             return;
         }
-        switch (StatusManager.viewMode.get()) {
+        switch (Context.viewMode.get()) {
             case json:
                 writeJSON(stream, path);
                 break;
@@ -54,7 +51,7 @@ public final class FileHelper {
     public static void writeDSV(Stream<DataRow> s, String path) {
         String fileName = path;
         if (!StringUtils.endsWithsIgnoreCase(fileName, ".tsv", ".csv")) {
-            String suffix = StatusManager.viewMode.get() == View.tsv ? ".tsv" : ".csv";
+            String suffix = Context.viewMode.get() == View.tsv ? ".tsv" : ".csv";
             fileName += suffix;
         }
         final String resultFileName = fileName;
@@ -63,11 +60,11 @@ public final class FileHelper {
         try {
             outputStreamAtomicReference.set(new FileOutputStream(fileName));
             BufferedOutputStream out = new BufferedOutputStream(outputStreamAtomicReference.get());
-            String d = StatusManager.viewMode.get() == View.tsv ? "\t" : ",";
-            PrintHelper.printlnPrimary("waiting...");
+            String d = Context.viewMode.get() == View.tsv ? "\t" : ",";
+            Stdout.printlnPrimary("waiting...");
             pp.whenStopped((value, during) -> {
-                PrintHelper.printlnPrimary(value + " rows write completed.( " + TimeUtil.format(during) + ")");
-                PrintHelper.printlnNotice(resultFileName + " saved!");
+                Stdout.printlnPrimary(value + " rows write completed.( " + TimeUtil.format(during) + ")");
+                Stdout.printlnNotice(resultFileName + " saved!");
             }).start();
             AtomicBoolean first = new AtomicBoolean(true);
             s.forEach(row -> {
@@ -116,10 +113,10 @@ public final class FileHelper {
         try {
             bufferedWriterAtomicReference.set(Files.newBufferedWriter(filePath, StandardCharsets.UTF_8));
             BufferedWriter writer = bufferedWriterAtomicReference.get();
-            PrintHelper.printlnPrimary("waiting...");
+            Stdout.printlnPrimary("waiting...");
             pp.whenStopped((value, during) -> {
-                PrintHelper.printlnPrimary(value + " object write completed.(" + TimeUtil.format(during) + ")");
-                PrintHelper.printlnNotice(filePath + " saved!");
+                Stdout.printlnPrimary(value + " object write completed.(" + TimeUtil.format(during) + ")");
+                Stdout.printlnNotice(filePath + " saved!");
             }).start();
             AtomicBoolean first = new AtomicBoolean(true);
             writer.write("[");
@@ -164,10 +161,10 @@ public final class FileHelper {
         BigExcelLineWriter writer = new BigExcelLineWriter(true);
         ProgressPrinter pp = ProgressPrinter.of("", " rows has written.");
         try {
-            PrintHelper.printlnPrimary("waiting...");
+            Stdout.printlnPrimary("waiting...");
             pp.whenStopped((value, during) -> {
-                PrintHelper.printlnPrimary(value + " rows write completed.(" + TimeUtil.format(during) + ")");
-                PrintHelper.printlnNotice(resultFilename + " saved!");
+                Stdout.printlnPrimary(value + " rows write completed.(" + TimeUtil.format(during) + ")");
+                Stdout.printlnNotice(resultFilename + " saved!");
             }).start();
             Sheet sheet = writer.createSheet("Sheet1");
             AtomicBoolean first = new AtomicBoolean(true);
@@ -203,8 +200,8 @@ public final class FileHelper {
         String fileName = path.getFileName().toString();
         // qbpt_deve.pinyin_ch
         String tableName = fileName.substring(0, fileName.lastIndexOf("."));
-        PrintHelper.printlnWarning("Ignore view mode, output file name will as the insert sql script target table name!!!");
-        PrintHelper.printlnWarning("e.g: " + fileName + " --> insert into " + tableName + " (...) values (...);");
+        Stdout.printlnWarning("Ignore view mode, output file name will as the insert sql script target table name!!!");
+        Stdout.printlnWarning("e.g: " + fileName + " --> insert into " + tableName + " (...) values (...);");
         AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
         ProgressPrinter pp = ProgressPrinter.of("", " rows has written.");
         try {
@@ -215,21 +212,20 @@ public final class FileHelper {
             final AtomicReference<String> fileDir = new AtomicReference<>("");
             final AtomicReference<String> blobsDir = new AtomicReference<>("");
 
-            PrintHelper.printlnPrimary("waiting...");
+            Stdout.printlnPrimary("waiting...");
             pp.whenStopped((value, during) -> {
-                PrintHelper.printlnPrimary(value + " rows write completed.(" + TimeUtil.format(during) + ")");
+                Stdout.printlnPrimary(value + " rows write completed.(" + TimeUtil.format(during) + ")");
                 if (hasBlob.get()) {
                     try {
                         Files.move(path, Paths.get(fileDir.get(), fileName));
                         String readme = StringUtils.FMT.format("please do not change files if you will batch insert to another table:\n-----------------\n${blobs}\n${insert}", Args.of("blobs", blobsDir, "insert", path));
                         Files.write(Paths.get(fileDir.get(), "readme.txt"), readme.getBytes(StandardCharsets.UTF_8));
-                        PrintHelper.printlnNotice(StringUtils.FMT.format("${a}(${b} and blobs) saved!", Args.of("a", fileDir, "b", fileName)));
+                        Stdout.printlnNotice(StringUtils.FMT.format("${a}(${b} and blobs) saved!", Args.of("a", fileDir, "b", fileName)));
                     } catch (IOException e) {
-                        log.error("write sql insert file error", e);
                         throw new RuntimeException(e);
                     }
                 } else {
-                    PrintHelper.printlnNotice(outputPath + " saved!");
+                    Stdout.printlnNotice(outputPath + " saved!");
                 }
             }).start();
 
