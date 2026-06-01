@@ -9,25 +9,25 @@ import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.util.Stdout;
-import com.github.chengyuxing.sql.terminal.common.Context;
+import com.github.chengyuxing.sql.terminal.cli.Context;
+import com.github.chengyuxing.sql.types.Param;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.getJson;
 import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.wrapObjectForSerialized;
+import static com.github.chengyuxing.sql.terminal.util.SqlUtil.hasOutParam;
 
 public final class PrintHelper {
     private static final Logger log = LoggerFactory.getLogger(PrintHelper.class);
 
-    public static void printQueryResult(Stream<DataRow> s) {
+    public static void printStreamData(Stream<DataRow> s) {
         AtomicBoolean first = new AtomicBoolean(true);
         switch (Context.viewMode.get()) {
             case json:
@@ -55,58 +55,58 @@ public final class PrintHelper {
     }
 
     @SuppressWarnings("unchecked")
+    public static void printProcedureResult(Baki baki, String procedure, Map<String, Param> args) {
+        boolean hasOutParam = hasOutParam(args);
+        DataRow result = WaitingPrinter.waiting(() -> baki.call(procedure, args));
+        if (hasOutParam) {
+            result.forEach((k, v) -> {
+                if (v instanceof List) {
+                    Stdout.printlnTitle(k, '-', 80, Style.DARK_YELLOW);
+                    printStreamData(((List<DataRow>) v).stream());
+                    Stdout.println();
+                } else {
+                    printStreamData(Stream.of(DataRow.of(k, v)));
+                }
+            });
+            return;
+        }
+        Object first = result.getFirst();
+        if (first instanceof List) {
+            printStreamData(((List<DataRow>) first).stream());
+            return;
+        }
+        printStreamData(Stream.of(result));
+    }
+
+    @SuppressWarnings("unchecked")
     public static Stream<DataRow> executedRow2Stream(Baki baki, String sql, Map<String, Object> args) {
-        DataRow row = WaitingPrinter.waiting(() -> baki.execute(sql, args));
-        Object res = row.getFirst();
+        DataRow result = WaitingPrinter.waiting(() -> baki.execute(sql, args));
+        Object first = result.getFirst();
         Stream<DataRow> stream;
-        if (res instanceof DataRow) {
-            stream = Stream.of((DataRow) res);
-        } else if (res instanceof List) {
-            stream = ((List<DataRow>) res).stream();
+        if (first instanceof DataRow) {
+            stream = Stream.of((DataRow) first);
+        } else if (first instanceof List) {
+            stream = ((List<DataRow>) first).stream();
         } else {
-            stream = Stream.of(row);
+            stream = Stream.of(result);
         }
         return stream;
     }
 
-    public static void printOneSqlResultByType(Baki baki, String sqlOrAddress, String tempString, Map<String, Object> args) {
-        SqlType sqlType = SqlUtil.getType(tempString);
-        if (sqlType == SqlType.QUERY) {
-            try (Stream<DataRow> s = WaitingPrinter.waiting(() -> baki.query(sqlOrAddress).args(args).stream())) {
-                printQueryResult(s);
-            }
-        } else if (sqlType == SqlType.FUNCTION) {
-            ProcedureExecutor procedureExecutor = new ProcedureExecutor(baki, tempString);
-            procedureExecutor.exec(SqlUtil.toInOutParam(args));
-        } else if (sqlType == SqlType.OTHER) {
-            printQueryResult(executedRow2Stream(baki, sqlOrAddress, args));
-        }
-    }
-
-    public static void printGrid(List<List<String>> gridData) {
-        int[] maxes = new int[gridData.get(0).size()];
-        Arrays.fill(maxes, 0);
-        StringJoiner fmt = new StringJoiner("\t");
-        for (List<String> gridDatum : gridData) {
-            for (int j = 0; j < gridDatum.size(); j++) {
-                int now = gridDatum.get(j).length();
-                if (maxes[j] < now) {
-                    maxes[j] = now;
+    public static void printExecuteResultByType(Baki baki, String sqlOrAddress, SqlType type, Map<String, Object> args) {
+        switch (type) {
+            case QUERY:
+                try (Stream<DataRow> s = WaitingPrinter.waiting(() -> baki.query(sqlOrAddress).args(args).stream())) {
+                    printStreamData(s);
                 }
-            }
-        }
-        for (int len : maxes) {
-            fmt.add("%-" + len + "s");
-        }
-        for (int i = 0; i < gridData.size(); i++) {
-            String content = String.format(fmt.toString(), gridData.get(i).toArray());
-            if (i == 0) {
-                Stdout.println(content, Style.CYAN);
-                Stdout.print(StringUtils.repeat("-", content.length()), Style.CYAN);
-            } else {
-                Stdout.print(content, Style.DARK_CYAN);
-            }
-            System.err.println();
+                break;
+            case PROCEDURE:
+                printProcedureResult(baki, sqlOrAddress, SqlUtil.toInOutParam(args));
+                break;
+            case OTHER:
+                Stream<DataRow> s = executedRow2Stream(baki, sqlOrAddress, args);
+                printStreamData(s);
+                break;
         }
     }
 
