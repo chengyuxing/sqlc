@@ -6,7 +6,7 @@ import com.github.chengyuxing.sql.terminal.core.BakiLoader;
 import com.github.chengyuxing.sql.terminal.core.BatchInsertHelper;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.transaction.Tx;
 import org.jline.reader.LineReader;
 import org.jline.terminal.Terminal;

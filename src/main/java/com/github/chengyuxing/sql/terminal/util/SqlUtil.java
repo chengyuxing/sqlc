@@ -3,6 +3,7 @@ package com.github.chengyuxing.sql.terminal.util;
 import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.util.StringUtils;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.common.Constants;

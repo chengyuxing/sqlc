@@ -3,7 +3,7 @@ package com.github.chengyuxing.sql.terminal.core.executor;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import org.jline.reader.LineReader;
 
 import java.io.IOException;

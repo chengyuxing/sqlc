@@ -3,7 +3,7 @@ package com.github.chengyuxing.sql.terminal.core.writer;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.slf4j.Logger;

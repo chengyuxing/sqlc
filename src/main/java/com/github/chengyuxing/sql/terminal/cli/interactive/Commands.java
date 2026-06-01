@@ -3,7 +3,7 @@ package com.github.chengyuxing.sql.terminal.cli.interactive;
 import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.terminal.cli.completer.ExecCompleter;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.NullCompleter;

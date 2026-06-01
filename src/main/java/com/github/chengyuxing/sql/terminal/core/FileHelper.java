@@ -6,7 +6,7 @@ import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.core.writer.*;
 import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 
 import java.io.*;
 import java.nio.file.Files;

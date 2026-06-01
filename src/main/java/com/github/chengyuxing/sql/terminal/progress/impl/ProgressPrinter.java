@@ -2,7 +2,7 @@ package com.github.chengyuxing.sql.terminal.progress.impl;
 
 import com.github.chengyuxing.sql.terminal.progress.Progress;
 import com.github.chengyuxing.sql.terminal.progress.UncheckedInterruptedException;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 
 import java.util.concurrent.TimeUnit;

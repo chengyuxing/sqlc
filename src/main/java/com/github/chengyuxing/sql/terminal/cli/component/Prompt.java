@@ -1,7 +1,7 @@
 package com.github.chengyuxing.sql.terminal.cli.component;
 
 import com.github.chengyuxing.common.console.Style;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

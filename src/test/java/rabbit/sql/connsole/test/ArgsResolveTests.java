@@ -1,14 +1,12 @@
 package rabbit.sql.connsole.test;
 
 //import com.github.chengyuxing.sql.utils.SqlTranslator;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import org.junit.Test;
-import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.stream.Stream;
 
 public class ArgsResolveTests {

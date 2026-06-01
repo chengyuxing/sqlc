@@ -1,8 +1,9 @@
-package com.github.chengyuxing.sql.terminal.util;
+package com.github.chengyuxing.sql.terminal.common;
 
 import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.common.console.Printer;
 import com.github.chengyuxing.common.util.StringUtils;
+import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
 import com.github.chengyuxing.sql.util.SqlHighlighter;
 
 import static com.github.chengyuxing.sql.terminal.common.Constants.IS_XTERM;

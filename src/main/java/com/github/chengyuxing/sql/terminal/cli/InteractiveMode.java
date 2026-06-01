@@ -16,7 +16,7 @@ import com.github.chengyuxing.sql.terminal.core.*;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.transaction.Tx;
 import org.jline.builtins.ConfigurationPath;
 import org.jline.console.CommandRegistry;

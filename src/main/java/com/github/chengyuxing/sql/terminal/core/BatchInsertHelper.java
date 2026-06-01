@@ -7,7 +7,7 @@ import com.github.chengyuxing.excel.Excels;
 import com.github.chengyuxing.excel.io.ExcelReader;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
-import com.github.chengyuxing.sql.terminal.util.Stdout;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 import com.github.chengyuxing.sql.util.SqlUtils;
 import com.zaxxer.hikari.util.FastList;
