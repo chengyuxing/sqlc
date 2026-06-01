@@ -93,18 +93,18 @@ public final class PrintHelper {
         return stream;
     }
 
-    public static void printExecuteResultByType(Baki baki, String sqlOrAddress, SqlType type, Map<String, Object> args) {
+    public static void printExecuteResultByType(Baki baki, String sqlOrRef, SqlType type, Map<String, Object> args) {
         switch (type) {
             case QUERY:
-                try (Stream<DataRow> s = WaitingPrinter.waiting(() -> baki.query(sqlOrAddress).args(args).stream())) {
+                try (Stream<DataRow> s = WaitingPrinter.waiting(() -> baki.query(sqlOrRef).args(args).stream())) {
                     printStreamData(s);
                 }
                 break;
             case PROCEDURE:
-                printProcedureResult(baki, sqlOrAddress, SqlUtil.toInOutParam(args));
+                printProcedureResult(baki, sqlOrRef, SqlUtil.toInOutParam(args));
                 break;
             case OTHER:
-                Stream<DataRow> s = executedRow2Stream(baki, sqlOrAddress, args);
+                Stream<DataRow> s = executedRow2Stream(baki, sqlOrRef, args);
                 printStreamData(s);
                 break;
         }

@@ -1,24 +1,22 @@
 package com.github.chengyuxing.sql.terminal.core;
 
 import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.excel.Excels;
 import com.github.chengyuxing.excel.io.ExcelReader;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.util.Stdout;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
-import com.github.chengyuxing.sql.terminal.common.Context;
-import com.github.chengyuxing.sql.transaction.Tx;
+import com.github.chengyuxing.sql.util.SqlUtils;
 import com.zaxxer.hikari.util.FastList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,10 +29,10 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.JSON;
+
 public class BatchInsertHelper {
     private static final Logger log = LoggerFactory.getLogger(BatchInsertHelper.class);
-
-    static final ObjectMapper JSON = new ObjectMapper();
 
     public static void readFile4batch(BakiDao baki, String filePath, int sheetIdx, int headerIdx) throws Exception {
         Path file = Paths.get(filePath.trim());
@@ -71,16 +69,7 @@ public class BatchInsertHelper {
         }
     }
 
-    public static void readFile4batch(BakiDao baki, String filePath, int headerIdx) throws Exception {
-        readFile4batch(baki, filePath, 0, headerIdx);
-    }
-
-    public static void readFile4batch(BakiDao baki, String filePath) throws Exception {
-        readFile4batch(baki, filePath, 0);
-    }
-
     public static void readInsertSqlScriptBatchExecute(BakiDao baki, Path path) {
-        String delimiter = ";";
         FastList<String> chunk = new FastList<>(String.class);
         AtomicReference<String> example = new AtomicReference<>("");
         AtomicBoolean prepared = new AtomicBoolean(false);
@@ -89,9 +78,9 @@ public class BatchInsertHelper {
         pp.setStep(2);
         pp.setFormatter(formatter("rows", "executed"));
         pp.whenStopped(whenStoppedFunc(chunk, example, "rows", "execute")).start();
-        try (Stream<String> lineStream = Files.lines(path, StandardCharsets.UTF_8)) {
+        try (Stream<String> s = Files.lines(path, StandardCharsets.UTF_8)) {
             StringBuilder sb = new StringBuilder();
-            lineStream.map(String::trim)
+            s.map(String::trim)
                     .filter(sql -> !sql.isEmpty() && !StringUtils.startsWithsIgnoreCase(sql, "--", "#", "/*"))
                     .forEach(sql -> {
                         sb.append(sql).append("\n");
@@ -102,7 +91,7 @@ public class BatchInsertHelper {
                         if (example.get().isEmpty()) {
                             if (!chunk.isEmpty()) {
                                 example.set(chunk.get(0));
-                                boolean isPrepared = !SqlUtil.sqlTranslator.generatePreparedSql(chunk.get(0), Collections.emptyMap()).getArgNameIndexMapping().isEmpty();
+                                boolean isPrepared = !baki.getSqlGenerator().generatePreparedSql(chunk.get(0), Collections.emptyMap()).getArgNameIndexMapping().isEmpty();
                                 prepared.set(isPrepared);
                             }
                         }
@@ -112,10 +101,10 @@ public class BatchInsertHelper {
                                     preparedInsert4BlobBatchExecute(baki, chunk, path);
                                 } catch (IOException e) {
                                     log.error("batch insert sql file error", e);
-                                    throw new RuntimeException(e);
+                                    throw new UncheckedIOException(e);
                                 }
                             } else {
-                                baki.executeBatch(chunk, 1000);
+                                baki.execute(chunk);
                             }
                             chunk.clear();
                             pp.increment();
@@ -129,7 +118,7 @@ public class BatchInsertHelper {
                 if (prepared.get()) {
                     preparedInsert4BlobBatchExecute(baki, chunk, path);
                 } else {
-                    baki.executeBatch(chunk, 1000);
+                    baki.execute(chunk);
                 }
                 pp.increment();
             }
@@ -143,24 +132,21 @@ public class BatchInsertHelper {
 
     public static void preparedInsert4BlobBatchExecute(BakiDao baki, List<String> sqls, Path path) throws IOException {
         Path blobsDir = path.getParent().resolve("blobs");
-        if (Files.exists(blobsDir)) {
-            if (!Context.txActive.get()) {
-                Tx.using(() -> {
-                    for (String sql : sqls) {
-                        Set<String> names = SqlUtil.sqlTranslator.generatePreparedSql(sql, Collections.emptyMap()).getArgNameIndexMapping().keySet();
-                        Map<String, Object> arg = new HashMap<>();
-                        for (String name : names) {
-                            arg.put(name, blobsDir.resolve(name).toFile());
-                        }
-                        baki.executeBatchUpdate(sql, Collections.singletonList(arg), Function.identity(), 1000);
-                    }
-                });
-            }
-            return;
+        if (!Files.exists(blobsDir)) {
+            throw new FileNotFoundException("Cannot find 'blobs' folder on " + path.getParent() + ".");
         }
-        throw new FileNotFoundException("cannot find 'blobs' folder on " + path.getParent() + ".");
+        // Because the SQL only contains the blob fields for prepare,
+        // other fields is just the literal value
+        // insert into table (name, img) values ('cyx', :blob)
+        for (String sql : sqls) {
+            Set<String> names = baki.getSqlGenerator().generatePreparedSql(sql, Collections.emptyMap()).getArgNameIndexMapping().keySet();
+            Map<String, Object> args = new HashMap<>();
+            for (String name : names) {
+                args.put(name, blobsDir.resolve(name).toFile());
+            }
+            baki.execute(sql, Collections.singletonList(args), Function.identity());
+        }
     }
-
 
     public static void readJson4batch(BakiDao baki, Path path, String tableName) {
         FastList<String> chunk = new FastList<>(String.class);
@@ -172,20 +158,22 @@ public class BatchInsertHelper {
         try (MappingIterator<Map<String, Object>> iterator = JSON.reader().forType(Map.class).readValues(path.toFile())) {
             while (iterator.hasNext()) {
                 Map<String, Object> obj = iterator.next();
-                obj.entrySet().removeIf(e -> e.getValue() == null);
-                String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, obj.keySet());
-                chunk.add(SqlUtil.sqlTranslator.generateSql(insert, obj, v -> com.github.chengyuxing.sql.util.SqlUtils.toSqlLiteral(v, true)));
+
                 if (example.get().isEmpty()) {
-                    example.set(chunk.get(0));
+                    example.set(baki.getSqlGenerator().generateNamedParamInsert(tableName, obj.keySet()));
                 }
+
+                String insert = baki.getSqlGenerator().generateSql(example.get(), obj, v -> SqlUtils.toSqlLiteral(v, true));
+                chunk.add(insert);
+
                 if (chunk.size() == 1000) {
-                    baki.executeBatch(chunk, 1000);
+                    baki.execute(chunk);
                     chunk.clear();
                     pp.increment();
                 }
             }
             if (!chunk.isEmpty()) {
-                baki.executeBatch(chunk, 1000);
+                baki.execute(chunk);
                 pp.increment();
             }
             pp.stop();
@@ -203,41 +191,46 @@ public class BatchInsertHelper {
         pp.setStep(2);
         pp.setFormatter(formatter("lines", "inserted"));
         pp.whenStopped(whenStoppedFunc(chunk, example, "lines", "insert")).start();
-        int start = headerIdx;
-        String[] nameGeneric = new String[0];
+
         try (Stream<String> s = Files.lines(path, StandardCharsets.UTF_8)) {
-            Stream<List<String>> lines = s.map(l -> Arrays.asList(l.split(delimiter)));
-            List<String> tableFields = new ArrayList<>();
+
+            // tsv header index
+            // -1 : do query table fields by tsv file name
+            // >= 0 : collect current row as the fields and skip the line to the next
+            // next all lines as the insert data
+
+            AtomicReference<String[]> tableFields = new AtomicReference<>();
+            int start = headerIdx;
             if (start < 0) {
-                tableFields.addAll(baki.table(tableName).fields());
+                tableFields.set(baki.table(tableName).fields().toArray(new String[0]));
                 start = 0;
             }
             int next = headerIdx < 0 ? 0 : 1;
-            lines.skip(start)
+            s.map(l -> l.split(delimiter))
+                    .skip(start)
                     .peek(cols -> {
-                        if (tableFields.isEmpty()) {
-                            tableFields.addAll(cols);
+                        if (tableFields.get() == null) {
+                            tableFields.set(cols);
                         }
                     })
                     .skip(next)
-                    .map(cols -> {
-                        DataRow row = DataRow.of(tableFields.toArray(nameGeneric), cols.toArray());
-                        String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, tableFields);
-                        return SqlUtil.sqlTranslator.generateSql(insert, row, v -> com.github.chengyuxing.sql.util.SqlUtils.toSqlLiteral(v, true));
-                    })
-                    .forEach(insert -> {
-                        chunk.add(insert);
+                    .forEach(cols -> {
                         if (example.get().isEmpty()) {
-                            example.set(chunk.get(0));
+                            example.set(baki.getSqlGenerator().generateNamedParamInsert(tableName, Arrays.asList(tableFields.get())));
                         }
+
+                        DataRow row = DataRow.of(tableFields, cols);
+                        String insert = baki.getSqlGenerator().generateSql(example.get(), row, v -> SqlUtils.toSqlLiteral(v, true));
+                        chunk.add(insert);
+
                         if (chunk.size() == 1000) {
-                            baki.executeBatch(chunk, 1000);
+                            baki.execute(chunk);
                             chunk.clear();
                             pp.increment();
                         }
                     });
             if (!chunk.isEmpty()) {
-                baki.executeBatch(chunk, 1000);
+                baki.execute(chunk);
                 pp.increment();
             }
             pp.stop();
@@ -267,26 +260,26 @@ public class BatchInsertHelper {
             }
             try (Stream<DataRow> s = reader.stream()) {
                 s.skip(skip)
+                        // Sometimes Excel file has much empty rows.
+                        // skip the empty rows
                         .peek(d -> d.removeIf((k, v) -> k == null || k.trim().isEmpty()))
                         .peek(d -> d.removeIf((k, v) -> v == null || v.toString().isEmpty()))
                         .filter(d -> !d.isEmpty())
-                        .map(d -> {
-                            String insert = SqlUtil.sqlTranslator.generateNamedParamInsert(tableName, d.keySet());
-                            return SqlUtil.sqlTranslator.generateSql(insert, d, v -> com.github.chengyuxing.sql.util.SqlUtils.toSqlLiteral(v, true));
-                        })
-                        .forEach(insert -> {
-                            chunk.add(insert);
+                        .forEach(d -> {
                             if (example.get().isEmpty()) {
-                                example.set(chunk.get(0));
+                                example.set(baki.getSqlGenerator().generateNamedParamInsert(tableName, d.keySet()));
                             }
-                            if (chunk.size() == 999) {
-                                baki.executeBatch(chunk, 1000);
+                            String insert = baki.getSqlGenerator().generateSql(example.get(), d, v -> SqlUtils.toSqlLiteral(v, true));
+                            chunk.add(insert);
+
+                            if (chunk.size() == 1000) {
+                                baki.execute(chunk);
                                 chunk.clear();
                                 pp.increment();
                             }
                         });
                 if (!chunk.isEmpty()) {
-                    baki.executeBatch(chunk, 1000);
+                    baki.execute(chunk);
                     pp.increment();
                 }
                 pp.stop();

@@ -1,20 +1,22 @@
 package com.github.chengyuxing.sql.terminal.cli;
 
+import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
-import com.github.chengyuxing.sql.terminal.core.SQLExecutor;
-import com.github.chengyuxing.sql.terminal.core.XQLExecutor;
+import com.github.chengyuxing.sql.terminal.core.executor.IExecutor;
+import com.github.chengyuxing.sql.terminal.core.executor.SQLExecutor;
+import com.github.chengyuxing.sql.terminal.core.executor.XQLExecutor;
 import com.github.chengyuxing.sql.terminal.cli.completer.ExecCompleter;
-import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.cli.component.SqlHistory;
 import com.github.chengyuxing.sql.terminal.cli.interactive.Commands;
 import com.github.chengyuxing.sql.terminal.core.*;
+import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.types.View;
+import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.util.Stdout;
-import com.github.chengyuxing.sql.terminal.common.Context;
 import com.github.chengyuxing.sql.transaction.Tx;
 import org.jline.builtins.ConfigurationPath;
 import org.jline.console.CommandRegistry;
@@ -47,15 +49,15 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
 
     private final CommandRegistry.CommandSession session;
     private final List<String> sqlBuilder;
-    private final LineReader lineReader;
+    private final LineReader mainReader;
     private final BakiDao baki;
     private final JlineCommandRegistry commandRegistry;
     private final Prompt prompt;
-    private final SQLExecutor exec;
-    private final XQLExecutor xqlExec;
+    private final IExecutor sqlExecutor;
+    private final IExecutor xqlExecutor;
 
     protected InteractiveMode(StartupShell shell, BakiLoader bakiLoader, Terminal terminal) {
-        super(shell, bakiLoader);
+        super(shell, bakiLoader, terminal);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (Context.txActive.get()) {
@@ -70,49 +72,62 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                     Stdout.printlnError(e);
                 }
             });
-            System.out.println("Bye bye :(");
+            Stdout.printlnWarning("Bye bye :(");
         }));
 
         this.session = new CommandRegistry.CommandSession(terminal);
         this.sqlBuilder = new ArrayList<>();
-        this.lineReader = LineReaderBuilder.builder()
+        this.mainReader = LineReaderBuilder.builder()
                 .terminal(terminal)
-                .parser(cliParser)
                 .completer(new AggregateCompleter(Commands.getCompleters()))
-                .variable(LineReader.HISTORY_FILE, SQLC_TEMP_PATH.resolve("history_" + StringUtils.hash(shell.username + "@" + shell.jdbcUrl, "md5")))
+                .variable(LineReader.HISTORY_FILE, SQLC_TEMP_PATH.resolve("history_cmd_" + getLoginId()))
                 .history(new SqlHistory(sqlBuilder))
                 .build();
         this.baki = bakiLoader.getUserBaki();
-        this.commandRegistry = new Builtins(CURRENT_DIR, new ConfigurationPath(APP_DIR, USER_HOME), s -> lineReader.getBuiltinWidgets().get(s));
+        this.commandRegistry = new Builtins(CURRENT_DIR, new ConfigurationPath(APP_DIR, USER_HOME), s -> mainReader.getBuiltinWidgets().get(s));
         this.prompt = new Prompt(shell.jdbcUrl);
-        this.exec = new SQLExecutor(this.baki, this.lineReader);
-        this.xqlExec = new XQLExecutor(this.baki, this.lineReader);
+
+        this.sqlExecutor = new SQLExecutor(this.baki) {
+            @Override
+            public LineReader paramsReader(String sql) {
+                return SqlUtil.detectSQLType(sql) == SqlType.PROCEDURE
+                        ? getProcParamReader()
+                        : getSqlParamReader();
+            }
+        };
+        this.xqlExecutor = new XQLExecutor(this.baki) {
+            @Override
+            public LineReader paramsReader(String sql) {
+                return SqlUtil.detectSQLType(sql) == SqlType.PROCEDURE
+                        ? getProcParamReader()
+                        : getSqlParamReader();
+            }
+        };
         init();
     }
 
     private void init() {
-        AutosuggestionWidgets suggest = new AutosuggestionWidgets(lineReader);
+        AutosuggestionWidgets suggest = new AutosuggestionWidgets(mainReader);
         // press ctrl+o jump to next word.
         suggest.getKeyMap().bind(new Reference(LineReader.FORWARD_WORD), KeyMap.ctrl('o'));
         suggest.enable();
 
         DataBaseResource dataBaseResource = new DataBaseResource(bakiLoader);
 
-        KeywordsCompleter keywordsCompleter = (KeywordsCompleter) Commands.sqlKeywords.getCompleter().getCompleters().get(0);
-
-        keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
+        Context.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
         CompletableFuture.supplyAsync(dataBaseResource::getNames)
                 .whenCompleteAsync((tables, e) -> {
                     if (e != null) {
                         log.error("Load database objects", e);
                         return;
                     }
-                    keywordsCompleter.addVarsNames(tables);
+                    Context.keywordsCompleter.addVarsNames(tables);
                 });
 
         Context.promptReference.set(prompt);
 
         Stdout.println("Type in command or sql script to execute query, ddl, dml..., or try :help.");
+        // FIXME some status notice?
     }
 
     @Override
@@ -121,7 +136,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
             exit:
             while (true) {
                 try {
-                    String line = lineReader.readLine(Context.getPromptState(shell.jdbcUrl)).trim();
+                    String line = mainReader.readLine(Context.getPromptState(shell.jdbcUrl)).trim();
                     if (line.isEmpty()) {
                         continue;
                     }
@@ -142,8 +157,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                                 Commands.printHelp();
                                 break;
                             case ":status":
-                                Stdout.printlnInfo("View Mode: " + Context.viewMode.get());
-                                Stdout.printlnInfo("Transaction: " + (Context.txActive.get() ? "enabled" : "disabled"));
+                                statusAction();
                                 break;
                             case ":tx":
                                 if (Context.txActive.get()) {
@@ -210,7 +224,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                         String sql = String.join("\n", sqlBuilder);
                         // execute sql
                         if (!sql.isEmpty()) {
-                            exec.execute(sql);
+                            sqlExecutor.execute(sql);
                             sqlBuilder.clear();
                             Context.appending.set(false);
                         }
@@ -237,6 +251,14 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
         return 0;
     }
 
+    private void statusAction() {
+        String sf = "%-30s%-30s%n";
+        Stdout.printlnTitle("Status Monitor", '-', 80, Style.SILVER);
+        Stdout.printf(sf, "", "View Mode", Context.viewMode.get());
+        Stdout.printf(sf, "", "Transaction", (Context.txActive.get() ? "enabled" : "disabled"));
+        Stdout.printlnTitle("", '-', 80, Style.SILVER);
+    }
+
     // actions
     private void toggleViewAction(String view) {
         try {
@@ -256,7 +278,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
             if (Files.exists(path)) {
                 String sqlContent = String.join("\n", Files.readAllLines(path, StandardCharsets.UTF_8)).trim();
                 if (!sqlContent.isEmpty()) {
-                    exec.execute(sqlContent);
+                    sqlExecutor.execute(sqlContent);
                 }
             }
         } finally {
@@ -287,9 +309,9 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
             return;
         }
         if (target.startsWith("&")) {
-            xqlExec.execute(target.substring(1));
+            xqlExecutor.execute(target.substring(1));
         } else {
-            exec.execute(target);
+            sqlExecutor.execute(target);
         }
     }
 
@@ -299,11 +321,14 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
             return;
         }
         String alias = FileResource.getFileName(xql, false);
-        String path = "file:" + xql;
+        String path = xql;
+        if (!FileHelper.isFileURI(path)) {
+            path = "file:" + xql;
+        }
         Context.xqlFileManager.add(alias, path);
         Context.xqlFileManager.init();
         Context.xqlFileManager.foreach((a, r) -> {
-            Stdout.printlnNotice("----------" + a + "----------");
+            Stdout.printlnTitle(a, '-', 80, Style.SILVER);
             r.getEntry().forEach((name, sql) -> {
                 String info = XQLFileManager.encodeSqlReference(a, name) + (sql.getDescription().isEmpty() ? "" : " -> " + sql.getDescription());
                 Stdout.printlnNotice(info);

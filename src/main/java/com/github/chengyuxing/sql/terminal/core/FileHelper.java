@@ -2,17 +2,37 @@ package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.FileResource;
+import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.core.writer.*;
 import com.github.chengyuxing.sql.terminal.cli.Context;
+import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
+import com.github.chengyuxing.sql.terminal.util.Stdout;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public final class FileHelper {
+
     public static final IWriter dsvWriter = new DSVWriter();
     public static final IWriter excelWriter = new ExcelWriter();
     public static final IWriter jsonWriter = new JSONWriter();
     public static final InsertSQLWriter sqlWriter = new InsertSQLWriter();
+
+    public static void writeFile(BakiDao baki, String sqlOrRef, Map<String, Object> args, String output) throws IOException {
+        try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...",
+                () -> baki.query(sqlOrRef).args(args).stream())) {
+            Stdout.printlnNotice("redirect query to file...");
+            Path path = Paths.get(output);
+            if (Files.isDirectory(path)) {
+                path = path.resolve("query_result_" + System.currentTimeMillis());
+            }
+            writeFile(s, path.toString());
+        }
+    }
 
     public static void writeFile(Stream<DataRow> stream, String path) throws IOException {
         if (path.endsWith(".sql")) {

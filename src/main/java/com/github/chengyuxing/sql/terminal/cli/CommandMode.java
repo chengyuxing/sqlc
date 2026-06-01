@@ -1,5 +1,6 @@
 package com.github.chengyuxing.sql.terminal.cli;
 
+import com.github.chengyuxing.sql.terminal.core.executor.IExecutor;
 import com.github.chengyuxing.sql.terminal.core.executor.SQLExecutor;
 import com.github.chengyuxing.sql.terminal.core.BakiLoader;
 import com.github.chengyuxing.sql.terminal.core.BatchInsertHelper;
@@ -15,7 +16,7 @@ import java.io.UncheckedIOException;
 import java.util.concurrent.Callable;
 
 public class CommandMode extends AbstractMode implements Callable<Integer> {
-    private final SQLExecutor executor;
+    private final IExecutor executor;
 
     protected CommandMode(StartupShell shell, BakiLoader bakiLoader, Terminal terminal) {
         super(shell, bakiLoader, terminal);

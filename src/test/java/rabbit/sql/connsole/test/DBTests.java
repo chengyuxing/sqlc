@@ -1,20 +1,12 @@
 package rabbit.sql.connsole.test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.common.console.Color;
-import com.github.chengyuxing.common.console.Printer;
-import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.XQLFileManager;
-import com.github.chengyuxing.sql.terminal.cli.Arguments;
 import com.github.chengyuxing.sql.terminal.core.*;
 import org.junit.Test;
 import org.postgresql.util.PGobject;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
@@ -24,7 +16,7 @@ public class DBTests {
 
     @Test
     public void aaa() throws Exception {
-        System.out.println(SqlUtil.getType("((  select 1"));
+        System.out.println(SqlUtil.detectSQLType("((  select 1"));
     }
 
     public static void m(String[] args) {
@@ -33,7 +25,7 @@ public class DBTests {
 
     @Test
     public void testPg() throws Exception {
-        DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
+        BakiLoader loader = BakiLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
         loader.setUsername("chengyuxing");
         loader.init();
 
@@ -51,23 +43,20 @@ public class DBTests {
 //        System.out.println(dataBaseResource.getUserProcedures());
 //        System.out.println(dataBaseResource.getTableDefinition("test.hello"));
 
-        List<List<String>> tableDesc = dataBaseResource.getTableDesc("test.big");
-        PrintHelper.printGrid(tableDesc);
     }
 
     @Test
     public void testMysql() throws Exception {
-        DataSourceLoader loader = DataSourceLoader.of("jdbc:mysql://139.198.19.116:3306");
+        BakiLoader loader = BakiLoader.of("jdbc:mysql://139.198.19.116:3306");
         loader.setUsername("sp");
         loader.setPassword("A14_sp_123");
         loader.init();
         DataBaseResource dataBaseResource = new DataBaseResource(loader);
-        dataBaseResource.getUserTableNames().forEach(System.out::println);
     }
 
     @Test
     public void testOrcl() throws Exception {
-        DataSourceLoader loader = DataSourceLoader.of("jdbc:oracle:thin:@//172.17.169.104/orcl");
+        BakiLoader loader = BakiLoader.of("jdbc:oracle:thin:@//172.17.169.104/orcl");
         loader.setUsername("rk_yjsdd");
         loader.setPassword("rk_yjsdd");
         loader.init();
@@ -84,7 +73,7 @@ public class DBTests {
 
     @Test
     public void test2() throws Exception {
-        DataSourceLoader loader = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
+        BakiLoader loader = BakiLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres");
         Baki baki = loader.getUserBaki();
         baki.query("select '{\"a\":\"cyx\"}'::jsonb as x").findFirst().ifPresent(d -> {
             Object v = d.get("x");
@@ -131,28 +120,6 @@ public class DBTests {
     @Test
     public void con() throws Exception {
         System.out.println(System.getProperty("java.class.path"));
-    }
-
-    @Test
-    public void argTest() throws Exception {
-        String[] args = new String[]{
-                "jdbc:postgresql",
-                "-uchengyuxing",
-                "-p123456",
-                "-f/Users/chengyuxing/test/files",
-                "-e\"select",
-                "*",
-                "from",
-                "test.user\"",
-                "-texcel",
-        };
-        Arguments map = new Arguments(args);
-        System.out.println(map);
-    }
-
-    @Test
-    public void sss() throws Exception {
-        System.out.println(new Arguments("-n", "-p123456", "-asss"));
     }
 
     @Test
