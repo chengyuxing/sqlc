@@ -1,122 +1,99 @@
 package com.github.chengyuxing.sql.terminal.util;
 
-import com.github.chengyuxing.common.MostDateTime;
 import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
-import com.github.chengyuxing.sql.terminal.core.ProcedureExecutor;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.common.Constants;
-import com.github.chengyuxing.sql.terminal.common.Context;
+import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.types.Param;
+import com.github.chengyuxing.sql.types.ParamMode;
+import com.github.chengyuxing.sql.types.StandardOutParamType;
 import com.github.chengyuxing.sql.util.SqlGenerator;
 import org.jline.reader.LineReader;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.file.Paths;
 import java.sql.Types;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
+
+import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.JSON;
+import static com.github.chengyuxing.sql.util.SqlUtils.formatSqlTemplate;
 
 public class SqlUtil {
-    public static Pattern p = Pattern.compile("^[(\\s]*((select\\s*)|with\\s+[\\w_]+\\s+as\\s+\\([\\s\\S]+\\)\\s*select)");
-    public static Pattern TYPE_PARSE = Pattern.compile("::(?<type>[a-zA-Z]+\\[*)((?<delimiter>[\\s\\S]*)])*$");
+    public static Pattern WORD_PATTERN = Pattern.compile("([a-zA-Z]+)|'(?:''|[^'])*'");
     public static final SqlGenerator sqlTranslator = new SqlGenerator(':');
+    private static final Map<String, Integer> OUT_PARAM_TYPES = new LinkedHashMap<>();
 
-    public static SqlType getType(final String sql) {
-        String trimSql = sql.trim();
-        Matcher m = p.matcher(trimSql);
+    public static SqlType detectSQLType(final String sql) {
+        Matcher m = WORD_PATTERN.matcher(sql);
         if (m.find()) {
-            return SqlType.QUERY;
-        } else if (trimSql.startsWith("call") || trimSql.startsWith("{")) {
-            return SqlType.FUNCTION;
-        } else {
-            return SqlType.OTHER;
-        }
-    }
-
-    public static Object stringValue2Object(String str) {
-        String value = str.trim();
-        Matcher m = TYPE_PARSE.matcher(str);
-        if (m.find()) {
-            value = str.substring(0, m.start("type") - 2);
-            String parse = m.group("type");
-            if (parse.equals("date")) {
-                return MostDateTime.toDate(value);
+            String w = m.group();
+            if (w.equalsIgnoreCase("select")) {
+                return SqlType.QUERY;
             }
-            if (value.startsWith("[") && value.endsWith("]")) {
-                String delimiter = m.group("delimiter");
-                if (delimiter != null && parse.endsWith("[")) {
-                    delimiter = delimiter.trim();
-                    if (delimiter.isEmpty()) {
-                        delimiter = ",";
+            if (w.equalsIgnoreCase("with")) {
+                while (m.find()) {
+                    String token = m.group();
+                    if (StringUtils.equalsAnyIgnoreCase(token, "update", "insert", "delete", "merge")) {
+                        return SqlType.OTHER;
                     }
-                    String[] filteredArrS = Stream.of(value.substring(1, value.length() - 1).split(delimiter))
-                            .map(String::trim)
-                            .filter(v -> !v.isEmpty())
-                            .toArray(String[]::new);
-                    if (parse.equals("string[")) {
-                        return filteredArrS;
-                    }
-                    int length = filteredArrS.length;
-                    switch (parse) {
-                        case "int[":
-                            int[] ints = new int[length];
-                            for (int i = 0; i < length; i++) {
-                                ints[i] = Integer.parseInt(filteredArrS[i]);
-                            }
-                            return ints;
-                        case "double[":
-                            double[] doubles = new double[length];
-                            for (int i = 0; i < length; i++) {
-                                doubles[i] = Double.parseDouble(filteredArrS[i]);
-                            }
-                            return doubles;
-                        case "float[":
-                            float[] floats = new float[length];
-                            for (int i = 0; i < length; i++) {
-                                floats[i] = Float.parseFloat(filteredArrS[i]);
-                            }
-                            return floats;
-                        case "long[":
-                            long[] longs = new long[length];
-                            for (int i = 0; i < length; i++) {
-                                longs[i] = Long.parseLong(filteredArrS[i]);
-                            }
-                            return longs;
+                    if (token.equalsIgnoreCase("call")) {
+                        return SqlType.PROCEDURE;
                     }
                 }
+                return SqlType.QUERY;
             }
-            throw new UnsupportedOperationException(parse);
-        }
-        if (value.startsWith("\"") && value.endsWith("\"")) {
-            return value.substring(1, value.length() - 1);
-        }
-        if (value.startsWith("'") && value.endsWith("'")) {
-            return value.substring(1, value.length() - 1);
-        }
-        if (value.matches("-?(0|[1-9]\\d*)")) {
-            if (value.length() < 10) {
-                return Integer.parseInt(value);
+            if (w.equalsIgnoreCase("call") || sql.trim().startsWith("{")) {
+                return SqlType.PROCEDURE;
             }
-            return Long.parseLong(value);
         }
-        if (value.matches("-?(0|[1-9]\\d*)\\.\\d+")) {
-            return Double.parseDouble(value);
+        return SqlType.OTHER;
+    }
+
+    public static Object parseValueFromLiteral(Object literal) throws IOException {
+        if (literal == null) {
+            return "";
         }
-        if (StringUtils.equalsAnyIgnoreCase(value, "true", "false")) {
-            return Boolean.parseBoolean(value);
+        String ts = literal.toString().trim();
+        if (ts.startsWith("[") && ts.endsWith("]")) {
+            return JSON.readValue(ts, List.class);
         }
-        if (StringUtils.equalsAnyIgnoreCase(value, "null")) {
+        if (ts.startsWith("{") && ts.endsWith("}")) {
+            return JSON.readValue(ts, Map.class);
+        }
+        if (StringUtils.isNumber(ts)) {
+            if (ts.contains(".")) {
+                return Double.parseDouble(ts);
+            }
+            long l = Long.parseLong(ts);
+            if (l <= Integer.MAX_VALUE && l >= Integer.MIN_VALUE) {
+                return (int) l;
+            }
+            return l;
+        }
+        if (StringUtils.equalsAnyIgnoreCase(ts, "null", "blank")) {
             return null;
         }
-        if (FileHelper.isFilePath(value)) {
-            return Paths.get(value).toFile();
+        if (StringUtils.equalsAnyIgnoreCase(ts, "true", "false")) {
+            return Boolean.parseBoolean(ts);
         }
-        return value;
+        if (isQuote(ts)) {
+            return ts.substring(1, ts.length() - 1);
+        }
+        if (FileHelper.isFilePath(ts)) {
+            return Paths.get(ts).toFile();
+        }
+        return literal;
+    }
+
+    public static boolean isQuote(String s) {
+        return (s.startsWith("\"") && s.endsWith("\"")) || (s.startsWith("'") && s.endsWith("'"));
     }
 
     public static String safeQuote(Object value) {
@@ -130,23 +107,6 @@ public class SqlUtil {
             return "'" + ((String) value).replace("'", "''") + "'";
         }
         return value.toString();
-    }
-
-    public static Pair<String, List<String>> generateInsert(final String tableName, final Map<String, ?> row, long blobRowNum) {
-        StringJoiner f = new StringJoiner(", ");
-        StringJoiner v = new StringJoiner(", ");
-        List<String> blobKeys = new ArrayList<>();
-        for (Map.Entry<String, ?> e : row.entrySet()) {
-            if (e.getValue() instanceof byte[]) {
-                f.add(e.getKey());
-                v.add(":blob_" + blobRowNum + "_" + e.getKey());
-                blobKeys.add(e.getKey());
-            } else {
-                f.add(e.getKey());
-                v.add(safeQuote(e.getValue()));
-            }
-        }
-        return Pair.of("insert into " + tableName + "(" + f + ") values (" + v + ")", blobKeys);
     }
 
     /**
@@ -163,11 +123,11 @@ public class SqlUtil {
         }
         Map<String, Object> templates = new HashMap<>();
         for (String name : tempNames) {
-            Context.promptReference.get().custom("${" + name + "} = ");
+            Context.promptReference.get().param("${" + name + "} = ");
             String template = lineReader.readLine(Context.promptReference.get().getValue()).trim();
             templates.put(name, template);
         }
-        return formatSql(com.github.chengyuxing.sql.util.SqlUtils.formatSqlTemplate(sql, templates), lineReader);
+        return formatSql(formatSqlTemplate(sql, templates), lineReader);
     }
 
     /**
@@ -177,52 +137,74 @@ public class SqlUtil {
      * @param lineReader readline
      * @return 解析完成的sql和参数字典
      */
-    public static Pair<String, Map<String, Object>> prepareSqlWithArgs(String sql, LineReader lineReader) {
+    public static Pair<String, Map<String, Object>> prepareSqlWithArgs(String sql, LineReader lineReader) throws IOException {
         String fmtSql = formatSql(sql, lineReader);
         if (!sql.equals(fmtSql)) {
             Stdout.printlnHighlightSql(fmtSql);
         }
-        SqlGenerator.PreparedSqlMetaData pSql = sqlTranslator.generatePreparedSql(fmtSql, Collections.emptyMap());
-        Set<String> distinctArgs = pSql.getArgNameIndexMapping().keySet();
-        if (distinctArgs.isEmpty()) {
+        RabbitScriptParamParser paramParser = new RabbitScriptParamParser(fmtSql, sqlTranslator);
+        paramParser.parse();
+        Map<String, Set<String>> params = paramParser.getParamsMap();
+        if (params.isEmpty()) {
             return Pair.of(fmtSql, Collections.emptyMap());
         }
+
         Map<String, Object> args = new HashMap<>();
-        SqlType type = getType(fmtSql);
-        if (type == SqlType.FUNCTION) {
+        SqlType type = detectSQLType(fmtSql);
+        if (type == SqlType.PROCEDURE) {
             // OUT formatter: num1 = OUT -2017
             // IN_OUT formatter: num1 = IN_OUT -5 126
             // IN formatter: num1 = 180
-            Stdout.printlnDarkWarning("OUT param type constants(java.sql.Types):");
-            System.out.println(String.join(", ", getProcedureParamTypes()));
-            Stdout.printlnDarkWarning("some db has it's own special constants, e.g: ORACLE_CURSOR(-10), just use it's value.");
-            Stdout.printlnDarkWarning("Param formatter: out [OUT code] | inout [OUT code] [IN value] | [IN value]\ne.g: out -5; inout 2012 abc; abc");
-            for (String name : distinctArgs) {
-                Context.promptReference.get().custom(name + " = ");
+            Stdout.printlnNotice("OUT Param Types Example:");
+            Stdout.printlnNotice(StringUtils.repeat("-", 80));
+            Map<String, Integer> types = getProcedureOutParamTypes();
+            int i = 1;
+            for (Map.Entry<String, Integer> e : types.entrySet()) {
+                String v = Stdout.colorful(e.getKey() + "(", Style.SILVER) + Stdout.colorful(e.getValue().toString(), Style.DARK_CYAN) + Stdout.colorful(")", Style.SILVER);
+                Stdout.printf("%-48s", v);
+                if (i % 4 == 0 || v.length() >= 48) {
+                    Stdout.println();
+                }
+                i++;
+            }
+            Stdout.printlnNotice(StringUtils.repeat("-", 80));
+            Stdout.printlnDarkWarning("Param format: <in value> | out <name|code> | inout <name|code> <value>");
+
+            for (Map.Entry<String, Set<String>> entry : paramParser.getParamsMap().entrySet()) {
+                String name = entry.getKey();
+                Context.promptReference.get().param(name + " = ");
                 Param param = resolveProcedureArgs(lineReader.readLine(Context.promptReference.get().getValue()).trim());
                 args.put(name, param);
             }
         } else {
-            for (String name : distinctArgs) {
-                Context.promptReference.get().custom(name + " = ");
-                Object value = stringValue2Object(lineReader.readLine(Context.promptReference.get().getValue()).trim());
+            for (Map.Entry<String, Set<String>> entry : paramParser.getParamsMap().entrySet()) {
+                String name = entry.getKey();
+                Context.promptReference.get().param(name + " = ");
+                Object value = parseValueFromLiteral(lineReader.readLine(Context.promptReference.get().getValue()).trim());
                 args.put(name, value);
             }
         }
         return Pair.of(fmtSql, args);
     }
 
-    public static List<String> getProcedureParamTypes() {
-        Field[] fields = Types.class.getDeclaredFields();
-        List<String> types = new ArrayList<>();
-        try {
-            for (Field f : fields) {
-                types.add(Stdout.colorful(f.getName() + "(", Style.SILVER) + Stdout.colorful(f.get(null).toString(), Style.DARK_CYAN) + Stdout.colorful(")", Style.SILVER));
+    public static Map<String, Integer> getProcedureOutParamTypes() {
+        if (OUT_PARAM_TYPES.isEmpty()) {
+            StandardOutParamType oracle_cursor = StandardOutParamType.ORACLE_CURSOR;
+            OUT_PARAM_TYPES.put(oracle_cursor.getName(), oracle_cursor.typeNumber());
+            Field[] fields = Types.class.getFields();
+            try {
+                for (Field f : fields) {
+                    int n = f.getModifiers();
+                    if (Modifier.isFinal(n) && Modifier.isStatic(n)
+                            && (f.getType() == int.class || f.getType() == Integer.class)) {
+                        OUT_PARAM_TYPES.put(f.getName().toLowerCase(), (Integer) f.get(null));
+                    }
+                }
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
-            return types;
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
         }
+        return OUT_PARAM_TYPES;
     }
 
     public static Map<String, Param> toInOutParam(Map<String, Object> args) {
@@ -231,25 +213,62 @@ public class SqlUtil {
         return inOutParams;
     }
 
-    public static Param resolveProcedureArgs(String input) {
+    public static boolean hasOutParam(Map<String, Param> args) {
+        for (Map.Entry<String, Param> entry : args.entrySet()) {
+            Param param = entry.getValue();
+            if (param.getParamMode() == ParamMode.OUT || param.getParamMode() == ParamMode.IN_OUT) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static int parseOutParamCode(String input) {
+        if (StringUtils.isNumber(input)) {
+            return Integer.parseInt(input);
+        }
+        Integer n = OUT_PARAM_TYPES.get(input);
+        if (n == null) {
+            throw new IllegalArgumentException("Type name '" + input + "' not found");
+        }
+        return n;
+    }
+
+    public static Param resolveProcedureArgs(String input) throws IOException {
         Matcher outM = Constants.PROCEDURE_OUT_REGEX.matcher(input);
         if (outM.find()) {
-            return Param.OUT(new ProcedureExecutor.OutParam(Integer.parseInt(outM.group("out"))));
+            return Param.OUT(() -> parseOutParamCode(outM.group("out")));
         }
         Matcher inOutM = Constants.PROCEDURE_IN_OUT_REGEX.matcher(input);
         if (inOutM.find()) {
             String in = inOutM.group("in");
             String out = inOutM.group("out");
-            return Param.IN_OUT(stringValue2Object(in), new ProcedureExecutor.OutParam(Integer.parseInt(out)));
+            return Param.IN_OUT(parseValueFromLiteral(in), () -> parseOutParamCode(out));
         }
-        return Param.IN(stringValue2Object(input));
+        return Param.IN(parseValueFromLiteral(input));
     }
 
     public static List<String> getTemplateNames(String sql) {
         Matcher m = Constants.SQL_TEMPLATE_ARG_REGEX.matcher(sql);
         List<String> names = new ArrayList<>();
         while (m.find()) {
-            names.add(m.group("key"));
+            String name = m.group("key");
+            int idx = -1;
+            for (int i = 0; i < name.length(); i++) {
+                if (name.charAt(i) == '.') {
+                    idx = i;
+                    break;
+                }
+                if (name.charAt(i) == '[') {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx == -1) {
+                names.add(name);
+            } else {
+                names.add(name.substring(0, idx));
+            }
         }
         return names;
     }
