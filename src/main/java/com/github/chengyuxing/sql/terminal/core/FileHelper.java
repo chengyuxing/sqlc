@@ -1,6 +1,7 @@
 package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.sql.terminal.core.writer.*;
 import com.github.chengyuxing.sql.terminal.cli.Context;
 
@@ -44,5 +45,13 @@ public final class FileHelper {
     public static boolean isFilePath(String s) {
         String sep = File.separator;
         return s.startsWith(sep) || s.startsWith("." + sep) || s.startsWith(".." + sep);
+    }
+
+    public static boolean isFileURI(String path) {
+        return new FileResource(path) {
+            public boolean isURIPath() {
+                return isURI();
+            }
+        }.isURIPath();
     }
 }

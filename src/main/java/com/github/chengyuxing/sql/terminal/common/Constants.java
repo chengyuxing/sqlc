@@ -15,7 +15,7 @@ public class Constants {
     public static final Path APP_DIR = CLASS_PATH.getParent();
     public static final String TERM = System.getenv("TERM");
     public static final boolean IS_XTERM = TERM != null && TERM.startsWith("xterm");
-    public static final Pattern PROCEDURE_OUT_REGEX = Pattern.compile("^OUT\\s+(?<out>-?(0|[1-9]\\d*))", Pattern.CASE_INSENSITIVE);
-    public static final Pattern PROCEDURE_IN_OUT_REGEX = Pattern.compile("^(INOUT)\\s+(?<out>-?(0|[1-9]\\d*))\\s+(?<in>.+)", Pattern.CASE_INSENSITIVE);
+    public static final Pattern PROCEDURE_OUT_REGEX = Pattern.compile("^OUT\\s+(?<out>-?(0|[1-9]\\d*|\\w+))", Pattern.CASE_INSENSITIVE);
+    public static final Pattern PROCEDURE_IN_OUT_REGEX = Pattern.compile("^(INOUT)\\s+(?<out>-?(0|[1-9]\\d*|\\w+))\\s+(?<in>.+)", Pattern.CASE_INSENSITIVE);
     public static final Pattern SQL_TEMPLATE_ARG_REGEX = StringUtils.FMT.getPattern();
 }
