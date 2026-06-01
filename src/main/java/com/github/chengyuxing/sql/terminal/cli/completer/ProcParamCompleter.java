@@ -11,12 +11,6 @@ import org.jline.reader.impl.completer.StringsCompleter;
 public class ProcParamCompleter {
     private static final Completer outParamCompleter = new StringsCompleter(SqlUtil.getProcedureOutParamTypes().keySet());
 
-    public static final Completer in = new ArgumentCompleter(
-            new StringsCompleter("in"),
-            new Completers.FilesCompleter(Constants.USER_HOME),
-            NullCompleter.INSTANCE
-    );
-
     public static final Completer out = new ArgumentCompleter(
             new StringsCompleter("out"),
             outParamCompleter,

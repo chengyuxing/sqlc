@@ -28,7 +28,7 @@ public abstract class AbstractMode {
 
         this.sqlParamReader = LineReaderBuilder.builder()
                 .terminal(terminal)
-                .completer(new AggregateCompleter(new Completers.FilesCompleter(USER_HOME)))
+                .completer(new Completers.FilesCompleter(USER_HOME))
                 .variable(LineReader.HISTORY_FILE, SQLC_TEMP_PATH.resolve("history_sql_param_" + this.loginId))
                 .history(new DefaultHistory())
                 .build();
@@ -36,7 +36,7 @@ public abstract class AbstractMode {
         this.procParamReader = LineReaderBuilder.builder()
                 .terminal(terminal)
                 .completer(
-                        new AggregateCompleter(ProcParamCompleter.in,
+                        new AggregateCompleter(
                                 ProcParamCompleter.out,
                                 ProcParamCompleter.inout,
                                 new ArgumentCompleter(new Completers.FilesCompleter(USER_HOME))

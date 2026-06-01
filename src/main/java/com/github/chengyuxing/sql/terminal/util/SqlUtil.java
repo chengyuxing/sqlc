@@ -155,11 +155,10 @@ public class SqlUtil {
             // OUT formatter: num1 = OUT -2017
             // IN_OUT formatter: num1 = IN_OUT -5 126
             // IN formatter: num1 = 180
-            Stdout.printlnNotice("OUT Param Types Example:");
-            Stdout.printlnNotice(StringUtils.repeat("-", 80));
-            Map<String, Integer> types = getProcedureOutParamTypes();
+            Stdout.printlnTitle("OUT Param Types Example", '-', 80, Style.SILVER);
+
             int i = 1;
-            for (Map.Entry<String, Integer> e : types.entrySet()) {
+            for (Map.Entry<String, Integer> e : getProcedureOutParamTypes().entrySet()) {
                 String v = Stdout.colorful(e.getKey() + "(", Style.SILVER) + Stdout.colorful(e.getValue().toString(), Style.DARK_CYAN) + Stdout.colorful(")", Style.SILVER);
                 Stdout.printf("%-48s", v);
                 if (i % 4 == 0 || v.length() >= 48) {
@@ -167,8 +166,8 @@ public class SqlUtil {
                 }
                 i++;
             }
-            Stdout.printlnNotice(StringUtils.repeat("-", 80));
-            Stdout.printlnDarkWarning("Param format: <in value> | out <name|code> | inout <name|code> <value>");
+            Stdout.printlnTitle("", '-', 80, Style.SILVER);
+            Stdout.printlnDarkWarning("Format: <in value> | out <name|code> | inout <name|code> <value>");
 
             for (Map.Entry<String, Set<String>> entry : paramParser.getParamsMap().entrySet()) {
                 String name = entry.getKey();
@@ -229,7 +228,7 @@ public class SqlUtil {
         }
         Integer n = OUT_PARAM_TYPES.get(input);
         if (n == null) {
-            throw new IllegalArgumentException("Type name '" + input + "' not found");
+            throw new IllegalArgumentException("Out param type name '" + input + "' not found.");
         }
         return n;
     }

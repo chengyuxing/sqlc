@@ -1,14 +1,15 @@
-package com.github.chengyuxing.sql.terminal.core;
+package com.github.chengyuxing.sql.terminal.core.executor;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.Baki;
+import com.github.chengyuxing.sql.terminal.core.FileHelper;
+import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.util.Stdout;
-import com.github.chengyuxing.sql.terminal.common.Context;
-import org.jline.reader.LineReader;
+import com.github.chengyuxing.sql.terminal.cli.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,18 +21,13 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.stream.Stream;
 
-/**
- * exec指令执行器
- */
-public class SQLExecutor {
+public abstract class SQLExecutor implements IExecutor {
     private static final Logger log = LoggerFactory.getLogger(SQLExecutor.class);
 
     private final Baki baki;
-    private final LineReader lineReader;
 
-    public SQLExecutor(Baki baki, LineReader lineReader) {
+    public SQLExecutor(Baki baki) {
         this.baki = baki;
-        this.lineReader = lineReader;
     }
 
     public void execute(String sql) throws IOException {
@@ -44,23 +40,24 @@ public class SQLExecutor {
         outputResult(mySql, output);
     }
 
-    private void printResult(String sql) {
+    private void printResult(String sql) throws IOException {
         Stdout.printlnHighlightSql(sql);
-        Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, lineReader);
+        Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, paramsReader(sql));
         String fullSql = pair.getItem1();
         Map<String, Object> args = pair.getItem2();
-        PrintHelper.printOneSqlResultByType(baki, fullSql, fullSql, args);
+        PrintHelper.printExecuteResultByType(baki, fullSql, SqlUtil.detectSQLType(fullSql), args);
     }
 
-    private void outputResult(String sql, String output) {
+    private void outputResult(String sql, String output) throws IOException {
         Stdout.printlnHighlightSql(sql);
-        Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlWithArgs(sql, lineReader);
-        SqlType sqlType = SqlUtil.getType(sql);
+        Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlWithArgs(sql, paramsReader(sql));
+        SqlType sqlType = SqlUtil.detectSQLType(sql);
         if (sqlType != SqlType.QUERY) {
             Stdout.printlnWarning("Only query can redirect to file.");
             return;
         }
-        try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...", () -> baki.query(sqlAndArgs.getItem1()).args(sqlAndArgs.getItem2()).stream())) {
+        try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...",
+                () -> baki.query(sqlAndArgs.getItem1()).args(sqlAndArgs.getItem2()).stream())) {
             Stdout.printlnNotice("redirect query to file...");
             Path path = Paths.get(output);
             if (Files.isDirectory(path)) {

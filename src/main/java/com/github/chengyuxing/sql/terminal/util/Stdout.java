@@ -2,6 +2,7 @@ package com.github.chengyuxing.sql.terminal.util;
 
 import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.common.console.Printer;
+import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.util.SqlHighlighter;
 
 import static com.github.chengyuxing.sql.terminal.common.Constants.IS_XTERM;
@@ -79,6 +80,10 @@ public final class Stdout {
         println(colorful(msg, Style.SILVER));
     }
 
+    public static void printNotice(String msg) {
+        print(colorful(msg, Style.SILVER));
+    }
+
     public static void printlnPrimary(String msg) {
         println(colorful(msg, Style.DARK_CYAN));
     }
@@ -94,6 +99,21 @@ public final class Stdout {
 
     public static void printlnError(Throwable e) {
         ExceptionUtil.getCauseMessages(e).forEach(Stdout::printlnDanger);
+    }
+
+    public static void printlnTitle(String title, char border, int max, Style color) {
+        if (title.isEmpty()) {
+            println(StringUtils.repeat(String.valueOf(border), max), color);
+            return;
+        }
+        if (title.length() >= max - 2) {
+            println(border + title + border, color);
+            return;
+        }
+        int half = (max - title.length()) / 2;
+        String b = StringUtils.repeat("-", half);
+        String result = b + title + b;
+        println(result, color);
     }
 
     public static String colorful(String str, Style color) {
