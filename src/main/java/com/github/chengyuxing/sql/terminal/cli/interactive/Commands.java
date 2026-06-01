@@ -1,14 +1,16 @@
 package com.github.chengyuxing.sql.terminal.cli.interactive;
 
 import com.github.chengyuxing.common.console.Style;
+import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.terminal.cli.completer.ExecCompleter;
-import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 import com.github.chengyuxing.sql.terminal.util.Stdout;
 import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
-import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.github.chengyuxing.sql.terminal.common.Constants.CURRENT_DIR;
 
@@ -58,9 +60,6 @@ public class Commands {
 
     public static final Command help = new Command(":help", "Show this help message.");
 
-    public static final Command sqlKeywords = new Command("", "Sql input interactive mode", "",
-            new KeywordsCompleter());
-
     public static Command[] builtin = new Command[]{
             exec,
             import_,
@@ -72,31 +71,19 @@ public class Commands {
             status,
             quit,
             help,
-            sqlKeywords
     };
 
     public static Completer[] getCompleters() {
-        Completer[] completers = new Completer[builtin.length];
-        for (int i = 0; i < completers.length; i++) {
-            ArgumentCompleter completer = builtin[i].getCompleter();
-            // 1 argument completer just take the actually completer.
-            // e.g. sqlKeywords
-            // Fixed typing 'select * fr' should suggest 'form' word but it doesn't
-            if (completer.getCompleters().size() == 1) {
-                completers[i] = completer.getCompleters().get(0);
-            } else {
-                completers[i] = builtin[i].getCompleter();
-            }
+        List<Completer> completers = new ArrayList<>();
+        for (Command command : builtin) {
+            completers.add(command.getCompleter());
         }
-        return completers;
+        completers.add(Context.keywordsCompleter);
+        return completers.toArray(new Completer[0]);
     }
 
     public static void printHelp() {
         for (Command command : builtin) {
-            if (command.getName().isEmpty()) {
-                continue;
-            }
-
             String argsHolder = command.getArgsDescription().isEmpty() ? "" : "<" + command.getArgsDescription() + ">";
             String cmd = "  " + command.getName() + " " + argsHolder;
 

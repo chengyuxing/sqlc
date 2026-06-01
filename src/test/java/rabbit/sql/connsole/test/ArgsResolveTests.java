@@ -1,6 +1,7 @@
 package rabbit.sql.connsole.test;
 
 //import com.github.chengyuxing.sql.utils.SqlTranslator;
+import com.github.chengyuxing.sql.terminal.util.Stdout;
 import org.junit.Test;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 
@@ -26,7 +27,7 @@ public class ArgsResolveTests {
                     })
                     .forEach(System.out::println);
         } catch (Exception e) {
-            PrintHelper.printlnWarning(e.toString());
+            Stdout.printlnWarning(e.toString());
         }
 
     }

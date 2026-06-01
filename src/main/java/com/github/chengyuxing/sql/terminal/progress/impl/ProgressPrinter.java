@@ -1,6 +1,5 @@
 package com.github.chengyuxing.sql.terminal.progress.impl;
 
-import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.progress.Progress;
 import com.github.chengyuxing.sql.terminal.progress.UncheckedInterruptedException;
 import com.github.chengyuxing.sql.terminal.util.Stdout;

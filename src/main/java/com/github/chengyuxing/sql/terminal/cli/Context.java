@@ -1,7 +1,8 @@
-package com.github.chengyuxing.sql.terminal.common;
+package com.github.chengyuxing.sql.terminal.cli;
 
 import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.types.View;
 
@@ -23,7 +24,7 @@ public abstract class Context {
     /**
      * Cli prompt ref
      */
-    public static final AtomicReference<Prompt> promptReference = new AtomicReference<>();
+    public static final AtomicReference<Prompt> promptReference = new AtomicReference<>(new Prompt(""));
     /**
      * query result output path
      */
@@ -41,6 +42,8 @@ public abstract class Context {
      * temp files
      */
     public static final List<Path> tempFiles = new ArrayList<>();
+
+    public static final KeywordsCompleter keywordsCompleter = new KeywordsCompleter();
 
     /**
      * Get the cli prompt state text currently.

@@ -1,5 +1,6 @@
 package com.github.chengyuxing.sql.terminal.cli.completer;
 
+import com.github.chengyuxing.sql.terminal.common.Constants;
 import org.jline.builtins.Completers;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
@@ -16,7 +17,7 @@ public class ExecCompleter implements Completer {
 
     public ExecCompleter() {
         this.xqlNamesCompleter = new StringsCompleter();
-        this.fileCompleter = new Completers.FileNameCompleter();
+        this.fileCompleter = new Completers.FilesCompleter(Constants.USER_HOME);
     }
 
     @Override

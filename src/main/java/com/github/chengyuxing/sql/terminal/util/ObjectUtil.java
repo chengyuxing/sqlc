@@ -7,16 +7,16 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.FileResource;
 
 import java.util.Arrays;
+import java.util.Map;
 
 public class ObjectUtil {
     public final static ObjectMapper JSON = new ObjectMapper();
     public final static ObjectWriter PRETTY_JSON = JSON.writerWithDefaultPrettyPrinter();
 
     public static String getJson(DataRow row) throws JsonProcessingException {
-        for (String name : row.keySet()) {
-            Object v = row.get(name);
-            if (v instanceof byte[]) {
-                row.put(name, wrapObjectForSerialized(v));
+        for (Map.Entry<String, Object> e : row.entrySet()) {
+            if (e.getValue() instanceof byte[]) {
+                e.setValue(wrapObjectForSerialized(e.getValue()));
             }
         }
         return PRETTY_JSON.writeValueAsString(row);
@@ -26,12 +26,11 @@ public class ObjectUtil {
         if (obj == null) {
             return null;
         }
-        if (Object[].class.isAssignableFrom(obj.getClass())) {
-            return Arrays.toString((Object[]) obj);
-        }
         if (obj instanceof byte[]) {
-            byte[] bytesArr = (byte[]) obj;
-            return "blob:" + FileResource.formatFileSize(bytesArr.length);
+            return "blob:" + FileResource.formatFileSize(((byte[]) obj).length);
+        }
+        if (obj.getClass().isArray()) {
+            return Arrays.toString((Object[]) obj);
         }
         return obj;
     }

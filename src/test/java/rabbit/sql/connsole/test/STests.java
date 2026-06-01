@@ -1,17 +1,15 @@
 package rabbit.sql.connsole.test;
 
-import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.excel.Excels;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
-import com.github.chengyuxing.sql.terminal.cli.Arguments;
-import com.github.chengyuxing.sql.terminal.cli.Help;
-import com.github.chengyuxing.sql.terminal.core.DataSourceLoader;
+import com.github.chengyuxing.sql.terminal.cli.interactive.Commands;
+import com.github.chengyuxing.sql.terminal.core.BakiLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
-import com.github.chengyuxing.sql.terminal.vars.Constants;
+import com.github.chengyuxing.sql.terminal.common.Constants;
 import com.github.lalyos.jfiglet.FigletFont;
 import org.junit.Test;
 
@@ -22,7 +20,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Date;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -85,11 +82,6 @@ public class STests {
     }
 
     @Test
-    public void testargs() throws Exception {
-        System.out.println(new Arguments("-ncyx", "-p123456", "-skipHeader"));
-    }
-
-    @Test
     public void test() throws Exception {
         System.out.println(Object[].class.isAssignableFrom(byte[].class));
     }
@@ -103,7 +95,7 @@ public class STests {
 
         Args<Object> args = Args.of("id", "");
 
-        BakiDao bakiDao = DataSourceLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres")
+        BakiDao bakiDao = BakiLoader.of("jdbc:postgresql://127.0.0.1:5432/postgres")
                 .getUserBaki();
         bakiDao.setXqlFileManager(xqlFileManager);
         Thread.sleep(5000);
@@ -159,7 +151,7 @@ public class STests {
 
     @Test
     public void testCmdDesc() throws Exception {
-        Help.get("--cmd");
+        Commands.printHelp();
     }
 
     @Test
@@ -169,13 +161,6 @@ public class STests {
         strings.add("abc");
         strings.add("bc");
         System.out.println(strings);
-    }
-
-    @Test
-    public void testArgs() throws Exception {
-        Arguments args = new Arguments("-nchengyuxing", "-p", "-header-10", "--with-tx");
-        System.out.println(args);
-        System.out.println(args.getIfBlank("-vp", "10"));
     }
 
     @Test

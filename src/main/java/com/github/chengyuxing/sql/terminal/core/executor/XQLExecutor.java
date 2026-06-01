@@ -1,13 +1,14 @@
-package com.github.chengyuxing.sql.terminal.core;
+package com.github.chengyuxing.sql.terminal.core.executor;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.BakiDao;
+import com.github.chengyuxing.sql.terminal.core.FileHelper;
+import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.util.Stdout;
-import com.github.chengyuxing.sql.terminal.common.Context;
-import org.jline.reader.LineReader;
+import com.github.chengyuxing.sql.terminal.cli.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,15 +19,13 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class XQLExecutor {
+public abstract class XQLExecutor implements IExecutor {
     private static final Logger log = LoggerFactory.getLogger(XQLExecutor.class);
 
     private final BakiDao baki;
-    private final LineReader lineReader;
 
-    public XQLExecutor(BakiDao baki, LineReader lineReader) {
+    public XQLExecutor(BakiDao baki) {
         this.baki = baki;
-        this.lineReader = lineReader;
     }
 
     public void execute(String sqlName) throws IOException {
@@ -38,17 +37,17 @@ public class XQLExecutor {
         outputResult(sqlName, output);
     }
 
-    private void printResult(String sqlName) {
+    private void printResult(String sqlName) throws IOException {
         String sql = Context.xqlFileManager.get(sqlName);
         Stdout.printlnHighlightSql(sql);
-        Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, lineReader);
-        PrintHelper.printOneSqlResultByType(baki, "&" + sqlName, pair.getItem1(), pair.getItem2());
+        Pair<String, Map<String, Object>> pair = SqlUtil.prepareSqlWithArgs(sql, paramsReader(sql));
+        PrintHelper.printExecuteResultByType(baki, "&" + sqlName, SqlUtil.detectSQLType(pair.getItem1()), pair.getItem2());
     }
 
-    private void outputResult(String sqlName, String output) {
+    private void outputResult(String sqlName, String output) throws IOException {
         String sql = Context.xqlFileManager.get(sqlName);
         Stdout.printlnHighlightSql(sql);
-        Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlWithArgs(sql, lineReader);
+        Pair<String, Map<String, Object>> sqlAndArgs = SqlUtil.prepareSqlWithArgs(sql, paramsReader(sql));
         try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...", () -> baki.query("&" + sqlName).args(sqlAndArgs.getItem2()).stream())) {
             Stdout.printlnNotice("redirect query to file...");
             Path path = Paths.get(output);

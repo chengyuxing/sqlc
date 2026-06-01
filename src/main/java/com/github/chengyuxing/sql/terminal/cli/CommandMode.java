@@ -1,38 +1,37 @@
 package com.github.chengyuxing.sql.terminal.cli;
 
-import com.github.chengyuxing.sql.terminal.core.SQLExecutor;
-import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
+import com.github.chengyuxing.sql.terminal.core.executor.SQLExecutor;
 import com.github.chengyuxing.sql.terminal.core.BakiLoader;
 import com.github.chengyuxing.sql.terminal.core.BatchInsertHelper;
-import com.github.chengyuxing.sql.terminal.common.Context;
+import com.github.chengyuxing.sql.terminal.types.SqlType;
+import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.Stdout;
 import com.github.chengyuxing.sql.transaction.Tx;
-import org.jline.builtins.Completers;
 import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Terminal;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.concurrent.Callable;
 
-import static com.github.chengyuxing.sql.terminal.common.Constants.CURRENT_DIR;
-
 public class CommandMode extends AbstractMode implements Callable<Integer> {
     private final SQLExecutor executor;
 
     protected CommandMode(StartupShell shell, BakiLoader bakiLoader, Terminal terminal) {
-        super(shell, bakiLoader);
+        super(shell, bakiLoader, terminal);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             bakiLoader.close();
-            System.err.println("Bye bye :(");
+            Stdout.printlnWarning("Bye bye :(");
         }));
 
-        Context.promptReference.set(new Prompt(""));
-        LineReader reader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .completer(new Completers.FilesCompleter(CURRENT_DIR))
-                .build();
-        this.executor = new SQLExecutor(bakiLoader.getUserBaki(), reader);
+        this.executor = new SQLExecutor(bakiLoader.getUserBaki()) {
+            @Override
+            public LineReader paramsReader(String sql) {
+                return SqlUtil.detectSQLType(sql) == SqlType.PROCEDURE
+                        ? getProcParamReader()
+                        : getSqlParamReader();
+            }
+        };
     }
 
     @Override

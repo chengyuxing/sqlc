@@ -40,6 +40,11 @@ public class Prompt {
         this.status = Status.CUSTOM;
     }
 
+    public void param(String content) {
+        this.value = content;
+        this.status = Status.PARAM;
+    }
+
     public String getValue() {
         return Stdout.colorful(value, style);
     }
@@ -55,6 +60,7 @@ public class Prompt {
     public enum Status {
         NEWLINE,
         APPEND,
-        CUSTOM
+        CUSTOM,
+        PARAM
     }
 }

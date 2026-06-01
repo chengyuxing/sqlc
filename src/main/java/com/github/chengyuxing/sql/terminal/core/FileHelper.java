@@ -1,274 +1,34 @@
 package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.common.tuple.Pair;
-import com.github.chengyuxing.common.util.StringUtils;
-import com.github.chengyuxing.excel.io.BigExcelLineWriter;
-import com.github.chengyuxing.sql.Args;
-import com.github.chengyuxing.sql.terminal.util.*;
-import com.github.chengyuxing.sql.terminal.common.Context;
-import org.apache.poi.ss.usermodel.Sheet;
-import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
-import com.github.chengyuxing.sql.terminal.types.View;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.github.chengyuxing.sql.terminal.core.writer.*;
+import com.github.chengyuxing.sql.terminal.cli.Context;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class FileHelper {
-    private static final Logger log = LoggerFactory.getLogger(FileHelper.class);
+    public static final IWriter dsvWriter = new DSVWriter();
+    public static final IWriter excelWriter = new ExcelWriter();
+    public static final IWriter jsonWriter = new JSONWriter();
+    public static final InsertSQLWriter sqlWriter = new InsertSQLWriter();
 
-    public static void writeFile(Stream<DataRow> stream, String path) {
-        path = Paths.get(path).toAbsolutePath().toString();
+    public static void writeFile(Stream<DataRow> stream, String path) throws IOException {
         if (path.endsWith(".sql")) {
-            writeInsertSqlFile(stream, path);
+            sqlWriter.write(stream, path);
             return;
         }
         switch (Context.viewMode.get()) {
             case json:
-                writeJSON(stream, path);
+                jsonWriter.write(stream, path);
                 break;
             case tsv:
             case csv:
-                writeDSV(stream, path);
+                dsvWriter.write(stream, path);
                 break;
             case excel:
-                writeExcel(stream, path);
+                excelWriter.write(stream, path);
                 break;
-        }
-    }
-
-    public static void writeDSV(Stream<DataRow> s, String path) {
-        String fileName = path;
-        if (!StringUtils.endsWithsIgnoreCase(fileName, ".tsv", ".csv")) {
-            String suffix = Context.viewMode.get() == View.tsv ? ".tsv" : ".csv";
-            fileName += suffix;
-        }
-        final String resultFileName = fileName;
-        AtomicReference<FileOutputStream> outputStreamAtomicReference = new AtomicReference<>(null);
-        ProgressPrinter pp = ProgressPrinter.of("", " rows has written.");
-        try {
-            outputStreamAtomicReference.set(new FileOutputStream(fileName));
-            BufferedOutputStream out = new BufferedOutputStream(outputStreamAtomicReference.get());
-            String d = Context.viewMode.get() == View.tsv ? "\t" : ",";
-            Stdout.printlnPrimary("waiting...");
-            pp.whenStopped((value, during) -> {
-                Stdout.printlnPrimary(value + " rows write completed.( " + TimeUtil.format(during) + ")");
-                Stdout.printlnNotice(resultFileName + " saved!");
-            }).start();
-            AtomicBoolean first = new AtomicBoolean(true);
-            s.forEach(row -> {
-                try {
-                    if (first.get()) {
-                        String line = String.join(d, row.names());
-                        out.write(line.getBytes(StandardCharsets.UTF_8));
-                        out.write("\n".getBytes(StandardCharsets.UTF_8));
-                        first.set(false);
-                    }
-                    String line = row.values().stream().map(v -> Objects.isNull(v) ? "" : v.toString()).collect(Collectors.joining(d));
-                    out.write(line.getBytes(StandardCharsets.UTF_8));
-                    out.write("\n".getBytes(StandardCharsets.UTF_8));
-                    pp.increment();
-                } catch (IOException e) {
-                    log.error("write dsv({}) error", d, e);
-                    throw new UncheckedIOException(e);
-                }
-            });
-            out.close();
-            pp.stop();
-        } catch (Exception e) {
-            log.error("write dsv error", e);
-            pp.interrupt();
-            try {
-                FileOutputStream out = outputStreamAtomicReference.get();
-                if (out != null) {
-                    out.close();
-                    Files.deleteIfExists(Paths.get(fileName));
-                }
-            } catch (IOException ex) {
-                e.addSuppressed(ex);
-            }
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void writeJSON(Stream<DataRow> s, String path) {
-        String fileName = path;
-        if (!fileName.endsWith(".json")) {
-            fileName += ".json";
-        }
-        Path filePath = Paths.get(fileName);
-        AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
-        ProgressPrinter pp = ProgressPrinter.of("", " object has written.");
-        try {
-            bufferedWriterAtomicReference.set(Files.newBufferedWriter(filePath, StandardCharsets.UTF_8));
-            BufferedWriter writer = bufferedWriterAtomicReference.get();
-            Stdout.printlnPrimary("waiting...");
-            pp.whenStopped((value, during) -> {
-                Stdout.printlnPrimary(value + " object write completed.(" + TimeUtil.format(during) + ")");
-                Stdout.printlnNotice(filePath + " saved!");
-            }).start();
-            AtomicBoolean first = new AtomicBoolean(true);
-            writer.write("[");
-            s.forEach(row -> {
-                try {
-                    if (first.get()) {
-                        writer.write(ObjectUtil.getJson(row));
-                        first.set(false);
-                    } else {
-                        writer.write(", " + ObjectUtil.getJson(row));
-                    }
-                    pp.increment();
-                } catch (IOException e) {
-                    log.error("write json error", e);
-                    throw new RuntimeException(e);
-                }
-            });
-            writer.write("]");
-            writer.close();
-            pp.stop();
-        } catch (Exception e) {
-            pp.interrupt();
-            BufferedWriter writer = bufferedWriterAtomicReference.get();
-            if (writer != null) {
-                try {
-                    writer.close();
-                    Files.deleteIfExists(filePath);
-                } catch (IOException ex) {
-                    e.addSuppressed(ex);
-                }
-            }
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void writeExcel(Stream<DataRow> rowStream, String path) {
-        String filePath = path;
-        if (!filePath.endsWith(".xlsx")) {
-            filePath += ".xlsx";
-        }
-        final String resultFilename = filePath;
-        BigExcelLineWriter writer = new BigExcelLineWriter(true);
-        ProgressPrinter pp = ProgressPrinter.of("", " rows has written.");
-        try {
-            Stdout.printlnPrimary("waiting...");
-            pp.whenStopped((value, during) -> {
-                Stdout.printlnPrimary(value + " rows write completed.(" + TimeUtil.format(during) + ")");
-                Stdout.printlnNotice(resultFilename + " saved!");
-            }).start();
-            Sheet sheet = writer.createSheet("Sheet1");
-            AtomicBoolean first = new AtomicBoolean(true);
-            rowStream.forEach(row -> {
-                if (first.get()) {
-                    writer.writeRow(sheet, row.names().toArray());
-                    first.set(false);
-                }
-                writer.writeRow(sheet, row.values());
-                pp.increment();
-            });
-            writer.saveTo(filePath);
-            writer.close();
-            pp.stop();
-        } catch (Exception e) {
-            log.error("write excel error", e);
-            pp.interrupt();
-            try {
-                writer.close();
-                Files.deleteIfExists(Paths.get(filePath));
-            } catch (Exception ex) {
-                e.addSuppressed(ex);
-            }
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void writeInsertSqlFile(Stream<DataRow> stream, String outputPath) {
-        // e.g: /usr/local/qbpt_deve.pinyin_ch.sql
-        Path path = Paths.get(outputPath);
-        String currentDir = path.getParent().toString();
-        // qbpt_deve.pinyin_ch.sql
-        String fileName = path.getFileName().toString();
-        // qbpt_deve.pinyin_ch
-        String tableName = fileName.substring(0, fileName.lastIndexOf("."));
-        Stdout.printlnWarning("Ignore view mode, output file name will as the insert sql script target table name!!!");
-        Stdout.printlnWarning("e.g: " + fileName + " --> insert into " + tableName + " (...) values (...);");
-        AtomicReference<BufferedWriter> bufferedWriterAtomicReference = new AtomicReference<>(null);
-        ProgressPrinter pp = ProgressPrinter.of("", " rows has written.");
-        try {
-            bufferedWriterAtomicReference.set(Files.newBufferedWriter(path, StandardCharsets.UTF_8));
-            BufferedWriter writer = bufferedWriterAtomicReference.get();
-            AtomicBoolean hasBlob = new AtomicBoolean(false);
-
-            final AtomicReference<String> fileDir = new AtomicReference<>("");
-            final AtomicReference<String> blobsDir = new AtomicReference<>("");
-
-            Stdout.printlnPrimary("waiting...");
-            pp.whenStopped((value, during) -> {
-                Stdout.printlnPrimary(value + " rows write completed.(" + TimeUtil.format(during) + ")");
-                if (hasBlob.get()) {
-                    try {
-                        Files.move(path, Paths.get(fileDir.get(), fileName));
-                        String readme = StringUtils.FMT.format("please do not change files if you will batch insert to another table:\n-----------------\n${blobs}\n${insert}", Args.of("blobs", blobsDir, "insert", path));
-                        Files.write(Paths.get(fileDir.get(), "readme.txt"), readme.getBytes(StandardCharsets.UTF_8));
-                        Stdout.printlnNotice(StringUtils.FMT.format("${a}(${b} and blobs) saved!", Args.of("a", fileDir, "b", fileName)));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                } else {
-                    Stdout.printlnNotice(outputPath + " saved!");
-                }
-            }).start();
-
-            stream.forEach(d -> {
-                try {
-                    Pair<String, List<String>> insertAndBlobKeys = SqlUtil.generateInsert(tableName, d, pp.getValue());
-                    writer.write(insertAndBlobKeys.getItem1() + ";\n");
-                    if (!insertAndBlobKeys.getItem2().isEmpty()) {
-                        if (!hasBlob.get()) {
-                            hasBlob.set(true);
-                        }
-                        for (String k : insertAndBlobKeys.getItem2()) {
-                            if (fileDir.get().isEmpty()) {
-                                fileDir.set(Paths.get(currentDir, tableName + "_" + System.currentTimeMillis()).toString());
-                                blobsDir.set(Paths.get(fileDir.get(), "blobs").toString());
-                                Files.createDirectory(Paths.get(fileDir.get()));
-                                Files.createDirectory(Paths.get(blobsDir.get()));
-                            }
-                            Bytes2File b2f = new Bytes2File((byte[]) d.get(k));
-                            b2f.saveTo(Paths.get(blobsDir.get(), "blob_" + pp.getValue() + "_" + k));
-                        }
-                    }
-                    pp.increment();
-                } catch (IOException e) {
-                    log.error("write sql insert file with blob error", e);
-                    throw new UncheckedIOException("write blob file error:" + blobsDir + "; " + fileDir, e);
-                }
-            });
-            writer.close();
-            pp.stop();
-        } catch (IOException e) {
-            log.error("write sql insert file error", e);
-            pp.interrupt();
-            try {
-                BufferedWriter writer = bufferedWriterAtomicReference.get();
-                if (writer != null) {
-                    writer.close();
-                    Files.deleteIfExists(path);
-                }
-            } catch (IOException ioException) {
-                e.addSuppressed(ioException);
-            }
-            throw new UncheckedIOException(e);
         }
     }
 

@@ -62,7 +62,6 @@ public class DataBaseResource {
     }
 
     public Set<String> getSqlKeywords(String dbName) {
-        log.warn(dbName);
         Path cnf = Paths.get(Constants.APP_DIR.getParent().toString(), "completion", dbName + ".cnf");
         if (!Files.exists(cnf)) {
             log.warn("Load {} failed: not found", cnf);
