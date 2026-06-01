@@ -112,7 +112,7 @@ public final class Stdout {
             return;
         }
         int half = (max - title.length()) / 2;
-        String b = StringUtils.repeat("-", half);
+        String b = StringUtils.repeat(String.valueOf(border), half);
         String result = b + title + b;
         println(result, color);
     }
