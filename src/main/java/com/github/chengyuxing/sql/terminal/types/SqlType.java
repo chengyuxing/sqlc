@@ -12,5 +12,5 @@ public enum SqlType {
     /**
      * 存储过程，函数
      */
-    FUNCTION
+    PROCEDURE
 }
