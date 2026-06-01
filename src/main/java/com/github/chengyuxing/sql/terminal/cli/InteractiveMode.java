@@ -5,7 +5,7 @@ import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
-import com.github.chengyuxing.sql.terminal.core.executor.IExecutor;
+import com.github.chengyuxing.sql.terminal.core.executor.AbstractExecutor;
 import com.github.chengyuxing.sql.terminal.core.executor.SQLExecutor;
 import com.github.chengyuxing.sql.terminal.core.executor.XQLExecutor;
 import com.github.chengyuxing.sql.terminal.cli.completer.ExecCompleter;
@@ -53,8 +53,8 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
     private final BakiDao baki;
     private final JlineCommandRegistry commandRegistry;
     private final Prompt prompt;
-    private final IExecutor sqlExecutor;
-    private final IExecutor xqlExecutor;
+    private final AbstractExecutor sqlExecutor;
+    private final AbstractExecutor xqlExecutor;
 
     protected InteractiveMode(StartupShell shell, BakiLoader bakiLoader, Terminal terminal) {
         super(shell, bakiLoader, terminal);

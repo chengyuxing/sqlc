@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public abstract class IExecutor {
+public abstract class AbstractExecutor {
     protected abstract LineReader paramsReader(String sql);
 
     protected abstract String parseSQL(String sql);

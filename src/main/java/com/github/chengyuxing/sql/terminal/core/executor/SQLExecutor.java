@@ -14,7 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public abstract class SQLExecutor extends IExecutor {
+public abstract class SQLExecutor extends AbstractExecutor {
     private final BakiDao baki;
 
     public SQLExecutor(BakiDao baki) {

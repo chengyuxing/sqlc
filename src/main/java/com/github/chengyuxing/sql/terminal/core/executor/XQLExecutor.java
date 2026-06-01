@@ -11,7 +11,7 @@ import com.github.chengyuxing.sql.terminal.cli.Context;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-public abstract class XQLExecutor extends IExecutor {
+public abstract class XQLExecutor extends AbstractExecutor {
     private final BakiDao baki;
 
     public XQLExecutor(BakiDao baki) {
