@@ -1,14 +1,9 @@
 package com.github.chengyuxing.sql.terminal.cli;
 
 import com.github.chengyuxing.common.console.Style;
-import com.github.chengyuxing.sql.XQLFileManager;
-import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.types.View;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -32,18 +27,7 @@ public abstract class Context {
     /**
      * is cli in sql appending state
      */
-    public static final AtomicReference<Boolean> appending = new AtomicReference<>(false);
-    /**
-     * xql file manager
-     */
-    public static final XQLFileManager xqlFileManager = new XQLFileManager();
-
-    /**
-     * temp files
-     */
-    public static final List<Path> tempFiles = new ArrayList<>();
-
-    public static final KeywordsCompleter keywordsCompleter = new KeywordsCompleter();
+    public static final AtomicBoolean appending = new AtomicBoolean(false);
 
     /**
      * Get the cli prompt state text currently.

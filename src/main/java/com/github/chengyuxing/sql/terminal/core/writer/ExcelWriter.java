@@ -4,6 +4,7 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
+import com.github.chengyuxing.sql.terminal.util.PathUtils;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.slf4j.Logger;
@@ -12,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -21,7 +21,7 @@ public class ExcelWriter implements IWriter {
 
     @Override
     public void write(Stream<DataRow> data, String output) throws IOException {
-        Path path = Paths.get(output.endsWith(".xlsx") ? output : output + ".xlsx");
+        Path path = PathUtils.resolve(output.endsWith(".xlsx") ? output : output + ".xlsx");
 
         Stdout.printlnPrimary("waiting...");
 

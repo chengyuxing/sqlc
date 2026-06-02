@@ -4,7 +4,6 @@ import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
-import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.common.Constants;
 import com.github.chengyuxing.sql.terminal.cli.Context;
@@ -17,7 +16,6 @@ import org.jline.reader.LineReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.nio.file.Paths;
 import java.sql.Types;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -87,8 +85,8 @@ public class SqlUtil {
         if (isQuote(ts)) {
             return ts.substring(1, ts.length() - 1);
         }
-        if (FileHelper.isFilePath(ts)) {
-            return Paths.get(ts).toFile();
+        if (PathUtils.isFilePath(ts)) {
+            return PathUtils.resolve(ts).toFile();
         }
         return literal;
     }
@@ -271,5 +269,14 @@ public class SqlUtil {
             }
         }
         return names;
+    }
+
+    public static boolean allowOutput2file(String sql) {
+        SqlType sqlType = SqlUtil.detectSQLType(sql);
+        if (sqlType != SqlType.QUERY) {
+            Stdout.printlnWarning("only query can output to file");
+            return false;
+        }
+        return true;
     }
 }

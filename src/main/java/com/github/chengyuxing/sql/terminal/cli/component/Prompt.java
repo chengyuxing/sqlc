@@ -1,6 +1,7 @@
 package com.github.chengyuxing.sql.terminal.cli.component;
 
 import com.github.chengyuxing.common.console.Style;
+import com.github.chengyuxing.sql.terminal.cli.Help;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 
 import java.util.regex.Matcher;
@@ -9,7 +10,7 @@ import java.util.regex.Pattern;
 public class Prompt {
     private final String host;
     private String value;
-    private static final String DEFAULT = "sqlc> ";
+    private static final String DEFAULT = Help.appSimpleName + "> ";
     private static final String APPEND = ">> ";
     private Style style = Style.PURPLE;
     private Status status = Status.NEWLINE;

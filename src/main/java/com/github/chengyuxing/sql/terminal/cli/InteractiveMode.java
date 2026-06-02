@@ -1,20 +1,20 @@
 package com.github.chengyuxing.sql.terminal.cli;
 
 import com.github.chengyuxing.common.console.Style;
-import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.terminal.cli.completer.KeywordsCompleter;
 import com.github.chengyuxing.sql.terminal.core.executor.AbstractExecutor;
 import com.github.chengyuxing.sql.terminal.core.executor.SQLExecutor;
 import com.github.chengyuxing.sql.terminal.core.executor.XQLExecutor;
-import com.github.chengyuxing.sql.terminal.cli.completer.ExecCompleter;
 import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.cli.component.SqlHistory;
 import com.github.chengyuxing.sql.terminal.cli.interactive.Commands;
 import com.github.chengyuxing.sql.terminal.core.*;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.types.View;
+import com.github.chengyuxing.sql.terminal.util.PathUtils;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.transaction.Tx;
@@ -36,7 +36,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
@@ -55,8 +54,10 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
     private final Prompt prompt;
     private final AbstractExecutor sqlExecutor;
     private final AbstractExecutor xqlExecutor;
+    private final List<Path> tempFiles = new ArrayList<>();
+    private final KeywordsCompleter keywordsCompleter = new KeywordsCompleter();
 
-    protected InteractiveMode(StartupShell shell, BakiLoader bakiLoader, Terminal terminal) {
+    protected InteractiveMode(App shell, BakiLoader bakiLoader, Terminal terminal) {
         super(shell, bakiLoader, terminal);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -65,7 +66,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                 Stdout.printlnWarning("Transaction rollback!");
             }
             bakiLoader.close();
-            Context.tempFiles.forEach(p -> {
+            tempFiles.forEach(p -> {
                 try {
                     Files.deleteIfExists(p);
                 } catch (Exception e) {
@@ -79,7 +80,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
         this.sqlBuilder = new ArrayList<>();
         this.mainReader = LineReaderBuilder.builder()
                 .terminal(terminal)
-                .completer(new AggregateCompleter(Commands.getCompleters()))
+                .completer(new AggregateCompleter(Commands.getCompleters(this.keywordsCompleter)))
                 .variable(LineReader.HISTORY_FILE, SQLC_TEMP_PATH.resolve("history_cmd_" + getLoginId()))
                 .history(new SqlHistory(sqlBuilder))
                 .build();
@@ -95,6 +96,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                         : getSqlParamReader();
             }
         };
+
         this.xqlExecutor = new XQLExecutor(this.baki) {
             @Override
             public LineReader paramsReader(String sql) {
@@ -114,14 +116,14 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
 
         DataBaseResource dataBaseResource = new DataBaseResource(bakiLoader);
 
-        Context.keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
+        keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
         CompletableFuture.supplyAsync(dataBaseResource::getNames)
                 .whenCompleteAsync((tables, e) -> {
                     if (e != null) {
                         log.error("Load database objects", e);
                         return;
                     }
-                    Context.keywordsCompleter.addVarsNames(tables);
+                    keywordsCompleter.addVarsNames(tables);
                 });
 
         Context.promptReference.set(prompt);
@@ -132,121 +134,107 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        try {
-            exit:
-            while (true) {
-                try {
-                    String line = mainReader.readLine(Context.getPromptState(shell.jdbcUrl)).trim();
-                    if (line.isEmpty()) {
-                        continue;
-                    }
-                    // execute command
-                    if (line.startsWith(":")) {
-                        sqlBuilder.clear();
-                        switch (line) {
-                            case ":q":
-                                if (Context.txActive.get()) {
-                                    Stdout.printlnWarning("Warning: Transaction is active now, please :tx commit or :tx rollback before quit, Control c, server shutdown or kill command will be rollback transaction!");
-                                    break;
-                                } else {
-                                    break exit;
-                                }
-                            case ":help":
-                                Stdout.printf("Typing the statement and execute it with a ';' at the end.%n");
-                                Stdout.printf("Interactive Mode Commands:%n");
-                                Commands.printHelp();
-                                break;
-                            case ":status":
-                                statusAction();
-                                break;
-                            case ":tx":
-                                if (Context.txActive.get()) {
-                                    Stdout.printlnWarning("transaction is active now!");
-                                } else {
-                                    Tx.begin();
-                                    Context.txActive.set(true);
-                                }
-                                break;
-                            case ":paste":
-                                pasteAction();
-                                break;
-                            default:
-                                if (line.startsWith(":import")) {
-                                    String[] args = line.substring(7).trim().split("\\s+");
-                                    importAction(args);
-                                    break;
-                                }
-
-                                // :exec [xql name | file | sql]
-                                if (line.startsWith(":exec")) {
-                                    String target = line.substring(5).trim();
-                                    executeAction(target);
-                                    break;
-                                }
-
-                                // :load my.xql
-                                if (line.startsWith(":load")) {
-                                    String xql = line.substring(5).trim();
-                                    loadXqlFileAction(xql);
-                                    break;
-                                }
-
-                                if (line.startsWith(":tx")) {
-                                    String action = line.substring(3).trim();
-                                    action = action.isEmpty() ? "begin" : action.toLowerCase();
-                                    int code = transactionToggleAction(action);
-                                    if (code == 0) {
-                                        break;
-                                    }
-                                }
-
-                                if (line.startsWith(":view")) {
-                                    String view = line.substring(5).trim();
-                                    toggleViewAction(view);
-                                    break;
-                                }
-
-                                if (line.startsWith(":output")) {
-                                    String path = line.substring(7).trim();
-                                    Context.outputPath.set(path);
-                                    break;
-                                }
-
-                                Stdout.printlnWarning("command invalid, command :help to get some help!");
-                                break;
-                        }
-                        continue;
-                    }
-                    // merge sql to execute
-                    if (line.endsWith(";")) {
-                        line = line.substring(0, line.length() - 1);
-                        sqlBuilder.add(line);
-                        String sql = String.join("\n", sqlBuilder);
-                        // execute sql
-                        if (!sql.isEmpty()) {
-                            sqlExecutor.execute(sql);
-                            sqlBuilder.clear();
-                            Context.appending.set(false);
-                        }
-                    } else {
-                        sqlBuilder.add(line);
-                        Context.appending.set(true);
-                    }
-                } catch (UserInterruptException e) {
-                    // ctrl+c
-                    Stdout.printlnNotice(":q");
-                    break;
-                } catch (EndOfFileException e) {
-                    Stdout.printlnNotice(":q");
-                    // ctrl+d
-                    break;
-                } catch (Exception e) {
-                    Stdout.printlnError(e);
-                    sqlBuilder.clear();
+        while (true) {
+            try {
+                String line = mainReader.readLine(Context.getPromptState(shell.jdbcUrl)).trim();
+                if (line.isEmpty()) {
+                    continue;
                 }
+                // execute command
+                if (!Context.appending.get() && line.startsWith(":")) {
+                    if (line.equals(Commands.quit.getName())) {
+                        if (Context.txActive.get()) {
+                            Stdout.printlnWarning("Warning: Transaction is active now, please :tx commit or :tx rollback before quit, Control c, server shutdown or kill command will be rollback transaction!");
+                        } else {
+                            break;
+                        }
+                        continue;
+                    }
+                    if (line.equals(Commands.help.getName())) {
+                        Stdout.printf("Typing the statement and execute it with a ';' at the end.%n");
+                        Stdout.printf("Interactive Mode Commands:%n");
+                        Commands.printHelp();
+                        continue;
+                    }
+                    if (line.equals(Commands.status.getName())) {
+                        statusAction();
+                        continue;
+                    }
+
+                    if (line.equals(Commands.paste.getName())) {
+                        pasteAction();
+                        continue;
+                    }
+                    if (line.startsWith(Commands.import_.getName())) {
+                        String[] args = line.substring(7).trim().split("\\s+");
+                        importAction(args);
+                        continue;
+                    }
+
+                    // :exec [xql name | file | sql]
+                    if (line.startsWith(Commands.exec.getName())) {
+                        String target = line.substring(5).trim();
+                        executeAction(target);
+                        continue;
+                    }
+
+                    // :load my.xql
+                    if (line.startsWith(Commands.load.getName())) {
+                        String xql = line.substring(5).trim();
+                        loadXqlFileAction(xql);
+                        continue;
+                    }
+
+                    if (line.startsWith(Commands.transaction.getName())) {
+                        String action = line.substring(3).trim();
+                        action = action.isEmpty() ? "begin" : action.toLowerCase();
+                        int code = transactionToggleAction(action);
+                        if (code == 0) {
+                            continue;
+                        }
+                    }
+
+                    if (line.startsWith(Commands.toggleView.getName())) {
+                        String view = line.substring(5).trim();
+                        toggleViewAction(view);
+                        continue;
+                    }
+
+                    if (line.startsWith(Commands.output.getName())) {
+                        String path = line.substring(7).trim();
+                        Context.outputPath.set(path);
+                        continue;
+                    }
+
+                    Stdout.printlnWarning("command invalid, :help to get tutorial!");
+                    continue;
+                }
+                // merge sql to execute
+                if (line.endsWith(";")) {
+                    line = line.substring(0, line.length() - 1);
+                    sqlBuilder.add(line);
+                    String sql = String.join("\n", sqlBuilder);
+                    // execute sql
+                    if (!sql.isEmpty()) {
+                        sqlExecutor.execute(sql);
+                        sqlBuilder.clear();
+                        Context.appending.set(false);
+                    }
+                } else {
+                    sqlBuilder.add(line);
+                    Context.appending.set(true);
+                }
+            } catch (UserInterruptException e) {
+                // ctrl+c
+                break;
+            } catch (EndOfFileException e) {
+                // ctrl+d
+                break;
+            } catch (Exception e) {
+                Stdout.printlnError(e);
+                Context.appending.set(false);
+                sqlBuilder.clear();
             }
-        } catch (Exception e) {
-            Stdout.printlnError(e);
         }
         return 0;
     }
@@ -272,7 +260,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
     private void pasteAction() throws Exception {
         String temp = "~paste_" + System.currentTimeMillis();
         Path path = SQLC_TEMP_PATH.resolve(temp);
-        Context.tempFiles.add(path);
+        tempFiles.add(path);
         try {
             commandRegistry.invoke(session, "nano", "-$", path);
             if (Files.exists(path)) {
@@ -309,38 +297,22 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
             return;
         }
         if (target.startsWith("&")) {
-            xqlExecutor.execute(target.substring(1));
+            xqlExecutor.execute(target);
         } else {
             sqlExecutor.execute(target);
         }
     }
 
-    private void loadXqlFileAction(String xql) {
-        if (!xql.endsWith(".xql")) {
-            Stdout.printlnWarning("xql file is required!");
+    private void loadXqlFileAction(String xql) throws IOException {
+        XQLFileManager xqlFileManager = baki.getXqlFileManager();
+
+        Path path = PathUtils.resolve(xql);
+        if (Files.isDirectory(path)) {
+            String[] files = FileHelper.getFiles(path, ".xql");
+            FileHelper.loadXqlFiles(xqlFileManager, files);
             return;
         }
-        String alias = FileResource.getFileName(xql, false);
-        String path = xql;
-        if (!FileHelper.isFileURI(path)) {
-            path = "file:" + xql;
-        }
-        Context.xqlFileManager.add(alias, path);
-        Context.xqlFileManager.init();
-        Context.xqlFileManager.foreach((a, r) -> {
-            Stdout.printlnTitle(a, '-', 80, Style.SILVER);
-            r.getEntry().forEach((name, sql) -> {
-                String info = XQLFileManager.encodeSqlReference(a, name) + (sql.getDescription().isEmpty() ? "" : " -> " + sql.getDescription());
-                Stdout.printlnNotice(info);
-            });
-        });
-        Stdout.printlnPrimary(Objects.requireNonNull(Context.xqlFileManager.getResource(alias)).getEntry().size() + " SQL objects loaded!");
-        if (baki.getXqlFileManager() == null) {
-            baki.setXqlFileManager(Context.xqlFileManager);
-        }
-        ExecCompleter execCompleter = (ExecCompleter) Commands.exec.getCompleter().getCompleters().get(1);
-        execCompleter.setXqlNames(Context.xqlFileManager.names());
-        Stdout.printlnPrimary("Type ':exec &sql_name' to execute!");
+        FileHelper.loadXqlFiles(xqlFileManager, xql);
     }
 
     private int transactionToggleAction(String action) {

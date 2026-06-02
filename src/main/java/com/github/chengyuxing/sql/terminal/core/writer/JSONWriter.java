@@ -4,6 +4,7 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.util.ObjectUtil;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
+import com.github.chengyuxing.sql.terminal.util.PathUtils;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,6 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -23,7 +23,7 @@ public class JSONWriter implements IWriter {
 
     @Override
     public void write(Stream<DataRow> data, String output) throws IOException {
-        Path path = Paths.get(output.endsWith(".json") ? output : output + ".json");
+        Path path = PathUtils.resolve(output.endsWith(".json") ? output : output + ".json");
 
         Stdout.printlnPrimary("waiting...");
 

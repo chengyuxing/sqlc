@@ -42,8 +42,8 @@ public abstract class Progress {
         return value.get();
     }
 
-    public long increment() {
-        return value.incrementAndGet();
+    public void increment() {
+        value.incrementAndGet();
     }
 
     public boolean isStopped() {

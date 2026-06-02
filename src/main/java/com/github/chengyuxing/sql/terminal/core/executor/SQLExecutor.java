@@ -3,16 +3,14 @@ package com.github.chengyuxing.sql.terminal.core.executor;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
-import com.github.chengyuxing.sql.terminal.types.SqlType;
+import com.github.chengyuxing.sql.terminal.util.PathUtils;
 import com.github.chengyuxing.sql.terminal.util.SqlUtil;
-import com.github.chengyuxing.sql.terminal.common.Stdout;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public abstract class SQLExecutor extends AbstractExecutor {
     private final BakiDao baki;
@@ -30,13 +28,10 @@ public abstract class SQLExecutor extends AbstractExecutor {
     @Override
     protected void outputResult(String sql, String output) throws IOException {
         prepareSQL(sql, (mysql, args) -> {
-            SqlType sqlType = SqlUtil.detectSQLType(mysql);
-            if (sqlType != SqlType.QUERY) {
-                Stdout.printlnWarning("only query can output to file");
-                return;
-            }
             try {
-                FileHelper.writeFile(baki, mysql, args, output);
+                if (SqlUtil.allowOutput2file(mysql)) {
+                    FileHelper.writeFile(baki, mysql, args, output);
+                }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -46,7 +41,7 @@ public abstract class SQLExecutor extends AbstractExecutor {
     @Override
     protected String parseSQL(String sqlOrPath) {
         String sql = sqlOrPath;
-        Path path = Paths.get(sqlOrPath);
+        Path path = PathUtils.resolve(sqlOrPath);
         if (!sqlOrPath.contains("\n") && Files.exists(path) && Files.isRegularFile(path)) {
             try {
                 sql = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);

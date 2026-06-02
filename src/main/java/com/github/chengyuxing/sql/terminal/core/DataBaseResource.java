@@ -3,7 +3,6 @@ package com.github.chengyuxing.sql.terminal.core;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
-import com.github.chengyuxing.sql.terminal.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +33,7 @@ public class DataBaseResource {
     }
 
     void init() {
-        Path path = APP_DIR.getParent().resolve(Paths.get("completion", "database.xql"));
+        Path path = APP_DIR.resolve(Paths.get("completion", "database.xql"));
         if (Files.notExists(path)) {
             log.warn("Load {} failed: not found.", path);
             return;
@@ -62,7 +61,7 @@ public class DataBaseResource {
     }
 
     public Set<String> getSqlKeywords(String dbName) {
-        Path cnf = Paths.get(Constants.APP_DIR.getParent().toString(), "completion", dbName + ".cnf");
+        Path cnf = APP_DIR.resolve(Paths.get("completion", dbName + ".cnf"));
         if (!Files.exists(cnf)) {
             log.warn("Load {} failed: not found", cnf);
             return Collections.emptySet();

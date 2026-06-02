@@ -1,6 +1,7 @@
 package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.sql.BakiDao;
+import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.common.Constants;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -74,6 +75,7 @@ public class BakiLoader implements AutoCloseable {
         userDataSource = new HikariDataSource(config);
         sysDataSource = new HikariDataSource(config);
         userBaki = new BakiDao(userDataSource);
+        userBaki.setXqlFileManager(new XQLFileManager());
         sysBaki = new BakiDao(sysDataSource);
     }
 
@@ -83,7 +85,7 @@ public class BakiLoader implements AutoCloseable {
      * @param path 路径
      */
     public static void loadDrivers(String path) throws IOException {
-        Path driverDir = Constants.APP_DIR.getParent().resolve(path);
+        Path driverDir = Constants.APP_DIR.resolve(path);
         if (!Files.exists(driverDir)) {
             throw new FileNotFoundException("jdbc driver folder not exists: " + driverDir);
         }

@@ -6,4 +6,4 @@ if [ "${DIRNAME:0:1}" = "/" ]; then
 else
   CURDIR="$(pwd)"/"$(dirname "$DIRNAME")"
 fi
-java -jar "$CURDIR"/lib/${name}-${version}.jar "$@"
+java -jar "$CURDIR"/lib/${artifactId}-${version}.jar "$@"

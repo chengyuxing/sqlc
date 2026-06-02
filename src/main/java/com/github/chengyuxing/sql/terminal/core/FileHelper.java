@@ -1,19 +1,24 @@
 package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.common.io.FileResource;
+import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.sql.BakiDao;
+import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.terminal.cli.completer.ExecCompleter;
+import com.github.chengyuxing.sql.terminal.cli.interactive.Commands;
 import com.github.chengyuxing.sql.terminal.core.writer.*;
 import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
+import com.github.chengyuxing.sql.terminal.util.PathUtils;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import static com.github.chengyuxing.sql.terminal.util.PathUtils.isFileURI;
 
 public final class FileHelper {
 
@@ -26,7 +31,7 @@ public final class FileHelper {
         try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...",
                 () -> baki.query(sqlOrRef).args(args).stream())) {
             Stdout.printlnNotice("redirect query to file...");
-            Path path = Paths.get(output);
+            Path path = PathUtils.resolve(output);
             if (Files.isDirectory(path)) {
                 path = path.resolve("query_result_" + System.currentTimeMillis());
             }
@@ -62,16 +67,47 @@ public final class FileHelper {
         }
     }
 
-    public static boolean isFilePath(String s) {
-        String sep = File.separator;
-        return s.startsWith(sep) || s.startsWith("." + sep) || s.startsWith(".." + sep);
+    public static String[] getFiles(Path dir, String extension) throws IOException {
+        try (Stream<Path> s = Files.list(dir)) {
+            return s.filter(Files::isRegularFile)
+                    .map(Path::toString)
+                    .filter(p -> p.endsWith(extension))
+                    .toArray(String[]::new);
+        }
     }
 
-    public static boolean isFileURI(String path) {
-        return new FileResource(path) {
-            public boolean isURIPath() {
-                return isURI();
+    public static void loadXqlFiles(XQLFileManager xqlFileManager, String... files) {
+        for (String file : files) {
+            if (!file.endsWith(".xql")) {
+                continue;
             }
-        }.isURIPath();
+            if (isFileURI(file)) {
+                xqlFileManager.add(file);
+                continue;
+            }
+            String uri = PathUtils.resolve(file).toUri().toString();
+            xqlFileManager.add(uri);
+        }
+        xqlFileManager.init();
+        // print details log unless only 1 file
+        if (files.length == 1) {
+            xqlFileManager.foreach((a, r) -> {
+                Stdout.printlnTitle(a, '-', 80, Style.SILVER);
+                for (Map.Entry<String, XQLFileManager.Sql> entry : r.getEntry().entrySet()) {
+                    String name = entry.getKey();
+                    XQLFileManager.Sql sql = entry.getValue();
+                    String info = XQLFileManager.encodeSqlReference(a, name) + (sql.getDescription().isEmpty() ? "" : " -> " + sql.getDescription());
+                    Stdout.printlnNotice(info);
+                }
+            });
+        } else {
+            xqlFileManager.getResources().forEach((alias, r) ->
+                    Stdout.printf("+ %s (%s)  %s%n", Style.SILVER, alias, r.getEntry().size(), r.getDescription()));
+        }
+        ExecCompleter.setXQLNames(xqlFileManager.names());
+
+        if (!xqlFileManager.getResources().isEmpty()) {
+            Stdout.println("Type '" + Commands.exec.getName() + " &sql_name' to execute!");
+        }
     }
 }

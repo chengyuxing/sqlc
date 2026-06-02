@@ -7,6 +7,7 @@ import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
+import com.github.chengyuxing.sql.terminal.util.PathUtils;
 import com.github.chengyuxing.sql.terminal.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,6 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,15 +33,15 @@ public class InsertSQLWriter implements IWriter {
     @Override
     public void write(Stream<DataRow> data, String output) throws IOException {
         // e.g: /usr/local/qbpt_deve.pinyin_ch.sql
-        Path path = Paths.get(output.endsWith(".sql") ? output : output + ".sql");
-        String currentDir = path.getParent().toString();
+        Path path = PathUtils.resolve(output.endsWith(".sql") ? output : output + ".sql");
+        Path currentDir = path.getParent();
         // qbpt_deve.pinyin_ch.sql
         String fileName = path.getFileName().toString();
         // qbpt_deve.pinyin_ch
         String tableName = fileName.substring(0, fileName.lastIndexOf("."));
 
         Stdout.printlnWarning("Extension '.sql' has been detected!");
-        Stdout.printlnWarning("Generate insert statement file: '" + fileName + "' -> 'insert into " + tableName + " ... '");
+        Stdout.printlnWarning("Generate insert statement: " + fileName + " -> insert into " + tableName + " ... ");
         Stdout.printlnPrimary("waiting...");
 
         // if the data doesn't contain the blob type, just save the insert file, otherwise
@@ -58,7 +58,7 @@ public class InsertSQLWriter implements IWriter {
         //       |- img_1
         //       |- ...
 
-        Path fileDir = Paths.get(currentDir, tableName + "_" + System.currentTimeMillis());
+        Path fileDir = currentDir.resolve(tableName + "_" + System.currentTimeMillis());
         Path blobDir = fileDir.resolve("blobs");
         AtomicBoolean hasBlob = new AtomicBoolean(false);
 

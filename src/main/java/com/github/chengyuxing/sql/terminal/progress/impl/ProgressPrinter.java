@@ -42,12 +42,13 @@ public class ProgressPrinter extends Progress {
 
     @Override
     protected void listening(long cost) {
-        if (value.get() % step == 0) {
+        long current = value.get();
+        if (current % step == 0) {
             try {
                 if (formatter == null) {
-                    updateValue(prefix + value.get() + suffix + "(" + TimeUtil.format(cost) + ")");
+                    updateValue(prefix + current + suffix + "(" + TimeUtil.format(cost) + ")");
                 } else {
-                    updateValue(formatter.apply(value.get(), cost));
+                    updateValue(formatter.apply(current, cost));
                 }
             } catch (InterruptedException e) {
                 throw new UncheckedInterruptedException();

@@ -1,7 +1,6 @@
 package com.github.chengyuxing.sql.terminal.cli.interactive;
 
 import com.github.chengyuxing.common.console.Style;
-import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.terminal.cli.completer.ExecCompleter;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import org.jline.builtins.Completers;
@@ -10,6 +9,7 @@ import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.github.chengyuxing.sql.terminal.common.Constants.CURRENT_DIR;
@@ -18,7 +18,7 @@ public class Commands {
     public static final Command exec = new Command(":exec",
             "Execute sql file or xql name(&sql_name).",
             "sqlFile|&xqlName",
-            new ExecCompleter(),
+            ExecCompleter.INSTANCE,
             NullCompleter.INSTANCE);
 
     public static final Command import_ = new Command(":import",
@@ -27,9 +27,9 @@ public class Commands {
             new Completers.FilesCompleter(CURRENT_DIR, "*.sql|*.json|*.csv|*.tsv|*.xlsx|*.xls"),
             NullCompleter.INSTANCE);
 
-    public static final Command load = new Command(":load",
-            "Read load xql file for execute by name,\ne.g. :load /my.xql",
-            "file",
+    public static final Command load = new Command(":xql",
+            "Read load xql file for execute by name,\ne.g. :xql file or folder",
+            "file|folder",
             new Completers.FilesCompleter(CURRENT_DIR, "*.xql"),
             NullCompleter.INSTANCE);
 
@@ -73,12 +73,12 @@ public class Commands {
             help,
     };
 
-    public static Completer[] getCompleters() {
+    public static Completer[] getCompleters(Completer... mergeMore) {
         List<Completer> completers = new ArrayList<>();
         for (Command command : builtin) {
             completers.add(command.getCompleter());
         }
-        completers.add(Context.keywordsCompleter);
+        completers.addAll(Arrays.asList(mergeMore));
         return completers.toArray(new Completer[0]);
     }
 

@@ -2,41 +2,25 @@ package com.github.chengyuxing.sql.terminal.cli.completer;
 
 import com.github.chengyuxing.sql.terminal.common.Constants;
 import org.jline.builtins.Completers;
-import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
-import org.jline.reader.LineReader;
-import org.jline.reader.ParsedLine;
+import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 
 import java.util.*;
 
-public class ExecCompleter implements Completer {
+public class ExecCompleter {
+    private final static Completer[] group = new Completer[]{
+            new StringsCompleter(),
+            new Completers.FilesCompleter(Constants.CURRENT_DIR)
+    };
 
-    private Completer xqlNamesCompleter;
-    private final Completer fileCompleter;
+    public static final AggregateCompleter INSTANCE = new AggregateCompleter(group);
 
-    public ExecCompleter() {
-        this.xqlNamesCompleter = new StringsCompleter();
-        this.fileCompleter = new Completers.FilesCompleter(Constants.USER_HOME);
-    }
-
-    @Override
-    public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-        String w = line.word();
-        if (w.startsWith("&")) {
-            List<Candidate> temp = new ArrayList<>();
-            xqlNamesCompleter.complete(reader, line, temp);
-            candidates.addAll(temp);
-        } else {
-            fileCompleter.complete(reader, line, candidates);
-        }
-    }
-
-    public void setXqlNames(Collection<String> vars) {
+    public static void setXQLNames(Collection<String> names) {
         Set<String> refs = new HashSet<>();
-        for (String var : vars) {
+        for (String var : names) {
             refs.add("&" + var);
         }
-        this.xqlNamesCompleter = new StringsCompleter(refs);
+        group[0] = new StringsCompleter(refs);
     }
 }

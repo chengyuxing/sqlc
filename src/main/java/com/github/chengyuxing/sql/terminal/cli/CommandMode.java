@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
 public class CommandMode extends AbstractMode implements Callable<Integer> {
     private final AbstractExecutor executor;
 
-    protected CommandMode(StartupShell shell, BakiLoader bakiLoader, Terminal terminal) {
+    protected CommandMode(App shell, BakiLoader bakiLoader, Terminal terminal) {
         super(shell, bakiLoader, terminal);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             bakiLoader.close();
@@ -40,7 +40,7 @@ public class CommandMode extends AbstractMode implements Callable<Integer> {
         if (shell.ioOptions == null) {
             return 0;
         }
-        StartupShell.ExecuteOptions execute = shell.ioOptions.executeOptions;
+        App.ExecuteOptions execute = shell.ioOptions.executeOptions;
         // read sql from -e
         if (execute != null) {
             validate(execute);
@@ -55,7 +55,7 @@ public class CommandMode extends AbstractMode implements Callable<Integer> {
         }
 
         // --import
-        StartupShell.ImportOptions _import = shell.ioOptions.importOptions;
+        App.ImportOptions _import = shell.ioOptions.importOptions;
         if (_import != null) {
             if (shell.enableTransaction) {
                 Tx.using(() -> doImportData(_import));
@@ -66,13 +66,13 @@ public class CommandMode extends AbstractMode implements Callable<Integer> {
         return 0;
     }
 
-    private void validate(StartupShell.ExecuteOptions executeOptions) {
+    private void validate(App.ExecuteOptions executeOptions) {
         if (!executeOptions.output.isEmpty() && executeOptions.sql.length != 1) {
             throw new IllegalArgumentException("-o can only be used when exactly one -e is specified.");
         }
     }
 
-    private void doImportData(StartupShell.ImportOptions _import) {
+    private void doImportData(App.ImportOptions _import) {
         try {
             BatchInsertHelper.readFile4batch(bakiLoader.getUserBaki(), _import.file, _import.sheetIndex, _import.headerIndex);
         } catch (Exception e) {
@@ -80,7 +80,7 @@ public class CommandMode extends AbstractMode implements Callable<Integer> {
         }
     }
 
-    private void doExecuteSql(StartupShell.ExecuteOptions execute) {
+    private void doExecuteSql(App.ExecuteOptions execute) {
         try {
             if (execute.sql.length == 1) {
                 executor.execute(execute.sql[0]);
