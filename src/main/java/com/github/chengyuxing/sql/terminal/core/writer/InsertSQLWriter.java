@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 import static com.github.chengyuxing.sql.terminal.util.SqlUtils.safeQuote;
@@ -50,9 +51,17 @@ public class InsertSQLWriter implements IWriter {
         Path tempDir = Files.createDirectory(PathUtils.createTmpFile(source));
         Path tempFile = tempDir.resolve(filename);
         Path tempBlobDir = Files.createDirectory(tempDir.resolve("blobs"));
+        Path targetDir = source.getParent().resolve(tablename + "_" + System.currentTimeMillis());
+        AtomicBoolean hasBlob = new AtomicBoolean(false);
         try (BufferedWriter writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
-            pp.finalize((value, during) ->
-                    Stdout.printlnPrimary(value + " rows write completed (" + TimeUtils.format(during) + ")")).start();
+            pp.finalize((value, during) -> {
+                Stdout.printlnPrimary(value + " rows write completed (" + TimeUtils.format(during) + ")");
+                if (hasBlob.get()) {
+                    Stdout.printf("Built file (%s, blobs) : %s%n", Style.DARK_CYAN, filename, targetDir.toString());
+                } else {
+                    Stdout.printlnPrimary("Built file: " + source);
+                }
+            }).start();
 
             data.forEach(row -> {
                 try {
@@ -73,8 +82,8 @@ public class InsertSQLWriter implements IWriter {
             });
             if (PathUtils.isDirectoryEmpty(tempBlobDir)) {
                 Files.move(tempFile, source, StandardCopyOption.REPLACE_EXISTING);
-                Stdout.printlnPrimary("Built file: " + source);
             } else {
+                hasBlob.set(true);
                 String readme = String.format("# Notice\n\n" +
                                 "Please do not change files if you will batch insert to another table:\n\n" +
                                 "-----------------\n\n" +
@@ -82,9 +91,7 @@ public class InsertSQLWriter implements IWriter {
                                 "- %s",
                         source.getFileName());
                 Files.write(tempDir.resolve("README.md"), readme.getBytes(StandardCharsets.UTF_8));
-                Path targetDir = source.getParent().resolve(tablename + "_" + System.currentTimeMillis());
                 Files.move(tempDir, targetDir, StandardCopyOption.REPLACE_EXISTING);
-                Stdout.printf("Built file (%s, blobs) : %s%n", Style.DARK_CYAN, filename, targetDir.toString());
             }
             pp.stop();
         } catch (Exception e) {
