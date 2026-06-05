@@ -84,7 +84,7 @@ public class InsertSQLWriter implements IWriter {
                 Files.write(tempDir.resolve("README.md"), readme.getBytes(StandardCharsets.UTF_8));
                 Path targetDir = source.getParent().resolve(tablename + "_" + System.currentTimeMillis());
                 Files.move(tempDir, targetDir, StandardCopyOption.REPLACE_EXISTING);
-                Stdout.printf("Built file (%s, blobs) : %s%n", Style.DARK_CYAN, targetDir.toString(), filename);
+                Stdout.printf("Built file (%s, blobs) : %s%n", Style.DARK_CYAN, filename, targetDir.toString());
             }
             pp.stop();
         } catch (Exception e) {
