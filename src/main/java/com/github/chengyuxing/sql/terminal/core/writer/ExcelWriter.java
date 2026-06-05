@@ -31,8 +31,7 @@ public class ExcelWriter implements IWriter {
             try (BigExcelLineWriter writer = new BigExcelLineWriter(true)) {
                 pp.finalize((value, during) -> {
                     Stdout.printlnPrimary(value + " rows write completed (" + TimeUtils.format(during) + ")");
-                    Stdout.print(Stdout.colorful(path.toString(), Style.SILVER, Style.UNDERLINE));
-                    Stdout.printlnNotice(" saved");
+                    Stdout.printlnPrimary("Building file: " + path);
                 }).start();
 
                 Sheet sheet = writer.createSheet("Sheet1");

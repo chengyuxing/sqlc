@@ -1,7 +1,6 @@
 package com.github.chengyuxing.sql.terminal.core.writer;
 
 import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.util.ObjectUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
@@ -34,8 +33,7 @@ public class JSONWriter implements IWriter {
             try (BufferedWriter writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8)) {
                 pp.finalize((value, during) -> {
                     Stdout.printlnPrimary(value + " object write completed (" + TimeUtils.format(during) + ")");
-                    Stdout.print(Stdout.colorful(path.toString(), Style.SILVER, Style.UNDERLINE));
-                    Stdout.printlnNotice(" saved");
+                    Stdout.printlnPrimary("Building file: " + path);
                 }).start();
 
                 AtomicBoolean first = new AtomicBoolean(true);

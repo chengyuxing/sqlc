@@ -73,7 +73,7 @@ public class InsertSQLWriter implements IWriter {
             });
             if (PathUtils.isDirectoryEmpty(tempBlobDir)) {
                 Files.move(tempFile, source, StandardCopyOption.REPLACE_EXISTING);
-                Stdout.printlnNotice(source + " saved");
+                Stdout.printlnPrimary("Building file: " + source);
             } else {
                 String readme = String.format("# Notice\n\n" +
                                 "Please do not change files if you will batch insert to another table:\n\n" +
@@ -84,8 +84,7 @@ public class InsertSQLWriter implements IWriter {
                 Files.write(tempDir.resolve("README.md"), readme.getBytes(StandardCharsets.UTF_8));
                 Path targetDir = source.getParent().resolve(tablename + "_" + System.currentTimeMillis());
                 Files.move(tempDir, targetDir, StandardCopyOption.REPLACE_EXISTING);
-                Stdout.print(Stdout.colorful(targetDir.toString(), Style.SILVER, Style.UNDERLINE));
-                Stdout.printf(" (%s, blobs) saved%n", Style.SILVER, filename);
+                Stdout.printf("Building file (%s, blobs) : %s%n", Style.DARK_CYAN, targetDir.toString(), filename);
             }
             pp.stop();
         } catch (Exception e) {

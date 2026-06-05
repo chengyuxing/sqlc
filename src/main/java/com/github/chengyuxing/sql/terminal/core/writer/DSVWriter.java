@@ -42,8 +42,7 @@ public class DSVWriter implements IWriter {
             try (BufferedWriter writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8)) {
                 pp.finalize((value, during) -> {
                     Stdout.printlnPrimary(value + " rows write completed ( " + TimeUtils.format(during) + ")");
-                    Stdout.print(Stdout.colorful(path.toString(), Style.SILVER, Style.UNDERLINE));
-                    Stdout.printlnNotice(" saved");
+                    Stdout.printlnPrimary("Building file: " + path);
                 }).start();
 
                 AtomicBoolean first = new AtomicBoolean(true);
