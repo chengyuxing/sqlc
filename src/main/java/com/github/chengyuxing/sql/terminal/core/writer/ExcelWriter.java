@@ -1,6 +1,7 @@
 package com.github.chengyuxing.sql.terminal.core.writer;
 
 import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
@@ -30,7 +31,8 @@ public class ExcelWriter implements IWriter {
             try (BigExcelLineWriter writer = new BigExcelLineWriter(true)) {
                 pp.finalize((value, during) -> {
                     Stdout.printlnPrimary(value + " rows write completed (" + TimeUtils.format(during) + ")");
-                    Stdout.printlnNotice(path + " saved");
+                    Stdout.print(Stdout.colorful(path.toString(), Style.SILVER, Style.UNDERLINE));
+                    Stdout.printlnNotice(" saved");
                 }).start();
 
                 Sheet sheet = writer.createSheet("Sheet1");

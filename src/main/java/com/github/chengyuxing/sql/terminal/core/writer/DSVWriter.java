@@ -1,6 +1,7 @@
 package com.github.chengyuxing.sql.terminal.core.writer;
 
 import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
@@ -41,7 +42,8 @@ public class DSVWriter implements IWriter {
             try (BufferedWriter writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8)) {
                 pp.finalize((value, during) -> {
                     Stdout.printlnPrimary(value + " rows write completed ( " + TimeUtils.format(during) + ")");
-                    Stdout.printlnNotice(path + " saved");
+                    Stdout.print(Stdout.colorful(path.toString(), Style.SILVER, Style.UNDERLINE));
+                    Stdout.printlnNotice(" saved");
                 }).start();
 
                 AtomicBoolean first = new AtomicBoolean(true);

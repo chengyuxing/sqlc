@@ -31,7 +31,7 @@ public final class FileHelper {
     public static void writeFile(BakiDao baki, String sqlOrRef, Map<String, Object> args, String output) throws IOException {
         try (Stream<DataRow> s = WaitingPrinter.waiting("Preparing...",
                 () -> baki.query(sqlOrRef).args(args).stream())) {
-            Stdout.printlnNotice("Redirect query to file...");
+            Stdout.printlnPrimary("Redirect query to file...");
             Path path = PathUtils.resolve(output);
             if (Files.isDirectory(path)) {
                 path = path.resolve("query_result_" + System.currentTimeMillis());

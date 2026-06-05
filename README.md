@@ -16,7 +16,8 @@
 
 `-e"[sql|path[>>> output]]"` 或者 `-e"[@path]"`
 
-> sql语句或者读取文件内的sql语句执行，如果是查询语句，则可以使用重定向符号`>>>`将结果导出到文件，结果类型取决于命令`-f`，不指定则默认为`tsv`；
+> sql语句或者读取文件内的sql语句执行，如果是查询语句，则可以使用重定向符号`>>>`将结果导出到文件，结果类型取决于命令`-f`
+> ，不指定则默认为`tsv`；
 >
 > 如果路径前面有`@`符号，那么此指令的逻辑是执行批量导入数据，文件类型支持：`tsv|csv|xlsx|xls|json|sql`，sql为**insert**语句。
 >
@@ -47,7 +48,8 @@
 
 **参数**：`[sql-name]`
 
-执行一条由[XQLFileManager](https://github.com/chengyuxing/rabbit-sql/tree/rabbit-sql-7#XQLFileManager)加载的sql，可支持动态sql，执行此指令的前提是通过 **:load** 指令加载了xql文件；
+执行一条由[XQLFileManager](https://github.com/chengyuxing/rabbit-sql/tree/rabbit-sql-7#XQLFileManager)
+加载的sql，可支持动态sql，执行此指令的前提是通过 **:load** 指令加载了xql文件；
 
 ### :load
 
@@ -130,9 +132,9 @@
 
   参数类型支持：**IN**、**OUT**、**IN OUT**，格式如下：
 
-  - **IN**: `[IN value]`
-  - **OUT**:  `out [OUT code]`
-  - **IN OUT**: `inout [OUT code] [IN value]`
+    - **IN**: `[IN value]`
+    - **OUT**:  `out [OUT code]`
+    - **IN OUT**: `inout [OUT code] [IN value]`
 
 ### 预编译sql参数
 
@@ -179,6 +181,7 @@
   ```
 
 ## 截图
+
 - [命令模式执行预编译sql](screen_shot/command_prepare_query.gif)
 - [切换结果打印视图](screen_shot/change_view.gif)
 - [加载xql文件执行动态sql](screen_shot/xql.gif)

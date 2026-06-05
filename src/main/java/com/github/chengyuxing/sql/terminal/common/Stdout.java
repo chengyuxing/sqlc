@@ -121,7 +121,7 @@ public final class Stdout {
         println(result, color);
     }
 
-    public static String colorful(String str, Style color) {
+    public static String colorful(String str, Style... color) {
         if (IS_XTERM) {
             return Printer.colorful(str, color);
         }

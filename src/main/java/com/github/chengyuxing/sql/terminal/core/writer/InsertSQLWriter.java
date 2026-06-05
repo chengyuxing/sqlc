@@ -1,6 +1,7 @@
 package com.github.chengyuxing.sql.terminal.core.writer;
 
 import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.common.io.IOutput;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
@@ -83,7 +84,8 @@ public class InsertSQLWriter implements IWriter {
                 Files.write(tempDir.resolve("README.md"), readme.getBytes(StandardCharsets.UTF_8));
                 Path targetDir = source.getParent().resolve(tablename + "_" + System.currentTimeMillis());
                 Files.move(tempDir, targetDir, StandardCopyOption.REPLACE_EXISTING);
-                Stdout.printlnNotice(String.format("%s(%s, blobs) saved", targetDir, filename));
+                Stdout.print(Stdout.colorful(targetDir.toString(), Style.SILVER, Style.UNDERLINE));
+                Stdout.printf(" (%s, blobs) saved%n", Style.SILVER, filename);
             }
             pp.stop();
         } catch (Exception e) {

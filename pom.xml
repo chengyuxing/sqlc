@@ -6,28 +6,27 @@
 
     <groupId>com.github.chengyuxing</groupId>
     <artifactId>sqlc</artifactId>
-    <version>2.1.6</version>
+    <version>3.0.0</version>
     <packaging>jar</packaging>
-    <name>sqlc</name>
-    <description>simple sql terminal for ddl, dml, batch import/export data.</description>
+    <description>Simple sql terminal for ddl, dml, batch import/export data.</description>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <output.dir>${project.basedir}/target/${name}-v${version}</output.dir>
+        <output.dir>${project.basedir}/target/${artifactId}-${version}</output.dir>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.github.chengyuxing</groupId>
             <artifactId>rabbit-sql</artifactId>
-            <version>10.3.3</version>
+            <version>10.3.5</version>
         </dependency>
 
         <dependency>
             <groupId>com.github.chengyuxing</groupId>
             <artifactId>rabbit-excel</artifactId>
-            <version>4.3.44</version>
+            <version>4.3.50</version>
         </dependency>
 
         <dependency>
@@ -58,6 +57,12 @@
             <groupId>com.github.lalyos</groupId>
             <artifactId>jfiglet</artifactId>
             <version>0.0.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>4.7.7</version>
         </dependency>
 
         <dependency>
@@ -112,7 +117,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>com.github.chengyuxing.sql.terminal.App</mainClass>
+                            <mainClass>com.github.chengyuxing.sql.terminal.cli.App</mainClass>
                             <addBuildEnvironmentEntries>true</addBuildEnvironmentEntries>
                         </manifest>
                         <manifestEntries>
@@ -201,7 +206,7 @@
                     <descriptors>
                         <descriptor>src/assembly.xml</descriptor>
                     </descriptors>
-                    <finalName>${name}-v${version}</finalName>
+                    <finalName>${artifactId}-${version}</finalName>
                     <outputDirectory>${project.basedir}/target</outputDirectory>
                 </configuration>
                 <executions>
