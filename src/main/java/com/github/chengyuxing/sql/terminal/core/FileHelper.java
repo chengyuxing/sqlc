@@ -2,9 +2,10 @@ package com.github.chengyuxing.sql.terminal.core;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Style;
+import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
-import com.github.chengyuxing.sql.terminal.cli.completer.ExecCompleter;
+import com.github.chengyuxing.sql.terminal.cli.completer.XQLNameCompleter;
 import com.github.chengyuxing.sql.terminal.cli.interactive.Commands;
 import com.github.chengyuxing.sql.terminal.core.writer.*;
 import com.github.chengyuxing.sql.terminal.cli.Context;
@@ -15,7 +16,7 @@ import com.github.chengyuxing.sql.terminal.util.PathUtils;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static com.github.chengyuxing.sql.terminal.util.PathUtils.isFileURI;
@@ -28,9 +29,9 @@ public final class FileHelper {
     public static final InsertSQLWriter sqlWriter = new InsertSQLWriter();
 
     public static void writeFile(BakiDao baki, String sqlOrRef, Map<String, Object> args, String output) throws IOException {
-        try (Stream<DataRow> s = WaitingPrinter.waiting("preparing...",
+        try (Stream<DataRow> s = WaitingPrinter.waiting("Preparing...",
                 () -> baki.query(sqlOrRef).args(args).stream())) {
-            Stdout.printlnNotice("redirect query to file...");
+            Stdout.printlnNotice("Redirect query to file...");
             Path path = PathUtils.resolve(output);
             if (Files.isDirectory(path)) {
                 path = path.resolve("query_result_" + System.currentTimeMillis());
@@ -77,6 +78,7 @@ public final class FileHelper {
     }
 
     public static void loadXqlFiles(XQLFileManager xqlFileManager, String... files) {
+        Map<String, String> myFiles = new LinkedHashMap<>();
         for (String file : files) {
             if (!file.endsWith(".xql")) {
                 continue;
@@ -85,9 +87,13 @@ public final class FileHelper {
                 xqlFileManager.add(file);
                 continue;
             }
+            String alias = FileResource.getFileName(file, false);
             String uri = PathUtils.resolve(file).toUri().toString();
-            xqlFileManager.add(uri);
+            myFiles.put(alias, uri);
         }
+        Map<String, String> old = xqlFileManager.getFiles();
+        old.putAll(myFiles);
+        xqlFileManager.setFiles(old);
         xqlFileManager.init();
         // print details log unless only 1 file
         if (files.length == 1) {
@@ -96,18 +102,18 @@ public final class FileHelper {
                 for (Map.Entry<String, XQLFileManager.Sql> entry : r.getEntry().entrySet()) {
                     String name = entry.getKey();
                     XQLFileManager.Sql sql = entry.getValue();
-                    String info = XQLFileManager.encodeSqlReference(a, name) + (sql.getDescription().isEmpty() ? "" : " -> " + sql.getDescription());
+                    String info = "- " + XQLFileManager.encodeSqlReference(a, name) + (sql.getDescription().isEmpty() ? "" : " -> " + sql.getDescription());
                     Stdout.printlnNotice(info);
                 }
             });
         } else {
             xqlFileManager.getResources().forEach((alias, r) ->
-                    Stdout.printf("+ %s (%s)  %s%n", Style.SILVER, alias, r.getEntry().size(), r.getDescription()));
+                    Stdout.printf("- %s (%s)  %s%n", Style.SILVER, alias, r.getEntry().size(), r.getDescription()));
         }
-        ExecCompleter.setXQLNames(xqlFileManager.names());
+        XQLNameCompleter.INSTANCE.setResource(xqlFileManager.names());
 
         if (!xqlFileManager.getResources().isEmpty()) {
-            Stdout.println("Type '" + Commands.exec.getName() + " &sql_name' to execute!");
+            Stdout.println("Type '" + Commands.exec.getName() + " &<sqlName>' to execute!");
         }
     }
 }

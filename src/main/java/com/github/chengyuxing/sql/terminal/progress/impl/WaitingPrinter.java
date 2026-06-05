@@ -1,6 +1,6 @@
 package com.github.chengyuxing.sql.terminal.progress.impl;
 
-import com.github.chengyuxing.sql.terminal.util.TimeUtil;
+import com.github.chengyuxing.sql.terminal.util.TimeUtils;
 
 import java.util.concurrent.Callable;
 
@@ -9,7 +9,7 @@ public class WaitingPrinter extends ProgressPrinter {
         step = 2;
         formatter = (v, d) -> {
             if (d >= 180) {
-                return prompt + " (" + TimeUtil.format(d) + ")";
+                return prompt + " (" + TimeUtils.format(d) + ")";
             }
             return "";
         };
@@ -32,7 +32,7 @@ public class WaitingPrinter extends ProgressPrinter {
             return result;
         } catch (Exception e) {
             wp.interrupt();
-            throw new RuntimeException("an error in waiting: ", e);
+            throw new RuntimeException("An error in waiting: ", e);
         }
     }
 
@@ -44,6 +44,6 @@ public class WaitingPrinter extends ProgressPrinter {
      * @return 运行结果
      */
     public static <T> T waiting(Callable<T> callable) {
-        return waiting("waiting...", callable);
+        return waiting("Waiting...", callable);
     }
 }

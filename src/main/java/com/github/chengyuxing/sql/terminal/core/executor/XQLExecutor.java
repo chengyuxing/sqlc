@@ -3,7 +3,7 @@ package com.github.chengyuxing.sql.terminal.core.executor;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -18,14 +18,14 @@ public abstract class XQLExecutor extends AbstractExecutor {
     @Override
     protected void printResult(String sqlName) throws IOException {
         prepareSQL(sqlName, (sql, args) ->
-                PrintHelper.printExecuteResultByType(baki, sqlName, SqlUtil.detectSQLType(sql), args));
+                PrintHelper.printExecuteResultByType(baki, sqlName, SqlUtils.detectSQLType(sql), args));
     }
 
     @Override
     protected void outputResult(String sqlName, String output) throws IOException {
         prepareSQL(sqlName, (mysql, args) -> {
             try {
-                if (SqlUtil.allowOutput2file(mysql)) {
+                if (SqlUtils.allowOutput2file(mysql)) {
                     FileHelper.writeFile(baki, sqlName, args, output);
                 }
             } catch (IOException e) {

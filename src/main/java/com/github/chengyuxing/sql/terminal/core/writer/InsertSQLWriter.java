@@ -3,12 +3,10 @@ package com.github.chengyuxing.sql.terminal.core.writer;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.io.IOutput;
 import com.github.chengyuxing.common.tuple.Pair;
-import com.github.chengyuxing.common.util.StringUtils;
-import com.github.chengyuxing.sql.Args;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
-import com.github.chengyuxing.sql.terminal.util.TimeUtil;
+import com.github.chengyuxing.sql.terminal.util.TimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,14 +16,11 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
 import java.util.stream.Stream;
 
-import static com.github.chengyuxing.sql.terminal.util.SqlUtil.safeQuote;
+import static com.github.chengyuxing.sql.terminal.util.SqlUtils.safeQuote;
 
 public class InsertSQLWriter implements IWriter {
     private static final Logger log = LoggerFactory.getLogger(InsertSQLWriter.class);
@@ -33,24 +28,17 @@ public class InsertSQLWriter implements IWriter {
     @Override
     public void write(Stream<DataRow> data, String output) throws IOException {
         // e.g: /usr/local/qbpt_deve.pinyin_ch.sql
-        Path path = PathUtils.resolve(output.endsWith(".sql") ? output : output + ".sql");
-        Path currentDir = path.getParent();
-        // qbpt_deve.pinyin_ch.sql
-        String fileName = path.getFileName().toString();
-        // qbpt_deve.pinyin_ch
-        String tableName = fileName.substring(0, fileName.lastIndexOf("."));
+        Path source = PathUtils.resolve(output.endsWith(".sql") ? output : output + ".sql");
+        String filename = source.getFileName().toString();
+        String tablename = filename.substring(0, filename.lastIndexOf("."));
 
-        Stdout.printlnWarning("Extension '.sql' has been detected!");
-        Stdout.printlnWarning("Generate insert statement: " + fileName + " -> insert into " + tableName + " ... ");
-        Stdout.printlnPrimary("waiting...");
+        Stdout.printlnWarning("Extension '.sql' has been detected");
+        Stdout.printlnWarning("Generate insert statement: " + filename + " -> insert into " + tablename + " ... ");
+        Stdout.printlnPrimary("Waiting...");
 
-        // if the data doesn't contain the blob type, just save the insert file, otherwise
-        // 1. write the insert file
-        // 2. create new file dir
-        // 3. create blobs dir to save blob data
-        // 4. move the insert file to the new file dir
+        ProgressPrinter pp = ProgressPrinter.of("", " rows has written");
 
-        // my_table_29103810820124
+        // my_table_29103810820124.tmp
         //    |- my_table.sql
         //    |- blobs
         //       |- file_1
@@ -58,56 +46,23 @@ public class InsertSQLWriter implements IWriter {
         //       |- img_1
         //       |- ...
 
-        Path fileDir = currentDir.resolve(tableName + "_" + System.currentTimeMillis());
-        Path blobDir = fileDir.resolve("blobs");
-        AtomicBoolean hasBlob = new AtomicBoolean(false);
+        Path tempDir = Files.createDirectory(PathUtils.createTmpFile(source));
+        Path tempFile = tempDir.resolve(filename);
+        Path tempBlobDir = Files.createDirectory(tempDir.resolve("blobs"));
+        try (BufferedWriter writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
+            pp.finalize((value, during) ->
+                    Stdout.printlnPrimary(value + " rows write completed (" + TimeUtils.format(during) + ")")).start();
 
-        ProgressPrinter pp = ProgressPrinter.of("", " rows has written.");
-        pp.whenStopped((value, during) -> {
-            if (hasBlob.get()) {
-                try {
-                    Files.move(path, fileDir.resolve(fileName));
-
-                    String readme = StringUtils.FMT.format("# Notice\n\n" +
-                                    "Please do not change files if you will batch insert to another table:\n\n" +
-                                    "-----------------\n\n" +
-                                    "- ${insert}\n" +
-                                    "- ${blobs}",
-                            Args.of("blobs", blobDir.getFileName().toString(),
-                                    "insert", path.getFileName().toString()));
-
-                    Files.write(fileDir.resolve("README.md"), readme.getBytes(StandardCharsets.UTF_8));
-
-                    Stdout.printlnNotice(StringUtils.FMT.format("${a}(${b}, blobs) saved!",
-                            Args.of("a", fileDir.toString(), "b", fileName)));
-
-                    Stdout.printlnPrimary(value + " rows write completed.(" + TimeUtil.format(during) + ")");
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            } else {
-                Stdout.printlnNotice(path + " saved!");
-            }
-        }).start();
-
-        try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
             data.forEach(row -> {
                 try {
-                    Pair<String, List<String>> insertAndBlobKeys = generateInsert(tableName, row, pp.getValue());
+                    Pair<String, List<String>> insertAndBlobKeys = generateInsert(tablename, row, pp.getValue());
                     writer.write(insertAndBlobKeys.getItem1() + ";");
                     writer.newLine();
-
+                    // write blob files
                     if (!insertAndBlobKeys.getItem2().isEmpty()) {
-                        if (!hasBlob.get()) {
-                            hasBlob.set(true);
-                            Files.createDirectory(fileDir);
-                            Files.createDirectory(blobDir);
-                            log.info("create file dirs: {} , {}", fileDir, blobDir);
-                        }
-                        // do save blob file
                         for (String k : insertAndBlobKeys.getItem2()) {
                             IOutput out = () -> (byte[]) row.get(k);
-                            out.saveTo(blobDir.resolve(createBlobKey(pp.getValue(), k)));
+                            out.saveTo(tempBlobDir.resolve(createBlobKey(pp.getValue(), k)));
                         }
                     }
                     pp.increment();
@@ -115,12 +70,28 @@ public class InsertSQLWriter implements IWriter {
                     throw new UncheckedIOException(e);
                 }
             });
+            if (PathUtils.isDirectoryEmpty(tempBlobDir)) {
+                Files.move(tempFile, source, StandardCopyOption.REPLACE_EXISTING);
+                Stdout.printlnNotice(source + " saved");
+            } else {
+                String readme = String.format("# Notice\n\n" +
+                                "Please do not change files if you will batch insert to another table:\n\n" +
+                                "-----------------\n\n" +
+                                "- blobs\n" +
+                                "- %s",
+                        source.getFileName());
+                Files.write(tempDir.resolve("README.md"), readme.getBytes(StandardCharsets.UTF_8));
+                Path targetDir = source.getParent().resolve(tablename + "_" + System.currentTimeMillis());
+                Files.move(tempDir, targetDir, StandardCopyOption.REPLACE_EXISTING);
+                Stdout.printlnNotice(String.format("%s(%s, blobs) saved", targetDir, filename));
+            }
             pp.stop();
         } catch (Exception e) {
-            log.error("Write sql insert file error", e);
-            Files.deleteIfExists(path);
-            Files.deleteIfExists(fileDir);
             pp.interrupt();
+            log.error("Write sql insert file error", e);
+            throw new RuntimeException(e);
+        } finally {
+            PathUtils.deleteFileRecursive(tempDir);
         }
     }
 

@@ -2,7 +2,7 @@ package com.github.chengyuxing.sql.terminal.core.executor;
 
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.sql.terminal.cli.Context;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import org.jline.reader.LineReader;
 
@@ -31,7 +31,7 @@ public abstract class AbstractExecutor {
     protected void prepareSQL(String sql, BiConsumer<String, Map<String, Object>> consumer) throws IOException {
         String newSQL = parseSQL(sql);
         Stdout.printlnHighlightSql(newSQL);
-        Pair<String, Map<String, Object>> data = SqlUtil.prepareSqlWithArgs(newSQL, paramsReader(newSQL));
+        Pair<String, Map<String, Object>> data = SqlUtils.prepareSqlWithArgs(newSQL, paramsReader(newSQL));
         consumer.accept(data.getItem1(), data.getItem2());
     }
 }

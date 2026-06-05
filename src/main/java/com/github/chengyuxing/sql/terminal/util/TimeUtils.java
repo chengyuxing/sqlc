@@ -2,7 +2,7 @@ package com.github.chengyuxing.sql.terminal.util;
 
 import java.util.Formatter;
 
-public class TimeUtil {
+public class TimeUtils {
     public static String format(long milliseconds) {
         final Formatter fmt = new Formatter();
         String time;

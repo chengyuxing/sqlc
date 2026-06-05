@@ -3,7 +3,7 @@ package com.github.chengyuxing.sql.terminal.progress.impl;
 import com.github.chengyuxing.sql.terminal.progress.Progress;
 import com.github.chengyuxing.sql.terminal.progress.UncheckedInterruptedException;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
-import com.github.chengyuxing.sql.terminal.util.TimeUtil;
+import com.github.chengyuxing.sql.terminal.util.TimeUtils;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -18,8 +18,8 @@ public class ProgressPrinter extends Progress {
 
     }
 
-    public ProgressPrinter whenStopped(BiConsumer<Long, Long> whenStopped) {
-        this.whenStopped = whenStopped;
+    public ProgressPrinter finalize(BiConsumer<Long, Long> finalize) {
+        this.finalize = finalize;
         return this;
     }
 
@@ -46,7 +46,7 @@ public class ProgressPrinter extends Progress {
         if (current % step == 0) {
             try {
                 if (formatter == null) {
-                    updateValue(prefix + current + suffix + "(" + TimeUtil.format(cost) + ")");
+                    updateValue(prefix + current + suffix + "(" + TimeUtils.format(cost) + ")");
                 } else {
                     updateValue(formatter.apply(current, cost));
                 }

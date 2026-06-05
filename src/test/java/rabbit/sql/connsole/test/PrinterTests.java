@@ -10,7 +10,7 @@ public class PrinterTests {
         int max = 1034;
         pp.setFormatter(new PercentFormatter(max));
         pp.setStep(2);
-        pp.whenStopped((v, d) -> {
+        pp.finalize((v, d) -> {
             System.out.println("已完成：" + v);
             System.out.println(d);
         }).start();

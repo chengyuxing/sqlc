@@ -11,7 +11,7 @@ public abstract class Progress {
     protected String suffix = "";
     protected Thread current;
 
-    protected BiConsumer<Long, Long> whenStopped;
+    protected BiConsumer<Long, Long> finalize;
 
     protected abstract void listening(long cost);
 
@@ -26,8 +26,8 @@ public abstract class Progress {
                     listening(System.currentTimeMillis() - start);
                 }
                 long during = System.currentTimeMillis() - start;
-                if (whenStopped != null) {
-                    whenStopped.accept(value.get(), during);
+                if (!current.isInterrupted() && finalize != null) {
+                    finalize.accept(value.get(), during);
                 }
             } catch (UncheckedInterruptedException e) {
                 // ignore

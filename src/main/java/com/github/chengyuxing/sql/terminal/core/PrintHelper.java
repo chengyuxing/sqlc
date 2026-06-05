@@ -7,7 +7,7 @@ import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.Baki;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.types.Param;
@@ -20,9 +20,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.getJson;
-import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.wrapObjectForSerialized;
-import static com.github.chengyuxing.sql.terminal.util.SqlUtil.hasOutParam;
+import static com.github.chengyuxing.sql.terminal.util.ObjectUtils.getJson;
+import static com.github.chengyuxing.sql.terminal.util.ObjectUtils.wrapObjectForSerialized;
+import static com.github.chengyuxing.sql.terminal.util.SqlUtils.hasOutParam;
 
 public final class PrintHelper {
     private static final Logger log = LoggerFactory.getLogger(PrintHelper.class);
@@ -36,7 +36,7 @@ public final class PrintHelper {
                     try {
                         PrintHelper.printJSON(row, first);
                     } catch (JsonProcessingException e) {
-                        log.error("print query result as json.", e);
+                        log.error("Print query result as json", e);
                         throw new RuntimeException(e);
                     }
                 });
@@ -101,7 +101,7 @@ public final class PrintHelper {
                 }
                 break;
             case PROCEDURE:
-                printProcedureResult(baki, sqlOrRef, SqlUtil.toInOutParam(args));
+                printProcedureResult(baki, sqlOrRef, SqlUtils.toInOutParam(args));
                 break;
             case OTHER:
                 Stream<DataRow> s = executedRow2Stream(baki, sqlOrRef, args);
@@ -122,7 +122,7 @@ public final class PrintHelper {
     public static void printDSV(DataRow data, String d, AtomicBoolean firstLine) {
         if (firstLine.get()) {
             String namesLine = String.join(d, data.keySet());
-            Stdout.println(namesLine, Style.SILVER);
+            Stdout.printlnData(namesLine);
             Stdout.println(StringUtils.repeat("-", namesLine.length()), Style.SILVER);
             firstLine.set(false);
         }

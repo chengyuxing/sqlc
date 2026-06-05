@@ -4,7 +4,7 @@ import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -22,14 +22,14 @@ public abstract class SQLExecutor extends AbstractExecutor {
     @Override
     protected void printResult(String sql) throws IOException {
         prepareSQL(sql, (mysql, args) ->
-                PrintHelper.printExecuteResultByType(baki, mysql, SqlUtil.detectSQLType(mysql), args));
+                PrintHelper.printExecuteResultByType(baki, mysql, SqlUtils.detectSQLType(mysql), args));
     }
 
     @Override
     protected void outputResult(String sql, String output) throws IOException {
         prepareSQL(sql, (mysql, args) -> {
             try {
-                if (SqlUtil.allowOutput2file(mysql)) {
+                if (SqlUtils.allowOutput2file(mysql)) {
                     FileHelper.writeFile(baki, mysql, args, output);
                 }
             } catch (IOException e) {

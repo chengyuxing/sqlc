@@ -8,7 +8,7 @@ import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.cli.interactive.Commands;
 import com.github.chengyuxing.sql.terminal.core.BakiLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
-import com.github.chengyuxing.sql.terminal.util.ExceptionUtil;
+import com.github.chengyuxing.sql.terminal.util.ExceptionUtils;
 import com.github.chengyuxing.sql.terminal.common.Constants;
 import com.github.lalyos.jfiglet.FigletFont;
 import org.junit.Test;
@@ -135,7 +135,7 @@ public class STests {
         try {
             catchError();
         } catch (Exception e) {
-            System.out.println(ExceptionUtil.getCauseMessage(e));
+            System.out.println(ExceptionUtils.getCauseMessage(e));
             ;
         }
     }

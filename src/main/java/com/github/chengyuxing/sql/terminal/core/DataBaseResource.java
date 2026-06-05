@@ -35,7 +35,7 @@ public class DataBaseResource {
     void init() {
         Path path = APP_DIR.resolve(Paths.get("completion", "database.xql"));
         if (Files.notExists(path)) {
-            log.warn("Load {} failed: not found.", path);
+            log.warn("Load {} failed: not found", path);
             return;
         }
         xqlFileManager.add("db", path.toUri().toString());

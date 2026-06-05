@@ -9,7 +9,7 @@ import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
-import com.github.chengyuxing.sql.terminal.util.TimeUtil;
+import com.github.chengyuxing.sql.terminal.util.TimeUtils;
 import com.github.chengyuxing.sql.util.SqlUtils;
 import com.zaxxer.hikari.util.FastList;
 import org.slf4j.Logger;
@@ -29,7 +29,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.JSON;
+import static com.github.chengyuxing.sql.terminal.util.ObjectUtils.JSON;
 
 public class BatchInsertHelper {
     private static final Logger log = LoggerFactory.getLogger(BatchInsertHelper.class);
@@ -44,7 +44,7 @@ public class BatchInsertHelper {
             if (dotIdx != -1) {
                 String ext = fileName.substring(dotIdx);
                 String tableName = fileName.substring(0, fileName.lastIndexOf(ext));
-                Stdout.printlnPrimary("prepare to batch execute, default chunk size is " + chunkSize + ", waiting...");
+                Stdout.printlnPrimary("Prepare to batch execute, waiting...");
                 switch (ext) {
                     case ".sql":
                         readInsertSqlScriptBatchExecute(baki, file);
@@ -63,13 +63,13 @@ public class BatchInsertHelper {
                         readExcel4batch(baki, file, tableName, sheetIdx, headerIdx);
                         break;
                     default:
-                        throw new UnsupportedOperationException("extension'" + ext + "' file type not support.");
+                        throw new UnsupportedOperationException("Extension'" + ext + "' file type not support");
                 }
             } else {
-                throw new UnsupportedOperationException("unknow file");
+                throw new UnsupportedOperationException("Unknow file type");
             }
         } else {
-            throw new FileNotFoundException("file [ " + file + " ] does not exists.");
+            throw new FileNotFoundException("File [ " + file + " ] does not exists");
         }
     }
 
@@ -81,7 +81,7 @@ public class BatchInsertHelper {
         ProgressPrinter pp = new ProgressPrinter();
         pp.setStep(2);
         pp.setFormatter(formatter("rows", "executed"));
-        pp.whenStopped(whenStoppedFunc(chunk, example, "rows", "execute")).start();
+        pp.finalize(whenStoppedFunc(chunk, example, "rows", "execute")).start();
         try (Stream<String> s = Files.lines(path, StandardCharsets.UTF_8)) {
             StringBuilder sb = new StringBuilder();
             s.map(String::trim)
@@ -107,7 +107,6 @@ public class BatchInsertHelper {
                                 try {
                                     preparedInsert4BlobBatchExecute(baki, chunk, path);
                                 } catch (IOException e) {
-                                    log.error("batch insert sql file error", e);
                                     throw new UncheckedIOException(e);
                                 }
                             } else {
@@ -131,8 +130,8 @@ public class BatchInsertHelper {
             }
             pp.stop();
         } catch (Exception e) {
-            log.error("batch insert sql file error", e);
             pp.interrupt();
+            log.error("Batch insert sql file error", e);
             throw new RuntimeException(e);
         }
     }
@@ -140,7 +139,7 @@ public class BatchInsertHelper {
     public static void preparedInsert4BlobBatchExecute(BakiDao baki, List<String> sqls, Path path) throws IOException {
         Path blobsDir = path.getParent().resolve("blobs");
         if (!Files.exists(blobsDir)) {
-            throw new FileNotFoundException("Cannot find 'blobs' folder on " + path.getParent() + ".");
+            throw new FileNotFoundException("Cannot find 'blobs' folder on: " + path.getParent());
         }
         // Because the SQL only contains the blob fields for prepare,
         // other fields is just the literal value
@@ -164,7 +163,7 @@ public class BatchInsertHelper {
         ProgressPrinter pp = new ProgressPrinter();
         pp.setStep(2);
         pp.setFormatter(formatter("objects", "inserted"));
-        pp.whenStopped(whenStoppedFunc(chunk, example, "objects", "insert")).start();
+        pp.finalize(whenStoppedFunc(chunk, example, "objects", "insert")).start();
         try (MappingIterator<Map<String, Object>> iterator = JSON.reader().forType(Map.class).readValues(path.toFile())) {
             while (iterator.hasNext()) {
                 Map<String, Object> obj = iterator.next();
@@ -189,8 +188,8 @@ public class BatchInsertHelper {
             }
             pp.stop();
         } catch (Exception e) {
-            log.error("batch insert json file error", e);
             pp.interrupt();
+            log.error("Batch insert json file error", e);
             throw new RuntimeException(e);
         }
     }
@@ -201,7 +200,7 @@ public class BatchInsertHelper {
         ProgressPrinter pp = new ProgressPrinter();
         pp.setStep(2);
         pp.setFormatter(formatter("lines", "inserted"));
-        pp.whenStopped(whenStoppedFunc(chunk, example, "lines", "insert")).start();
+        pp.finalize(whenStoppedFunc(chunk, example, "lines", "insert")).start();
 
         try (Stream<String> s = Files.lines(path, StandardCharsets.UTF_8)) {
 
@@ -247,8 +246,8 @@ public class BatchInsertHelper {
             }
             pp.stop();
         } catch (Exception e) {
-            log.error("batch insert dsv file error", e);
             pp.interrupt();
+            log.error("Batch insert dsv file error", e);
             throw new RuntimeException(e);
         }
     }
@@ -259,7 +258,7 @@ public class BatchInsertHelper {
         ProgressPrinter pp = new ProgressPrinter();
         pp.setStep(2);
         pp.setFormatter(formatter("rows", "inserted"));
-        pp.whenStopped(whenStoppedFunc(chunk, example, "rows", "insert")).start();
+        pp.finalize(whenStoppedFunc(chunk, example, "rows", "insert")).start();
         try {
             ExcelReader reader = Excels.reader(path).sheetAt(sheetIdx);
             int skip = 0;
@@ -298,8 +297,8 @@ public class BatchInsertHelper {
                 pp.stop();
             }
         } catch (Exception e) {
-            log.error("batch insert excel file error", e);
             pp.interrupt();
+            log.error("Batch insert excel file error", e);
             throw new RuntimeException(e);
         }
     }
@@ -312,12 +311,12 @@ public class BatchInsertHelper {
             }
             long rows = i * chunkSize + chunk.size();
             Stdout.printlnHighlightSql(example.get() + ", more...");
-            Stdout.printlnPrimary("all of " + v + " chunks(" + rows + " " + name + ") " + op + " completed.(" + TimeUtil.format(c) + ")");
+            Stdout.printlnPrimary("All of " + v + " chunks(" + rows + " " + name + ") " + op + " completed (" + TimeUtils.format(c) + ")");
             chunk.clear();
         };
     }
 
     static BiFunction<Long, Long, String> formatter(String name, String op) {
-        return (v, c) -> "chunk " + v + " " + op + ".(" + TimeUtil.format(c) + ")";
+        return (v, c) -> "chunk " + v + " " + op + ".(" + TimeUtils.format(c) + ")";
     }
 }

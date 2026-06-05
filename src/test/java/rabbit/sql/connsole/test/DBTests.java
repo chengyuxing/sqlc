@@ -5,7 +5,7 @@ import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.core.*;
 import org.junit.Test;
 import org.postgresql.util.PGobject;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -16,7 +16,7 @@ public class DBTests {
 
     @Test
     public void aaa() throws Exception {
-        System.out.println(SqlUtil.detectSQLType("((  select 1"));
+        System.out.println(SqlUtils.detectSQLType("((  select 1"));
     }
 
     public static void m(String[] args) {

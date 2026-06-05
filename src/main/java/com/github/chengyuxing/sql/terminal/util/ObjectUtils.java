@@ -9,7 +9,7 @@ import com.github.chengyuxing.common.io.FileResource;
 import java.util.Arrays;
 import java.util.Map;
 
-public class ObjectUtil {
+public class ObjectUtils {
     public final static ObjectMapper JSON = new ObjectMapper();
     public final static ObjectWriter PRETTY_JSON = JSON.writerWithDefaultPrettyPrinter();
 

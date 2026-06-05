@@ -7,7 +7,7 @@ import com.github.chengyuxing.sql.terminal.core.BakiLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.writer.*;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import org.junit.Test;
 import picocli.CommandLine;
@@ -22,10 +22,10 @@ public class CommandShellTests {
     public static void main(String[] args) {
         new CommandLine(new App()).execute(
                 "-ujdbc:postgresql://127.0.0.1:5432/postgres",
-                "-nchengyuxing",
+                "-nchengyuxing"
 //                "-eselect current_timestamp",
 //                "-eselect 1",
-                "-eselect"
+//                "-eselect"
         );
     }
 
@@ -49,18 +49,21 @@ public class CommandShellTests {
         Path p = Paths.get("/Users/chengyuxing/Downloads");
         System.out.println(p);
         System.out.println(Files.isDirectory(p));
+        System.out.println(p.resolveSibling(p.getFileName() + ".tmp"));
         Stream.of(FileHelper.getFiles(p, ".xql"))
                 .forEach(System.out::println);
         System.out.println(Paths.get("a", "b", "c").toUri());
         System.out.println(PathUtils.resolve("~/home.xql"));
         System.out.println(Files.exists(Paths.get("./README.md")));
+        System.out.println(System.currentTimeMillis());
+        System.out.println(System.nanoTime());
     }
 
     @Test
     public void testR() throws IOException {
-        System.out.println(SqlUtil.detectSQLType("with a as ('insert')select"));
-        System.out.println(SqlUtil.parseValueFromLiteral("{\"name\":\"cyx\"}"));
-        System.out.println(SqlUtil.resolveProcedureArgs("out integer  "));
+        System.out.println(SqlUtils.detectSQLType("with a as ('insert')select"));
+        System.out.println(SqlUtils.parseValueFromLiteral("{\"name\":\"cyx\"}"));
+        System.out.println(SqlUtils.resolveProcedureArgs("out integer  "));
         Stdout.printlnTitle("chengyuxing", '-', 100, Style.SILVER);
     }
 

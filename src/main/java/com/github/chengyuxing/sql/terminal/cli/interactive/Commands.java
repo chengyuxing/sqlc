@@ -1,10 +1,12 @@
 package com.github.chengyuxing.sql.terminal.cli.interactive;
 
 import com.github.chengyuxing.common.console.Style;
-import com.github.chengyuxing.sql.terminal.cli.completer.ExecCompleter;
+import com.github.chengyuxing.sql.terminal.cli.completer.XQLNameCompleter;
+import com.github.chengyuxing.sql.terminal.common.Constants;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
+import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 
@@ -18,7 +20,10 @@ public class Commands {
     public static final Command exec = new Command(":exec",
             "Execute sql file or xql name(&sql_name).",
             "sqlFile|&xqlName",
-            ExecCompleter.INSTANCE,
+            new AggregateCompleter(
+                    XQLNameCompleter.INSTANCE,
+                    new Completers.FilesCompleter(Constants.CURRENT_DIR)
+            ),
             NullCompleter.INSTANCE);
 
     public static final Command import_ = new Command(":import",
@@ -54,7 +59,10 @@ public class Commands {
             new Completers.DirectoriesCompleter(CURRENT_DIR),
             NullCompleter.INSTANCE);
 
-    public static final Command status = new Command(":status", "Show current status.");
+    public static final Command status = new Command(":status", "Show current config status and extra item status.",
+            "[&[<alias>[.<name>]]]",
+            XQLNameCompleter.INSTANCE,
+            NullCompleter.INSTANCE);
 
     public static final Command quit = new Command(":q", "Quit.");
 

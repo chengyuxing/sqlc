@@ -2,12 +2,12 @@ package com.github.chengyuxing.sql.terminal.util;
 
 import java.util.*;
 
-public class ExceptionUtil {
+public class ExceptionUtils {
     public static String getCauseMessage(Throwable throwable) {
         while (throwable != null) {
             Throwable cause = throwable.getCause();
             if (cause == null) {
-                return throwable.toString();
+                return throwable.getMessage();
             }
             throwable = cause;
         }
@@ -20,9 +20,9 @@ public class ExceptionUtil {
             Throwable cause = throwable.getCause();
             String msg;
             if (cause == null) {
-                msg = throwable.toString();
+                msg = throwable.getMessage();
             } else {
-                msg = cause.toString();
+                msg = cause.getMessage();
             }
             if (!messages.isEmpty()) {
                 int last = messages.size() - 1;
@@ -30,7 +30,9 @@ public class ExceptionUtil {
                     messages.remove(last);
                 }
             }
-            messages.add(msg);
+            if (msg != null) {
+                messages.add(msg);
+            }
             throwable = cause;
         }
         return messages;

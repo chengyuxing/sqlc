@@ -15,7 +15,7 @@ import com.github.chengyuxing.sql.terminal.core.*;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.transaction.Tx;
 import org.jline.builtins.ConfigurationPath;
@@ -54,25 +54,17 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
     private final Prompt prompt;
     private final AbstractExecutor sqlExecutor;
     private final AbstractExecutor xqlExecutor;
-    private final List<Path> tempFiles = new ArrayList<>();
     private final KeywordsCompleter keywordsCompleter = new KeywordsCompleter();
 
-    protected InteractiveMode(App shell, BakiLoader bakiLoader, Terminal terminal) {
-        super(shell, bakiLoader, terminal);
+    protected InteractiveMode(App app, BakiLoader bakiLoader, Terminal terminal) {
+        super(app, bakiLoader, terminal);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (Context.txActive.get()) {
                 Tx.rollback();
-                Stdout.printlnWarning("Transaction rollback!");
+                Stdout.printlnWarning("Transaction rollback");
             }
             bakiLoader.close();
-            tempFiles.forEach(p -> {
-                try {
-                    Files.deleteIfExists(p);
-                } catch (Exception e) {
-                    Stdout.printlnError(e);
-                }
-            });
             Stdout.printlnWarning("Bye bye :(");
         }));
 
@@ -81,17 +73,17 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
         this.mainReader = LineReaderBuilder.builder()
                 .terminal(terminal)
                 .completer(new AggregateCompleter(Commands.getCompleters(this.keywordsCompleter)))
-                .variable(LineReader.HISTORY_FILE, SQLC_TEMP_PATH.resolve("history_cmd_" + getLoginId()))
+                .variable(LineReader.HISTORY_FILE, SQLC_HISTORY_PATH.resolve("history_cmd_" + getLoginId()))
                 .history(new SqlHistory(sqlBuilder))
                 .build();
         this.baki = bakiLoader.getUserBaki();
         this.commandRegistry = new Builtins(CURRENT_DIR, new ConfigurationPath(APP_DIR, USER_HOME), s -> mainReader.getBuiltinWidgets().get(s));
-        this.prompt = new Prompt(shell.jdbcUrl);
+        this.prompt = new Prompt(app.jdbcUrl);
 
         this.sqlExecutor = new SQLExecutor(this.baki) {
             @Override
             public LineReader paramsReader(String sql) {
-                return SqlUtil.detectSQLType(sql) == SqlType.PROCEDURE
+                return SqlUtils.detectSQLType(sql) == SqlType.PROCEDURE
                         ? getProcParamReader()
                         : getSqlParamReader();
             }
@@ -100,7 +92,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
         this.xqlExecutor = new XQLExecutor(this.baki) {
             @Override
             public LineReader paramsReader(String sql) {
-                return SqlUtil.detectSQLType(sql) == SqlType.PROCEDURE
+                return SqlUtils.detectSQLType(sql) == SqlType.PROCEDURE
                         ? getProcParamReader()
                         : getSqlParamReader();
             }
@@ -128,15 +120,14 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
 
         Context.promptReference.set(prompt);
 
-        Stdout.println("Type in command or sql script to execute query, ddl, dml..., or try :help.");
-        // FIXME some status notice?
+        Stdout.println("Type in command or sql statement to execute query, ddl, dml.... Or try :help.");
     }
 
     @Override
     public Integer call() {
         while (true) {
             try {
-                String line = mainReader.readLine(Context.getPromptState(shell.jdbcUrl)).trim();
+                String line = mainReader.readLine(Context.getPromptState(app.jdbcUrl)).trim();
                 if (line.isEmpty()) {
                     continue;
                 }
@@ -144,7 +135,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                 if (!Context.appending.get() && line.startsWith(":")) {
                     if (line.equals(Commands.quit.getName())) {
                         if (Context.txActive.get()) {
-                            Stdout.printlnWarning("Warning: Transaction is active now, please :tx commit or :tx rollback before quit, Control c, server shutdown or kill command will be rollback transaction!");
+                            Stdout.printlnWarning("Transaction is active, please `:tx commit|rollback` before quit, [Control c], server shutdown or kill command will be rollback transaction");
                         } else {
                             break;
                         }
@@ -156,37 +147,40 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                         Commands.printHelp();
                         continue;
                     }
-                    if (line.equals(Commands.status.getName())) {
-                        statusAction();
-                        continue;
-                    }
 
                     if (line.equals(Commands.paste.getName())) {
                         pasteAction();
                         continue;
                     }
+
+                    if (line.startsWith(Commands.status.getName())) {
+                        String item = line.substring(Commands.status.getName().length()).trim();
+                        statusAction(item);
+                        continue;
+                    }
+
                     if (line.startsWith(Commands.import_.getName())) {
-                        String[] args = line.substring(7).trim().split("\\s+");
+                        String[] args = line.substring(Commands.import_.getName().length()).trim().split("\\s+");
                         importAction(args);
                         continue;
                     }
 
                     // :exec [xql name | file | sql]
                     if (line.startsWith(Commands.exec.getName())) {
-                        String target = line.substring(5).trim();
+                        String target = line.substring(Commands.exec.getName().length()).trim();
                         executeAction(target);
                         continue;
                     }
 
                     // :load my.xql
                     if (line.startsWith(Commands.load.getName())) {
-                        String xql = line.substring(5).trim();
+                        String xql = line.substring(Commands.load.getName().length()).trim();
                         loadXqlFileAction(xql);
                         continue;
                     }
 
                     if (line.startsWith(Commands.transaction.getName())) {
-                        String action = line.substring(3).trim();
+                        String action = line.substring(Commands.transaction.getName().length()).trim();
                         action = action.isEmpty() ? "begin" : action.toLowerCase();
                         int code = transactionToggleAction(action);
                         if (code == 0) {
@@ -195,18 +189,18 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                     }
 
                     if (line.startsWith(Commands.toggleView.getName())) {
-                        String view = line.substring(5).trim();
+                        String view = line.substring(Commands.toggleView.getName().length()).trim();
                         toggleViewAction(view);
                         continue;
                     }
 
                     if (line.startsWith(Commands.output.getName())) {
-                        String path = line.substring(7).trim();
+                        String path = line.substring(Commands.output.getName().length()).trim();
                         Context.outputPath.set(path);
                         continue;
                     }
 
-                    Stdout.printlnWarning("command invalid, :help to get tutorial!");
+                    Stdout.printlnWarning("Command invalid, :help to get tutorial");
                     continue;
                 }
                 // merge sql to execute
@@ -231,6 +225,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                 // ctrl+d
                 break;
             } catch (Exception e) {
+                log.error("Execute command or SQL", e);
                 Stdout.printlnError(e);
                 Context.appending.set(false);
                 sqlBuilder.clear();
@@ -239,11 +234,56 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
         return 0;
     }
 
-    private void statusAction() {
-        String sf = "%-30s%-30s%n";
-        Stdout.printlnTitle("Status Monitor", '-', 80, Style.SILVER);
-        Stdout.printf(sf, "", "View Mode", Context.viewMode.get());
-        Stdout.printf(sf, "", "Transaction", (Context.txActive.get() ? "enabled" : "disabled"));
+    private void statusAction(String item) {
+        String myItem = item.isEmpty() ? "" : " [" + item + "]";
+        Stdout.printlnTitle("Status" + myItem, '-', 80, Style.SILVER);
+        if (item.isEmpty()) {
+            String f = "%-30s%-30s%n";
+            Object[][] messages = new Object[][]{
+                    {"View Mode", Context.viewMode.get()},
+                    {"Transaction", (Context.txActive.get() ? "enabled" : "disabled")},
+                    {"Batch Size", baki.getBatchSize()},
+                    {"XQL", "Loaded: " + baki.getXqlFileManager().getFiles().keySet()},
+                    {"NamedParamPrefix", "'" + baki.getNamedParamPrefix() + "'"},
+                    {"Query Redirect", Context.outputPath},
+                    {"Current Dir", CURRENT_DIR},
+                    {"Term", TERM}
+            };
+            for (Object[] message : messages) {
+                Stdout.printf(f, Style.SILVER, message[0], message[1]);
+            }
+            // XQL resource
+        } else if (item.startsWith("&")) {
+            XQLFileManager xqlFileManager = baki.getXqlFileManager();
+            String name = item.substring(1);
+            // &
+            // print all files
+            if (name.isEmpty()) {
+                xqlFileManager.getResources().forEach((alias, r) ->
+                        Stdout.printf("- %s (%s)  %s%n", Style.SILVER, alias, r.getEntry().size(), r.getDescription()));
+            } else {
+                // &home[.]
+                if (name.endsWith(".")) {
+                    name = name.substring(0, name.length() - 1);
+                }
+                if (xqlFileManager.getResources().containsKey(name)) {
+                    XQLFileManager.Resource resource = xqlFileManager.getResource(name);
+                    if (resource != null) {
+                        resource.getEntry().forEach((n, sql) -> {
+                            String info = "- " + n + (sql.getDescription().isEmpty() ? "" : " -> " + sql.getDescription());
+                            Stdout.printlnNotice(info);
+                        });
+                    }
+                    // &home.getAllUsers
+                } else if (xqlFileManager.contains(name)) {
+                    XQLFileManager.Sql sql = xqlFileManager.getSqlObject(name);
+                    if (!sql.getDescription().isEmpty()) {
+                        Stdout.printlnHighlightSql("/*" + sql.getDescription() + "*/");
+                    }
+                    Stdout.printlnHighlightSql(sql.getSource());
+                }
+            }
+        }
         Stdout.printlnTitle("", '-', 80, Style.SILVER);
     }
 
@@ -251,16 +291,14 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
     private void toggleViewAction(String view) {
         try {
             Context.viewMode.set(View.valueOf(view));
-            Stdout.printlnNotice("use " + view + " view!");
+            Stdout.printlnNotice("Use " + view + " view");
         } catch (IllegalArgumentException e) {
-            Stdout.printlnWarning("Unsupported view type.");
+            Stdout.printlnWarning("Unsupported '" + view + "' view type");
         }
     }
 
     private void pasteAction() throws Exception {
-        String temp = "~paste_" + System.currentTimeMillis();
-        Path path = SQLC_TEMP_PATH.resolve(temp);
-        tempFiles.add(path);
+        Path path = SQLC_TEMP_PATH.resolve("paste_" + System.currentTimeMillis() + ".tmp");
         try {
             commandRegistry.invoke(session, "nano", "-$", path);
             if (Files.exists(path)) {
@@ -276,7 +314,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
 
     private void importAction(String[] args) throws Exception {
         if (args.length == 0) {
-            Stdout.printlnWarning("command invalid, :import file [sheetIndex [headerIndex]] | [headerIndex]");
+            Stdout.printlnWarning("Command invalid, :import file [sheetIndex [headerIndex]] | [headerIndex]");
             return;
         }
         String file = args[0];
@@ -293,7 +331,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
 
     private void executeAction(String target) throws IOException {
         if (target.isEmpty()) {
-            Stdout.printlnWarning("file or xql name is required!");
+            Stdout.printlnWarning("File or XQL name is required");
             return;
         }
         if (target.startsWith("&")) {
@@ -319,7 +357,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
         switch (action) {
             case "begin":
                 if (Context.txActive.get()) {
-                    Stdout.printlnWarning("transaction is active now!");
+                    Stdout.printlnWarning("Transaction is active");
                 } else {
                     Tx.begin();
                     Context.txActive.set(true);
@@ -327,7 +365,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                 return 0;
             case "commit":
                 if (!Context.txActive.get()) {
-                    Stdout.printlnWarning("transaction is not active now!");
+                    Stdout.printlnWarning("Transaction is not active");
                 } else {
                     Tx.commit();
                     Context.txActive.set(false);
@@ -335,7 +373,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
                 return 0;
             case "rollback":
                 if (!Context.txActive.get()) {
-                    Stdout.printlnWarning("transaction is not active now!");
+                    Stdout.printlnWarning("Transaction is not active");
                 } else {
                     Tx.rollback();
                     Context.txActive.set(false);

@@ -5,7 +5,7 @@ import com.github.chengyuxing.sql.terminal.core.executor.SQLExecutor;
 import com.github.chengyuxing.sql.terminal.core.BakiLoader;
 import com.github.chengyuxing.sql.terminal.core.BatchInsertHelper;
 import com.github.chengyuxing.sql.terminal.types.SqlType;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.transaction.Tx;
 import org.jline.reader.LineReader;
@@ -18,8 +18,8 @@ import java.util.concurrent.Callable;
 public class CommandMode extends AbstractMode implements Callable<Integer> {
     private final AbstractExecutor executor;
 
-    protected CommandMode(App shell, BakiLoader bakiLoader, Terminal terminal) {
-        super(shell, bakiLoader, terminal);
+    protected CommandMode(App app, BakiLoader bakiLoader, Terminal terminal) {
+        super(app, bakiLoader, terminal);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             bakiLoader.close();
             Stdout.printlnWarning("Bye bye :(");
@@ -28,7 +28,7 @@ public class CommandMode extends AbstractMode implements Callable<Integer> {
         this.executor = new SQLExecutor(bakiLoader.getUserBaki()) {
             @Override
             public LineReader paramsReader(String sql) {
-                return SqlUtil.detectSQLType(sql) == SqlType.PROCEDURE
+                return SqlUtils.detectSQLType(sql) == SqlType.PROCEDURE
                         ? getProcParamReader()
                         : getSqlParamReader();
             }
@@ -37,16 +37,15 @@ public class CommandMode extends AbstractMode implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        if (shell.ioOptions == null) {
+        if (app.ioOptions == null) {
             return 0;
         }
-        App.ExecuteOptions execute = shell.ioOptions.executeOptions;
+        App.ExecuteOptions execute = app.ioOptions.executeOptions;
         // read sql from -e
         if (execute != null) {
-            validate(execute);
             Context.viewMode.set(execute.format);
             Context.outputPath.set(execute.output);
-            if (shell.enableTransaction) {
+            if (app.enableTransaction) {
                 Tx.using(() -> doExecuteSql(execute));
             } else {
                 doExecuteSql(execute);
@@ -55,21 +54,15 @@ public class CommandMode extends AbstractMode implements Callable<Integer> {
         }
 
         // --import
-        App.ImportOptions _import = shell.ioOptions.importOptions;
-        if (_import != null) {
-            if (shell.enableTransaction) {
-                Tx.using(() -> doImportData(_import));
+        App.ImportOptions import_ = app.ioOptions.importOptions;
+        if (import_ != null) {
+            if (app.enableTransaction) {
+                Tx.using(() -> doImportData(import_));
             } else {
-                doImportData(_import);
+                doImportData(import_);
             }
         }
         return 0;
-    }
-
-    private void validate(App.ExecuteOptions executeOptions) {
-        if (!executeOptions.output.isEmpty() && executeOptions.sql.length != 1) {
-            throw new IllegalArgumentException("-o can only be used when exactly one -e is specified.");
-        }
     }
 
     private void doImportData(App.ImportOptions _import) {

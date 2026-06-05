@@ -1,6 +1,6 @@
 package com.github.chengyuxing.sql.terminal.progress.formatter;
 
-import com.github.chengyuxing.sql.terminal.util.TimeUtil;
+import com.github.chengyuxing.sql.terminal.util.TimeUtils;
 
 import java.text.NumberFormat;
 import java.util.function.BiFunction;
@@ -20,6 +20,6 @@ public class PercentFormatter implements BiFunction<Long, Long, String> {
         float maxValue = Float.parseFloat(max + ".0");
         double percent = aLong / maxValue;
         String sp = num.format(percent);
-        return "chunk " + aLong + "(" + aLong * 1000 + ") " + sp + " executed.(" + TimeUtil.format(aLong2) + ")";
+        return "Chunk " + aLong + "(" + aLong * 1000 + ") " + sp + " executed (" + TimeUtils.format(aLong2) + ")";
     }
 }

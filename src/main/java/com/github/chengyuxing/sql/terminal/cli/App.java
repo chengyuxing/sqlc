@@ -2,10 +2,12 @@ package com.github.chengyuxing.sql.terminal.cli;
 
 import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.terminal.common.Constants;
 import com.github.chengyuxing.sql.terminal.core.BakiLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
+import com.github.chengyuxing.sql.terminal.util.IOUtils;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
 import com.github.lalyos.jfiglet.FigletFont;
 import org.jetbrains.annotations.Nullable;
@@ -31,8 +33,11 @@ import java.util.concurrent.Callable;
         sortOptions = false,
         headerHeading = "%n" + Help.appName + "%n%n",
         description = {
-                "%nWhen no '-e' and '--import' command is specified, Interactive Mode starts.",
-                "Type ':help' in Interactive Mode."
+                "%nSupports: ",
+                " - Command Mode: `-e` or `--import` specified",
+                " - Stdin Mode: `-e` and `--import` not specified and system input is not empty",
+                " - Interactive Mode: default",
+                "Type ':help' in Interactive Mode get some help."
         },
         optionListHeading = "%nCommand Mode Options:%n",
         header = {
@@ -89,15 +94,15 @@ public class App implements Callable<Integer> {
         @CommandLine.Option(names = "--import", required = true, description = "Read a file for execute batch insert.%nsupport .sql(insert file)|.csv|.tsv|.json|.xls(x)")
         String file = "";
 
-        @CommandLine.Option(names = "--sheet-index", paramLabel = "<n>", description = "Specify the xls(x) sheet index for '--import' command.")
+        @CommandLine.Option(names = "--sheet-index", paramLabel = "<n>", description = "Specify the xls(x) sheet index for `--import` command.")
         int sheetIndex = 0;
 
-        @CommandLine.Option(names = "--header-index", paramLabel = "<n>", description = "Specify the xls(x),tsv,csv header field mapper row index for '--import' command.")
+        @CommandLine.Option(names = "--header-index", paramLabel = "<n>", description = "Specify the xls(x),tsv,csv header field mapper row index for `--import` command.")
         int headerIndex = 0;
     }
 
     static class ExecuteOptions {
-        @CommandLine.Option(names = {"-e", "--execute"}, required = true, description = "Execute sql content or sql file.")
+        @CommandLine.Option(names = {"-e", "--execute"}, description = "Execute sql content or sql file.")
         String[] sql = new String[0];
 
         @CommandLine.Option(names = {"-o", "--output"}, description = "Output query result as file.")
@@ -107,6 +112,9 @@ public class App implements Callable<Integer> {
         View format = View.tsv;
     }
 
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
+
     public static void main(String[] args) {
         int exitCode = new CommandLine(new App()).execute(args);
         System.exit(exitCode);
@@ -114,6 +122,38 @@ public class App implements Callable<Integer> {
 
     @Override
     public Integer call() {
+        try {
+            switch (StartupMode.detect(this)) {
+                case STDIN:
+                    return startStdinMode();
+                case COMMAND:
+                case INTERACTIVE:
+                    return startBasicMode();
+            }
+        } catch (CommandLine.PicocliException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Startup failed", e);
+            Stdout.printlnError(e);
+        }
+        return 0;
+    }
+
+    private int startStdinMode() {
+        try {
+            BakiLoader.loadDrivers("drivers");
+            BakiLoader bakiLoader = BakiLoader.of(jdbcUrl);
+            bakiLoader.init();
+            String sql = IOUtils.toString(System.in, StandardCharsets.UTF_8);
+            return new StdInputMode(bakiLoader, this, sql).call();
+        } catch (Exception e) {
+            log.error("Startup stdin mode failed", e);
+            Stdout.printlnError(e);
+            return 0;
+        }
+    }
+
+    private int startBasicMode() {
         try {
             final Terminal terminal = TerminalBuilder.builder()
                     .name(Help.appName)
@@ -125,7 +165,6 @@ public class App implements Callable<Integer> {
                     .terminal(terminal)
                     .build();
 
-            // FIXME 正式环境取消注释
             BakiLoader.loadDrivers("drivers");
             BakiLoader bakiLoader = BakiLoader.of(jdbcUrl);
 
@@ -143,13 +182,14 @@ public class App implements Callable<Integer> {
             Stdout.printf("Go to %s get more information about this.%n", Stdout.colorful(Help.url, Style.UNDERLINE));
             Stdout.printf("DataBase: %s %s%n", bakiLoader.dbName(), bakiLoader.dbVersion());
 
-            loadConfig(bakiLoader);
+            initializeBeforeStartup(bakiLoader);
 
             if (ioOptions == null) {
                 return new InteractiveMode(this, bakiLoader, terminal).call();
             }
             return new CommandMode(this, bakiLoader, terminal).call();
         } catch (Exception e) {
+            log.error("Startup basic mode failed", e);
             Stdout.printlnError(e);
             return 0;
         }
@@ -163,7 +203,7 @@ public class App implements Callable<Integer> {
             try {
                 bakiLoader.setUsername(lineReader.readLine("username: "));
             } catch (UserInterruptException | EndOfFileException e) {
-                Stdout.println("cancel login.");
+                Stdout.println("cancel login");
                 return false;
             }
         } else {
@@ -174,19 +214,19 @@ public class App implements Callable<Integer> {
             for (int i = 5; i >= 0; i--) {
                 try {
                     if (i == 0) {
-                        Stdout.println("login denied.");
+                        Stdout.println("login denied");
                         return false;
                     }
                     bakiLoader.setPassword(lineReader.readLine("password: ", '*'));
                     bakiLoader.init();
                     break;
                 } catch (UserInterruptException | EndOfFileException e) {
-                    Stdout.println("cancel login.");
+                    Stdout.println("cancel login");
                     return false;
                 } catch (Exception e) {
-                    log.error("password login", e);
+                    log.error("Password login", e);
                     Stdout.printlnError(e);
-                    Stdout.printlnDanger("please try again.");
+                    Stdout.printlnDanger("Please try again");
                 }
             }
         } else {
@@ -196,7 +236,16 @@ public class App implements Callable<Integer> {
         return true;
     }
 
-    private void loadConfig(BakiLoader bakiLoader) throws IOException {
+    private void initializeBeforeStartup(BakiLoader bakiLoader) throws IOException {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                PathUtils.deleteFileRecursive(Constants.SQLC_TEMP_PATH);
+            } catch (IOException e) {
+                log.error("Cleanup temp files", e);
+            }
+        }));
+        Files.createDirectories(Constants.SQLC_TEMP_PATH);
+
         if (batchSize > 0) {
             bakiLoader.getUserBaki().setBatchSize(batchSize);
         }

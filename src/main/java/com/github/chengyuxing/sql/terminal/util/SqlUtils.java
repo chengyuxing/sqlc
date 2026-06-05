@@ -21,10 +21,10 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.github.chengyuxing.sql.terminal.util.ObjectUtil.JSON;
+import static com.github.chengyuxing.sql.terminal.util.ObjectUtils.JSON;
 import static com.github.chengyuxing.sql.util.SqlUtils.formatSqlTemplate;
 
-public class SqlUtil {
+public class SqlUtils {
     public static Pattern WORD_PATTERN = Pattern.compile("([a-zA-Z]+)|'(?:''|[^'])*'");
     public static final SqlGenerator sqlTranslator = new SqlGenerator(':');
     private static final Map<String, Integer> OUT_PARAM_TYPES = new LinkedHashMap<>();
@@ -227,7 +227,7 @@ public class SqlUtil {
         }
         Integer n = OUT_PARAM_TYPES.get(input);
         if (n == null) {
-            throw new IllegalArgumentException("Out param type name '" + input + "' not found.");
+            throw new IllegalArgumentException("Out param type name '" + input + "' not found");
         }
         return n;
     }
@@ -272,9 +272,9 @@ public class SqlUtil {
     }
 
     public static boolean allowOutput2file(String sql) {
-        SqlType sqlType = SqlUtil.detectSQLType(sql);
+        SqlType sqlType = SqlUtils.detectSQLType(sql);
         if (sqlType != SqlType.QUERY) {
-            Stdout.printlnWarning("only query can output to file");
+            Stdout.printlnWarning("Only query can output to file");
             return false;
         }
         return true;

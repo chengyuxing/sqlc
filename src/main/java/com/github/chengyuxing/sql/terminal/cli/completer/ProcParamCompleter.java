@@ -1,7 +1,7 @@
 package com.github.chengyuxing.sql.terminal.cli.completer;
 
 import com.github.chengyuxing.sql.terminal.common.Constants;
-import com.github.chengyuxing.sql.terminal.util.SqlUtil;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.AggregateCompleter;
@@ -12,7 +12,7 @@ import org.jline.reader.impl.completer.StringsCompleter;
 import static com.github.chengyuxing.sql.terminal.common.Constants.CURRENT_DIR;
 
 public class ProcParamCompleter {
-    private static final Completer outParamCompleter = new StringsCompleter(SqlUtil.getProcedureOutParamTypes().keySet());
+    private static final Completer outParamCompleter = new StringsCompleter(SqlUtils.getProcedureOutParamTypes().keySet());
 
     private static final Completer out = new ArgumentCompleter(
             new StringsCompleter("out"),

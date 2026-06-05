@@ -14,7 +14,6 @@ import java.sql.SQLException;
 import java.util.stream.Stream;
 
 public class BakiLoader implements AutoCloseable {
-
     private final HikariConfig config = new HikariConfig();
     private HikariDataSource userDataSource;
     private HikariDataSource sysDataSource;
@@ -87,7 +86,7 @@ public class BakiLoader implements AutoCloseable {
     public static void loadDrivers(String path) throws IOException {
         Path driverDir = Constants.APP_DIR.resolve(path);
         if (!Files.exists(driverDir)) {
-            throw new FileNotFoundException("jdbc driver folder not exists: " + driverDir);
+            throw new FileNotFoundException("JDBC driver folder not exists: " + driverDir);
         }
         try (Stream<Path> s = Files.list(driverDir)) {
             s.filter(p -> p.toString().endsWith(".jar"))

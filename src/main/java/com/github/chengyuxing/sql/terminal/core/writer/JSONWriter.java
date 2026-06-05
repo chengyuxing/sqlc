@@ -2,10 +2,10 @@ package com.github.chengyuxing.sql.terminal.core.writer;
 
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
-import com.github.chengyuxing.sql.terminal.util.ObjectUtil;
+import com.github.chengyuxing.sql.terminal.util.ObjectUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
-import com.github.chengyuxing.sql.terminal.util.TimeUtil;
+import com.github.chengyuxing.sql.terminal.util.TimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,36 +25,39 @@ public class JSONWriter implements IWriter {
     public void write(Stream<DataRow> data, String output) throws IOException {
         Path path = PathUtils.resolve(output.endsWith(".json") ? output : output + ".json");
 
-        Stdout.printlnPrimary("waiting...");
+        Stdout.printlnPrimary("Waiting...");
 
-        ProgressPrinter pp = ProgressPrinter.of("", " object has written.");
-        pp.whenStopped((value, during) -> {
-            Stdout.printlnPrimary(value + " object write completed.(" + TimeUtil.format(during) + ")");
-            Stdout.printlnNotice(path + " saved!");
-        }).start();
+        ProgressPrinter pp = ProgressPrinter.of("", " object has written");
 
-        try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-            AtomicBoolean first = new AtomicBoolean(true);
-            writer.write("[");
-            data.forEach(row -> {
-                try {
-                    if (first.get()) {
-                        writer.write(ObjectUtil.getJson(row));
-                        first.set(false);
-                    } else {
-                        writer.write(", " + ObjectUtil.getJson(row));
+        PathUtils.usingTmpFile(path, temp -> {
+            try (BufferedWriter writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8)) {
+                pp.finalize((value, during) -> {
+                    Stdout.printlnPrimary(value + " object write completed (" + TimeUtils.format(during) + ")");
+                    Stdout.printlnNotice(path + " saved");
+                }).start();
+
+                AtomicBoolean first = new AtomicBoolean(true);
+                writer.write("[");
+                data.forEach(row -> {
+                    try {
+                        if (first.get()) {
+                            writer.write(ObjectUtils.getJson(row));
+                            first.set(false);
+                        } else {
+                            writer.write(", " + ObjectUtils.getJson(row));
+                        }
+                        pp.increment();
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
                     }
-                    pp.increment();
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            });
-            writer.write("]");
-            pp.stop();
-        } catch (Exception e) {
-            log.error("write json error", e);
-            Files.deleteIfExists(path);
-            pp.interrupt();
-        }
+                });
+                writer.write("]");
+                pp.stop();
+            } catch (Exception e) {
+                pp.interrupt();
+                log.error("Write json error", e);
+                throw new RuntimeException(e);
+            }
+        });
     }
 }

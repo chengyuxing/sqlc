@@ -9,32 +9,31 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 
-import static com.github.chengyuxing.sql.terminal.common.Constants.CURRENT_DIR;
-import static com.github.chengyuxing.sql.terminal.common.Constants.SQLC_TEMP_PATH;
+import static com.github.chengyuxing.sql.terminal.common.Constants.*;
 
 public abstract class AbstractMode {
-    protected final App shell;
+    protected final App app;
     protected final BakiLoader bakiLoader;
     private final String loginId;
     private final LineReader sqlParamReader;
     private final LineReader procParamReader;
 
-    protected AbstractMode(App shell, BakiLoader bakiLoader, Terminal terminal) {
-        this.shell = shell;
+    protected AbstractMode(App app, BakiLoader bakiLoader, Terminal terminal) {
+        this.app = app;
         this.bakiLoader = bakiLoader;
-        this.loginId = StringUtils.hash(shell.username + "@" + shell.jdbcUrl, "md5");
+        this.loginId = StringUtils.hash(app.username + "@" + app.jdbcUrl, "md5");
 
         this.sqlParamReader = LineReaderBuilder.builder()
                 .terminal(terminal)
                 .completer(new Completers.FilesCompleter(CURRENT_DIR))
-                .variable(LineReader.HISTORY_FILE, SQLC_TEMP_PATH.resolve("history_sql_param_" + this.loginId))
+                .variable(LineReader.HISTORY_FILE, SQLC_HISTORY_PATH.resolve("history_sql_param_" + this.loginId))
                 .history(new DefaultHistory())
                 .build();
 
         this.procParamReader = LineReaderBuilder.builder()
                 .terminal(terminal)
                 .completer(ProcParamCompleter.INSTANCE)
-                .variable(LineReader.HISTORY_FILE, SQLC_TEMP_PATH.resolve("history_proc_param_" + this.loginId))
+                .variable(LineReader.HISTORY_FILE, SQLC_HISTORY_PATH.resolve("history_proc_param_" + this.loginId))
                 .history(new DefaultHistory())
                 .build();
     }
