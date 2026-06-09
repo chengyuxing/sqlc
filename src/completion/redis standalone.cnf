@@ -1,0 +1,7 @@
+keys exists del expire ttl type scan
+set get mset incr decr setnx
+hset hget hgetall hincrby
+lpush rpop lrange
+sadd smembers sismember sinter
+zadd zrevrange zincrby
+info select flushdb scan

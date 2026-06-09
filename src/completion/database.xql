@@ -2,7 +2,7 @@
   Configure database object auto complete suggestions.
   Please follow the format below to add SQL for your database.
 
-  Runtime variables: username, schema
+  Runtime variables: username
 
   /*[database name from jdbc metadata]*/
   <1 column query SQL content>;

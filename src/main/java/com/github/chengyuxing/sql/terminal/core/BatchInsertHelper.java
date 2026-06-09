@@ -81,8 +81,8 @@ public class BatchInsertHelper {
         ProgressPrinter pp = new ProgressPrinter();
         pp.setStep(2);
         pp.setFormatter(formatter("rows", "executed"));
-        pp.finalize(whenStoppedFunc(chunk, example, "rows", "execute")).start();
         try (Stream<String> s = Files.lines(path, StandardCharsets.UTF_8)) {
+            pp.finalize(whenStoppedFunc(chunk, example, "rows", "execute")).start();
             StringBuilder sb = new StringBuilder();
             s.map(String::trim)
                     .filter(sql -> !sql.isEmpty() && !StringUtils.startsWithsIgnoreCase(sql, "--", "#", "/*"))
@@ -163,8 +163,8 @@ public class BatchInsertHelper {
         ProgressPrinter pp = new ProgressPrinter();
         pp.setStep(2);
         pp.setFormatter(formatter("objects", "inserted"));
-        pp.finalize(whenStoppedFunc(chunk, example, "objects", "insert")).start();
         try (MappingIterator<Map<String, Object>> iterator = JSON.reader().forType(Map.class).readValues(path.toFile())) {
+            pp.finalize(whenStoppedFunc(chunk, example, "objects", "insert")).start();
             while (iterator.hasNext()) {
                 Map<String, Object> obj = iterator.next();
 
@@ -200,9 +200,9 @@ public class BatchInsertHelper {
         ProgressPrinter pp = new ProgressPrinter();
         pp.setStep(2);
         pp.setFormatter(formatter("lines", "inserted"));
-        pp.finalize(whenStoppedFunc(chunk, example, "lines", "insert")).start();
 
         try (Stream<String> s = Files.lines(path, StandardCharsets.UTF_8)) {
+            pp.finalize(whenStoppedFunc(chunk, example, "lines", "insert")).start();
 
             // tsv header index
             // -1 : do query table fields by tsv file name
@@ -258,8 +258,8 @@ public class BatchInsertHelper {
         ProgressPrinter pp = new ProgressPrinter();
         pp.setStep(2);
         pp.setFormatter(formatter("rows", "inserted"));
-        pp.finalize(whenStoppedFunc(chunk, example, "rows", "insert")).start();
         try {
+            pp.finalize(whenStoppedFunc(chunk, example, "rows", "insert")).start();
             ExcelReader reader = Excels.reader(path).sheetAt(sheetIdx);
             int skip = 0;
             if (headerIdx >= 0) {

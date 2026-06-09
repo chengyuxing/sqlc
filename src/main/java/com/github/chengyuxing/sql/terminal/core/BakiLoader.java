@@ -10,7 +10,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.SQLException;
 import java.util.stream.Stream;
 
 public class BakiLoader implements AutoCloseable {
@@ -50,10 +49,6 @@ public class BakiLoader implements AutoCloseable {
 
     public void setDriver(String driver) {
         this.driver = driver;
-    }
-
-    public String getDbName() {
-        return sysBaki.databaseId();
     }
 
     public void init() {
@@ -96,11 +91,11 @@ public class BakiLoader implements AutoCloseable {
     }
 
     public String dbName() {
-        return userBaki.databaseId();
+        return userBaki.databaseInfo().getName();
     }
 
-    public String dbVersion() throws SQLException {
-        return userBaki.metaData().getDatabaseProductVersion();
+    public String dbVersion() {
+        return userBaki.databaseInfo().getVersion();
     }
 
     public BakiDao getUserBaki() {

@@ -71,8 +71,8 @@ public class InsertSQLWriter implements IWriter {
                     // write blob files
                     if (!insertAndBlobKeys.getItem2().isEmpty()) {
                         for (String k : insertAndBlobKeys.getItem2()) {
-                            IOutput out = () -> (byte[]) row.get(k);
-                            out.saveTo(tempBlobDir.resolve(createBlobKey(pp.getValue(), k)));
+                            IOutput bf = out -> out.write((byte[]) row.get(k));
+                            bf.writeTo(tempBlobDir.resolve(createBlobKey(pp.getValue(), k)));
                         }
                     }
                     pp.increment();

@@ -1,7 +1,6 @@
 package com.github.chengyuxing.sql.terminal.core.writer;
 
 import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.excel.io.BigExcelLineWriter;
 import com.github.chengyuxing.sql.terminal.progress.impl.ProgressPrinter;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
@@ -44,7 +43,7 @@ public class ExcelWriter implements IWriter {
                     writer.writeRow(sheet, row.values());
                     pp.increment();
                 });
-                writer.saveTo(temp);
+                writer.writeTo(temp);
                 pp.stop();
             } catch (Exception e) {
                 pp.interrupt();

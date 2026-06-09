@@ -29,9 +29,6 @@ public class DBTests {
         loader.setUsername("chengyuxing");
         loader.init();
 
-        System.out.println(loader.getSysBaki().metaData().getDatabaseMajorVersion());
-        System.out.println(loader.getSysBaki().metaData().getDatabaseMinorVersion());
-        System.out.println(loader.getSysBaki().metaData().getDatabaseProductVersion());
 
         DataBaseResource dataBaseResource = new DataBaseResource(loader);
 //        dataBaseResource.getUserTableNames().forEach(System.out::println);
@@ -60,10 +57,6 @@ public class DBTests {
         loader.setUsername("rk_yjsdd");
         loader.setPassword("rk_yjsdd");
         loader.init();
-
-        System.out.println(loader.getSysBaki().metaData().getDatabaseMajorVersion());
-        System.out.println(loader.getSysBaki().metaData().getDatabaseMinorVersion());
-        System.out.println(loader.getSysBaki().metaData().getDatabaseProductVersion());
 
 //        DataBaseResource dataBaseResource = new DataBaseResource(loader);
 //        dataBaseResource.getUserTableNames().forEach(System.out::println);

@@ -108,7 +108,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
 
         DataBaseResource dataBaseResource = new DataBaseResource(bakiLoader);
 
-        keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsWithDefault());
+        keywordsCompleter.addVarsNames(dataBaseResource.getSqlKeyWordsOrDefault());
         CompletableFuture.supplyAsync(dataBaseResource::getNames)
                 .whenCompleteAsync((tables, e) -> {
                     if (e != null) {

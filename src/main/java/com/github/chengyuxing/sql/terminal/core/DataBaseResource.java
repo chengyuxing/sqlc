@@ -3,6 +3,7 @@ package com.github.chengyuxing.sql.terminal.core;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
+import com.github.chengyuxing.sql.terminal.common.Stdout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +26,7 @@ public class DataBaseResource {
     private final XQLFileManager xqlFileManager;
 
     public DataBaseResource(BakiLoader bakiLoader) {
-        this.dbName = bakiLoader.getDbName();
+        this.dbName = bakiLoader.dbName();
         this.bakiLoader = bakiLoader;
         this.baki = this.bakiLoader.getSysBaki();
         this.xqlFileManager = new XQLFileManager();
@@ -52,11 +53,11 @@ public class DataBaseResource {
         }
     }
 
-    public Set<String> getSqlKeyWordsWithDefault() {
-        Set<String> keywords = Objects.equals(dbName, "redis")
-                ? new HashSet<>()
-                : getSqlKeywords("default");
-        keywords.addAll(getSqlKeywords(dbName));
+    public Set<String> getSqlKeyWordsOrDefault() {
+        Set<String> keywords = getSqlKeywords(dbName);
+        if (keywords.isEmpty()) {
+            keywords = getSqlKeywords("default");
+        }
         return keywords;
     }
 
@@ -64,6 +65,7 @@ public class DataBaseResource {
         Path cnf = APP_DIR.resolve(Paths.get("completion", dbName + ".cnf"));
         if (!Files.exists(cnf)) {
             log.warn("Load {} failed: not found", cnf);
+            Stdout.printlnWarning("Cannot load " + cnf + ": not found");
             return Collections.emptySet();
         }
         try (Stream<String> lines = Files.lines(cnf, StandardCharsets.UTF_8)) {
