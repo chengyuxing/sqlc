@@ -5,6 +5,7 @@ import com.github.chengyuxing.sql.terminal.cli.component.Prompt;
 import com.github.chengyuxing.sql.terminal.types.View;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class Context {
@@ -12,6 +13,10 @@ public abstract class Context {
      * transaction state
      */
     public static final AtomicBoolean txActive = new AtomicBoolean(false);
+    /**
+     * Query result print number of rows.
+     */
+    public static final AtomicLong printRows = new AtomicLong(100);
     /**
      * display and output format state
      */

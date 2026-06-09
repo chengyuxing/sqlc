@@ -77,6 +77,9 @@ public class App implements Callable<Integer> {
     @CommandLine.Option(names = "--named-param-prefix", paramLabel = "<char>", description = "Prepare SQL named parameter prefix symbol.")
     char namedParamPrefix = ':';
 
+    @CommandLine.Option(names = "--print-rows", description = "Print the number of rows for query result, 0: Unlimited, default 100.")
+    long maxRows = 100;
+
     static class IoOptions {
         @Nullable
         @CommandLine.ArgGroup(exclusive = false)
@@ -123,6 +126,7 @@ public class App implements Callable<Integer> {
     @Override
     public Integer call() {
         try {
+            Context.printRows.set(maxRows);
             switch (StartupMode.detect(this)) {
                 case STDIN:
                     return startStdinMode();

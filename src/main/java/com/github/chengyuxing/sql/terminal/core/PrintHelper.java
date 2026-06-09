@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,13 +28,16 @@ public final class PrintHelper {
     private static final Logger log = LoggerFactory.getLogger(PrintHelper.class);
 
     public static void printStreamData(Stream<DataRow> s) {
-        AtomicBoolean first = new AtomicBoolean(true);
+        long argRows = Context.printRows.get();
+        long maxRows = argRows <= 0 ? Long.MAX_VALUE : argRows;
+        AtomicLong n = new AtomicLong();
         switch (Context.viewMode.get()) {
             case json:
                 Stdout.printData("[");
-                s.forEach(row -> {
+                s.limit(maxRows).forEach(row -> {
                     try {
-                        PrintHelper.printJSON(row, first);
+                        PrintHelper.printJSON(row, n.get());
+                        n.incrementAndGet();
                     } catch (JsonProcessingException e) {
                         log.error("Print query result as json", e);
                         throw new RuntimeException(e);
@@ -43,14 +46,27 @@ public final class PrintHelper {
                 Stdout.printlnData("]");
                 break;
             case tsv:
-                s.forEach(row -> PrintHelper.printDSV(row, "\t", first));
+                s.limit(maxRows).forEach(row -> {
+                    PrintHelper.printDSV(row, "\t", n.get());
+                    n.incrementAndGet();
+                });
                 break;
             case csv:
-                s.forEach(row -> PrintHelper.printDSV(row, ",", first));
+                s.limit(maxRows).forEach(row -> {
+                    PrintHelper.printDSV(row, ",", n.get());
+                    n.incrementAndGet();
+                });
                 break;
             case excel:
-                s.forEach(row -> PrintHelper.printDSV(row, " | ", first));
+                s.limit(maxRows).forEach(row -> {
+                    PrintHelper.printDSV(row, " | ", n.get());
+                    n.incrementAndGet();
+                });
                 break;
+        }
+        if (n.get() >= maxRows) {
+            Stdout.printlnTitle("", '-', 80, Style.SILVER);
+            Stdout.printf("Showing first %s rows...%n", Style.SILVER, maxRows);
         }
     }
 
@@ -110,21 +126,19 @@ public final class PrintHelper {
         }
     }
 
-    public static void printJSON(DataRow data, AtomicBoolean firstLine) throws JsonProcessingException {
-        if (firstLine.get()) {
+    public static void printJSON(DataRow data, long n) throws JsonProcessingException {
+        if (n == 0) {
             Stdout.printData(getJson(data));
-            firstLine.set(false);
         } else {
             Stdout.printData(", " + getJson(data));
         }
     }
 
-    public static void printDSV(DataRow data, String d, AtomicBoolean firstLine) {
-        if (firstLine.get()) {
+    public static void printDSV(DataRow data, String d, long n) {
+        if (n == 0) {
             String namesLine = String.join(d, data.keySet());
             Stdout.printlnData(namesLine);
             Stdout.println(StringUtils.repeat("-", namesLine.length()), Style.SILVER);
-            firstLine.set(false);
         }
         String valuesLine = data.values().stream().map(v -> {
             if (null == v) {
