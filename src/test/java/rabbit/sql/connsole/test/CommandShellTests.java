@@ -3,9 +3,11 @@ package rabbit.sql.connsole.test;
 import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.common.console.Style;
 import com.github.chengyuxing.sql.terminal.cli.App;
+import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.terminal.core.BakiLoader;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.writer.*;
+import com.github.chengyuxing.sql.terminal.types.View;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
 import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
@@ -76,7 +78,12 @@ public class CommandShellTests {
 
     @Test
     public void testDsvWriter() throws IOException {
-        IWriter writer = new JSONWriter();
-        writer.write(stream, "/Users/chengyuxing/Downloads/0000.sql");
+        Stream<DataRow> s = Stream.iterate(0, i -> i + 1)
+                .limit(50000)
+                .map(i -> DataRow.of("name", "chengyuxing_qq", "address", "kunming", "age", i));
+
+        Context.viewMode.set(View.csv);
+        IWriter writer = new InsertSQLWriter();
+        writer.write(s, "/Users/chengyuxing/Downloads/test.guest");
     }
 }

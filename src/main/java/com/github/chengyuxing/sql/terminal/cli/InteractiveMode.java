@@ -241,6 +241,7 @@ public class InteractiveMode extends AbstractMode implements Callable<Integer> {
             String f = "%-30s%-30s%n";
             Object[][] messages = new Object[][]{
                     {"View Mode", Context.viewMode.get()},
+                    {"Display Rows", Context.printRows.get()},
                     {"Transaction", (Context.txActive.get() ? "enabled" : "disabled")},
                     {"Batch Size", baki.getBatchSize()},
                     {"XQL", "Loaded: " + baki.getXqlFileManager().getFiles().keySet()},
