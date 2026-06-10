@@ -137,8 +137,10 @@ public final class PrintHelper {
     public static void printDSV(DataRow data, String d, long n) {
         if (n == 0) {
             String namesLine = String.join(d, data.keySet());
+            String border = StringUtils.repeat("-", Math.max(namesLine.length(), 80));
+            Stdout.println(border, Style.SILVER);
             Stdout.printlnData(namesLine);
-            Stdout.println(StringUtils.repeat("-", namesLine.length()), Style.SILVER);
+            Stdout.println(border, Style.SILVER);
         }
         String valuesLine = data.values().stream().map(v -> {
             if (null == v) {
