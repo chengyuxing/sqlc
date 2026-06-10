@@ -4,6 +4,8 @@ import com.github.chengyuxing.common.DataRow;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.XQLFileManager;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
+import com.github.chengyuxing.sql.terminal.types.SqlType;
+import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +47,12 @@ public class DataBaseResource {
     }
 
     public List<String> getNames() {
-        try (Stream<DataRow> s = baki.query("&" + XQLFileManager.encodeSqlReference("db", bakiLoader.dbName()))
+        String sqlName = XQLFileManager.encodeSqlReference("db", bakiLoader.dbName());
+        String sql = xqlFileManager.get(sqlName);
+        if (SqlUtils.detectSQLType(sql) != SqlType.QUERY) {
+            throw new IllegalStateException("Illegal SQL type: " + sql);
+        }
+        try (Stream<DataRow> s = baki.query("&" + sqlName)
                 .args("username", bakiLoader.getUsername())
                 .stream()) {
             return s.map(DataRow::<String>getFirstAs)
