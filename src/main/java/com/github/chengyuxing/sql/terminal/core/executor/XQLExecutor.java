@@ -12,6 +12,7 @@ public abstract class XQLExecutor extends AbstractExecutor {
     private final BakiDao baki;
 
     public XQLExecutor(BakiDao baki) {
+        super(baki.getSqlGenerator());
         this.baki = baki;
     }
 

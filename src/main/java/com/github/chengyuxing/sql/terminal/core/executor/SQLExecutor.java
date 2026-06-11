@@ -16,6 +16,7 @@ public abstract class SQLExecutor extends AbstractExecutor {
     private final BakiDao baki;
 
     public SQLExecutor(BakiDao baki) {
+        super(baki.getSqlGenerator());
         this.baki = baki;
     }
 

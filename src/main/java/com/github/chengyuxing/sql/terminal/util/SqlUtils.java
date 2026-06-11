@@ -26,7 +26,6 @@ import static com.github.chengyuxing.sql.util.SqlUtils.formatSqlTemplate;
 
 public class SqlUtils {
     public static Pattern WORD_PATTERN = Pattern.compile("([a-zA-Z]+)|'(?:''|[^'])*'");
-    public static final SqlGenerator sqlTranslator = new SqlGenerator(':');
     private static final Map<String, Integer> OUT_PARAM_TYPES = new LinkedHashMap<>();
 
     public static SqlType detectSQLType(final String sql) {
@@ -136,12 +135,12 @@ public class SqlUtils {
      * @param lineReader readline
      * @return 解析完成的sql和参数字典
      */
-    public static Pair<String, Map<String, Object>> prepareSqlWithArgs(String sql, LineReader lineReader) throws IOException {
+    public static Pair<String, Map<String, Object>> prepareSqlWithArgs(SqlGenerator sqlGenerator, String sql, LineReader lineReader) throws IOException {
         String fmtSql = formatSql(sql, lineReader);
         if (!sql.equals(fmtSql)) {
             Stdout.printlnHighlightSql(fmtSql);
         }
-        RabbitScriptParamParser paramParser = new RabbitScriptParamParser(fmtSql, sqlTranslator);
+        RabbitScriptParamParser paramParser = new RabbitScriptParamParser(fmtSql, sqlGenerator);
         paramParser.parse();
         Map<String, Set<String>> params = paramParser.getParamsMap();
         if (params.isEmpty()) {
