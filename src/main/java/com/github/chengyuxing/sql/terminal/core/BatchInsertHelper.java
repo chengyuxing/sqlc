@@ -264,14 +264,24 @@ public class BatchInsertHelper {
         pp.setFormatter(formatter("rows", "inserted"));
         try {
             pp.finalize(whenStoppedFunc(chunk, example, "rows")).start();
-            ExcelReader reader = Excels.reader(path).sheetAt(sheetIdx);
+
+            ExcelReader reader = Excels.reader(path);
+            // sheet index <= -1 then filename is table name,
+            // otherwise sheet name is table name
+            String finalTableName = sheetIdx >= 0
+                    ? reader.getSheets().get(sheetIdx).getName()
+                    : tableName;
+            int finalSheetIdx = Math.max(sheetIdx, 0);
+
+            reader.sheetAt(finalSheetIdx);
+
             int skip = 0;
             if (headerIdx >= 0) {
                 reader.namedHeaderAt(headerIdx, true);
                 skip = 1;
             } else {
                 reader.namedHeaderAt(-1, true);
-                reader.fieldMap(baki.table(tableName).fields().toArray(new String[0]));
+                reader.fieldMap(baki.table(finalTableName).fields().toArray(new String[0]));
             }
             try (Stream<DataRow> s = reader.stream()) {
                 s.skip(skip)
@@ -282,7 +292,7 @@ public class BatchInsertHelper {
                         .filter(d -> !d.isEmpty())
                         .forEach(d -> {
                             if (example.get().isEmpty()) {
-                                example.set(baki.getSqlGenerator().generateNamedParamInsert(tableName, d.keySet()));
+                                example.set(baki.getSqlGenerator().generateNamedParamInsert(finalTableName, d.keySet()));
                             }
                             String insert = baki.getSqlGenerator()
                                     .generateSql(example.get(), d, v -> SqlUtils.toSqlLiteral(v, true));

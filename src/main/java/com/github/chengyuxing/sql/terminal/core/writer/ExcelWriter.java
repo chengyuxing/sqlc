@@ -33,7 +33,10 @@ public class ExcelWriter implements IWriter {
                     Stdout.printlnPrimary("Built file: " + path);
                 }).start();
 
-                Sheet sheet = writer.createSheet("Sheet1");
+                String filename = path.getFileName().toString();
+                String tablename = filename.substring(0, filename.lastIndexOf("."));
+
+                Sheet sheet = writer.createSheet(tablename);
                 AtomicBoolean first = new AtomicBoolean(true);
                 data.forEach(row -> {
                     if (first.get()) {
