@@ -147,6 +147,9 @@ public class App implements Callable<Integer> {
         try {
             BakiLoader.loadDrivers("drivers");
             BakiLoader bakiLoader = BakiLoader.of(jdbcUrl);
+            bakiLoader.setUsername(username);
+            bakiLoader.setPassword(password);
+            bakiLoader.setDriver(jdbcDriver);
             bakiLoader.init();
             String sql = IOUtils.toString(System.in, StandardCharsets.UTF_8);
             return new StdInputMode(bakiLoader, this, sql).call();
