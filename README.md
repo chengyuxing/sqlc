@@ -4,7 +4,7 @@
 
 这是一款基于 [Rabbit SQL](https://github.com/chengyuxing/rabbit-sql) 定制的的[命令行客户端工具][github_release]，旨在通过 JDBC 为无 UI 界面的操作系统提供连接各种数据库的通用能力，特别是针对仅提供了 IP 和端口的数据库。当然，在视窗操作系统中也依然具有一定的意义。
 
-![](../images/cli-login.png)
+![](./images/cli-login.png)
 
 ## 说明
 
@@ -243,7 +243,7 @@ $ ./sqlc <login>
 
 多行 SQL 直接按 <kbd>Enter</kbd> 换行即可，以 `;` 结尾判定输入完成并执行。
 
-![](../images/cli-interactive-start.png)
+![](./images/cli-interactive-start.png)
 
 或者通过 `:exec` 读取一个文本文件内的 SQL ，`:paste` 打开编辑器粘贴一段 SQL 来执行。
 
@@ -255,7 +255,7 @@ $ ./sqlc <login>
 
 关闭输出模式则输入 `:output` 不指定文件，即退出输出模式。
 
-![](../images/cli-output-mode.png)
+![](./images/cli-output-mode.png)
 
 #### 批量导入数据
 
@@ -338,7 +338,7 @@ $ cat ~/1.sql | ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -fjson | jq >
 
 从标准输入读取一个 SQL 文件：
 
-![](../images/cli-stdin-jq.png)
+![](./images/cli-stdin-jq.png)
 
 ## 参考
 
@@ -346,7 +346,7 @@ $ cat ~/1.sql | ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -fjson | jq >
 
 程序目录 `drivers` 内已有 redis 驱动，但 java 环境至少需要 JDK11，连接 redis 效果如下：
 
-![](../images/cli-redis.png)
+![](./images/cli-redis.png)
 
 ### 执行存储过程
 
@@ -358,7 +358,7 @@ $ cat ~/1.sql | ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -fjson | jq >
 
 类型代码可参考控制台打印的例子，如果没有的类型，需要根据实际具体的数据库对应结果的类型代码。
 
-![](../images/cli-proc.png)
+![](./images/cli-proc.png)
 
 ### 插入文件
 
@@ -366,10 +366,10 @@ $ cat ~/1.sql | ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -fjson | jq >
 
 - `~/`
 - `./`
-- `../`
+- `./`
 - `/`
 
-![](../images/cli-update-file.png)
+![](./images/cli-update-file.png)
 
 ### SQL 关键字补全
 
