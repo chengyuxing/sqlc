@@ -4,18 +4,20 @@
 
 这是一款基于 [Rabbit SQL](https://github.com/chengyuxing/rabbit-sql) 定制的的[命令行客户端工具][github_release]，旨在通过 JDBC 为无 UI 界面的操作系统提供连接各种数据库的通用能力，特别是针对仅提供了 IP 和端口的数据库。当然，在视窗操作系统中也依然具有一定的意义。
 
-![](images/cli-login.png)
+![](../images/cli-login.png)
 
-**基础功能**：
+## 说明
+
+### 基础功能
 
 - 执行预编译 SQL（增删改查），存储过程，函数，PLSQL，DDL，DML
 - 格式化输出执行 SQL 结果，格式支持：`csv` `tsv` `excel` `json`
 - 导出查询结果到文件，支持： `.sql` (包含二进制的 insert 语句) `.csv` `.tsv` `.xls(x)` `.json`
 - 批量导入数据，支持： `.sql` (包含二进制的 insert 语句) `.csv` `.tsv` `.xls(x)` `.json`
-- 管理 XQL 文件，执行[动态 SQL](https://github.com/chengyuxing/rabbit-sql#dynamic-sql)
-- 支持方向键 <kbd>↑</kbd> <kbd>↓</kbd> 翻阅历史记录，关键字、表名、文件路径自动补全，<kbd>Ctrl r</kbd> 查询历史记录等等
+- 管理 [XQL](https://github.com/chengyuxing/rabbit-sql#xql-file-manager) 文件，执行[动态 SQL](https://github.com/chengyuxing/rabbit-sql#dynamic-sql)
+- 支持方向键 <kbd>↑</kbd> <kbd>↓</kbd> 翻阅历史记录，<kbd>Tab</kbd> 关键字、表名、文件路径自动补全，<kbd>Ctrl r</kbd> 查询历史记录等等
 
-**软件目录结构说明**：
+### 软件目录结构
 
 ```
 sqlc-x.x.x/
@@ -43,7 +45,7 @@ sqlc-x.x.x/
 
 - `sqlc.bat` 为 Windows CMD 启动脚本。
 
-**临时文件目录**：
+### 临时文件目录
 
 ```
 ~/.sqlc/
@@ -122,7 +124,7 @@ $ ./sqlc <login> \
 
 #### 导出查询
 
-根据软件规范，导出的**文件名就是目标表名**，特别是对于 `.sql` 文件，生成的 insert 语句表名来源于文件名：
+根据软件规范，导出的**文件名或Sheet名就是目标表名**，特别是对于 `.sql` 文件，生成的 insert 语句表名来源于文件名：
 
 ```mermaid
 graph LR
@@ -155,7 +157,7 @@ $ ./sqlc <login> -e"select 1,2,3" -o ~/test.guest
 
 #### 批量导入数据
 
-批量导入需要按照约定规范文件，**文件名即是要导入的目标表名**，程序通过文件名自动提取数据库表名并生成 **insert** 语句：
+批量导入需要按照约定规范文件，**文件名或Sheet名即是要导入的目标表名**，程序通过文件名自动提取数据库表名并生成 **insert** 语句：
 
 ```mermaid
 graph LR
@@ -173,10 +175,14 @@ f[--import ~/test.guest.json] --> t[insert into test.guest ...];
 
 - 不存在表头：`-1` 自动通过查询数据库列名**按顺序**进行映射
 - 不在第一行，则指定表头所在的行号
-- Excel 数据不在第一个 Sheet，指定 `--sheet-index`
+
+针对 Excel 文件 `--sheet-index=`：
+
+- **-1** : 读取第一个 Sheet 的数据，并从文件名获取表名
+- **大于等于 0** ：读取指定 Sheet 的数据，并从 Sheet 名获取表名
 
 ```bash
-$ ./sqlc <login> --import ~/test.guest.excel \
+$ ./sqlc <login> --import ~/test.guest.xlsx \
 --sheet-index=1 \
 --header-index=1
 ```
@@ -237,7 +243,7 @@ $ ./sqlc <login>
 
 多行 SQL 直接按 <kbd>Enter</kbd> 换行即可，以 `;` 结尾判定输入完成并执行。
 
-![](images/cli-interactive-start.png)
+![](../images/cli-interactive-start.png)
 
 或者通过 `:exec` 读取一个文本文件内的 SQL ，`:paste` 打开编辑器粘贴一段 SQL 来执行。
 
@@ -249,7 +255,7 @@ $ ./sqlc <login>
 
 关闭输出模式则输入 `:output` 不指定文件，即退出输出模式。
 
-![](images/cli-output-mode.png)
+![](../images/cli-output-mode.png)
 
 #### 批量导入数据
 
@@ -269,7 +275,7 @@ $ ./sqlc <login>
 
 加载完成后即可实现以下功能：
 
-- 使用 `:status &` 命令来查看 [XQL](https://github.com/chengyuxing/rabbit-sql#dynamic-sql) 加载信息
+- 使用 `:status &` 命令来查看 [XQL](https://github.com/chengyuxing/rabbit-sql#xql-file-manager) 加载信息
 - 使用 `:exec &<sqlName>`  来执行动态 SQL
 
 #### 参数说明
@@ -332,15 +338,83 @@ $ cat ~/1.sql | ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -fjson | jq >
 
 从标准输入读取一个 SQL 文件：
 
-![](images/cli-stdin-jq.png)
+![](../images/cli-stdin-jq.png)
 
-## 其他
+## 参考
+
+### 连接 Redis
 
 程序目录 `drivers` 内已有 redis 驱动，但 java 环境至少需要 JDK11，连接 redis 效果如下：
 
-![](images/cli-redis.png)
+![](../images/cli-redis.png)
 
-最后 <kbd>Ctrl c</kbd> Bye bye :)
+### 执行存储过程
+
+存储过程写法为：以 `call` 开头 或者 `{` 开头，具体写法不同的数据库写法略有差别，参数输入框分为 3 种类型：
+
+- 入参：直接输入具体的值
+- 出参：`out` ` ` 类型名称或类型代码
+- 入出参：`inout` 类型名称或类型代码 ` ` 具体的值
+
+类型代码可参考控制台打印的例子，如果没有的类型，需要根据实际具体的数据库对应结果的类型代码。
+
+![](../images/cli-proc.png)
+
+### 插入文件
+
+可通过执行预编译 SQL 弹出参数输入框，如果参数识别格式为路径，则读取文件二进制写入参数，路径格式识别前缀包括：
+
+- `~/`
+- `./`
+- `../`
+- `/`
+
+![](../images/cli-update-file.png)
+
+### SQL 关键字补全
+
+配置文件位于[软件目录](#软件目录结构)的：`completion` 文件夹下。
+
+#### 静态配置
+
+默认根据数据库名字读取对应的 `.cnf` 文件，数据库名字可以在登录成功后的信息输出看到：
+
+```
+DataBase: postgresql 17.4 (Homebrew)
+```
+
+> [name] [version]
+
+根据需求增加关键字，或者新建新的数据库名字配置文件 `xxx.cnf` 。
+
+#### 动态配置
+
+编辑 `database.xql` 文件，运行时参数为 `username` （当前用户），增加更多的对象查询结果，例如更多的表名、函数名、存储过程名，默认取结果的**第一列**。
+
+若要增加新的数据库，根据 [XQL](https://github.com/chengyuxing/rabbit-sql#xql-file-manager) 文件规范，SQL 名字为数据库的名字，例如：
+
+```sql
+/*[sqlite]*/
+select ...;
+```
+
+> ⚠️ 仅支持执行查询 SQL 语句。
+
+### 配置环境变量
+
+为避免系统的 `JAVA_HOME` 版本与本程序不兼容导致的启动异常，可以配置其专属的 `JAVA_HOME`
+
+在 `.zshrc` 或 `.profile` 等下面加入：
+
+```bash
+export SQLC_JAVA_HOME=/otherJavaHome
+```
+
+如果此变量存在，则优先使用。
+
+
+
+最后 <kbd>Ctrl c</kbd> Bye bye :(
 
 
 
