@@ -19,7 +19,7 @@ import static com.github.chengyuxing.sql.terminal.common.Constants.CURRENT_DIR;
 public class Commands {
     public static final Command exec = new Command(":exec",
             "Execute sql file or xql name(&sql_name).",
-            "sqlFile|&xqlName",
+            "sqlFile|&sqlName",
             new AggregateCompleter(
                     XQLNameCompleter.INSTANCE,
                     new Completers.FilesCompleter(Constants.CURRENT_DIR)

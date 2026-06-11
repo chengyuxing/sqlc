@@ -1,192 +1,347 @@
-# 关于SQLC 2.x
+# Rabbit SQL CLI
 
-基于jdk8，支持：Linux | macOS | Windows
+系统支持：macOS | Linux | Windows ，最低 JDK 版本为 1.8
 
-一个简单的sql命令行工具，支持增、删、改、查、存储过程/函数、事务、批量导入数据、导出结果；
+这是一款基于 [Rabbit SQL](https://github.com/chengyuxing/rabbit-sql) 定制的的[命令行客户端工具][github_release]，旨在通过 JDBC 为无 UI 界面的操作系统提供连接各种数据库的通用能力，特别是针对仅提供了 IP 和端口的数据库。当然，在视窗操作系统中也依然具有一定的意义。
 
-## 命令
+![](images/cli-login.png)
 
-`-u[url]` **jdbcUrl**（**必要参数**）
+**基础功能**：
 
-> 例如：`-ujdbc:postgresql://127.0.0.1:5432/postgres`
+- 执行预编译 SQL（增删改查），存储过程，函数，PLSQL，DDL，DML
+- 格式化输出执行 SQL 结果，格式支持：`csv` `tsv` `excel` `json`
+- 导出查询结果到文件，支持： `.sql` (包含二进制的 insert 语句) `.csv` `.tsv` `.xls(x)` `.json`
+- 批量导入数据，支持： `.sql` (包含二进制的 insert 语句) `.csv` `.tsv` `.xls(x)` `.json`
+- 管理 XQL 文件，执行[动态 SQL](https://github.com/chengyuxing/rabbit-sql#dynamic-sql)
+- 支持方向键 <kbd>↑</kbd> <kbd>↓</kbd> 翻阅历史记录，关键字、表名、文件路径自动补全，<kbd>Ctrl r</kbd> 查询历史记录等等
 
-`-n[username]`
+**软件目录结构说明**：
 
-`-p[password]`
+```
+sqlc-x.x.x/
+  |- completion/
+     |- database.xql
+     |- xxx.cnf
+     |- ...
+  |- drivers/
+  |- lib/
+  |- sqlc
+  |- sqlc.bat
+```
 
-`-e"[sql|path[>>> output]]"` 或者 `-e"[@path]"`
+- `completions` 下存放关键字自动完成文件：
 
-> sql语句或者读取文件内的sql语句执行，如果是查询语句，则可以使用重定向符号`>>>`将结果导出到文件，结果类型取决于命令`-f`
-> ，不指定则默认为`tsv`；
+  - `database.xql` 可以自行添加数据库查询表名或对象名的 SQL ，格式化标准 XQL 文件，名称为 数据库名，通过 `DatabaseMetadata#getDatabaseProductName` 获取
+
+  - `xxx.cnf` 为数据库的关键字配置文件，文件名为数据库名，同上
+
+- `drivers` 目录下存放 JDBC 驱动程序。
+
+- `lib` 存放程序运行所需的依赖包。
+
+- `sqlc` 为 Bash 终端启动脚本，如果环境变量中存在 `SQLC_JAVA_HOME` ，则根据此环境变量的 java 来启动，否则使用 `PATH` 中的 java 来启动。
+
+- `sqlc.bat` 为 Windows CMD 启动脚本。
+
+**临时文件目录**：
+
+```
+~/.sqlc/
+  |- logs/
+  |- history/
+  |- temp/
+```
+
+- `logs` 目录下可查看详细的运行警告和错误日志。
+
+- `history` 记录了 SQL 和指令的输入历史。
+
+- `temp` 为临时文件夹，退出时会自动清理，无需手动删除。
+
+## 登录
+
+参数 `-u` 为必填，**用户名**和**密码**自动弹出输入框，但在**标准输入模式**中，如果数据库有用户名和密码，必须指定，否则无法登陆。
+
+```bash
+$ ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -nchengyuxing
+```
+
+> 如果 url 包含特殊符号例如 `?` ，需要使用引号把 url 参数括起来，`-u"jdbc..."`
+
+默认情况下，如果没有其他指令和输入，则进入**交互模式**，连续交互输入 SQL 和指令来实现一些列操作。
+
+## 全局参数
+
+| 参数                   | 默认值 | 描述                                            |
+| ---------------------- | ------ | ----------------------------------------------- |
+| `-u` , `--url`         |        | 数据库 JDBC url                                 |
+| `-n` , `--name`        |        | 数据库用户名                                    |
+| `-p` , `--password`    |        | 数据库密码                                      |
+| `--driver`             |        | 数据库 JDBC 驱动类全名                          |
+| `--batch-size`         | `1000` | 批量导入数据批量执行的大小                      |
+| `--named-param-prefix` | `:`    | 预编译 SQL 命名参数前缀                         |
+| `--print-rows`         | `100`  | 输出控制台执行 SQL 的结果最大条数，`0` 则无限制 |
+| `-h` , `--help`        |        | 获取参数帮助提示                                |
+
+`-u` 为必填，如果没指定 `-n` 和 `-p` 则弹出输入框手动输入。
+
+```bash
+$ ./sqlc -u"jdbc:postgresql://127.0.0.1:5432/postgres" -nchengyuxing --print-rows=10
+$ ******
+```
+
+> 内部根据 `-u` 自动识别数据库驱动，如果没有识别出来，通过参数 `--driver=xxx.Driver` 来指定具体驱动名。
+
+## 模式
+
+有3种模式可用，启动条件分别如下：
+
+1. **命令模式**：参数 `-e` 或 `--import` 存在
+2. **标准输入模式**： 参数 `-e` 和 `--import` 不存在，并且标准输入中有内容
+3. **交互模式**：以上条件除外，则进入交互模式
+
+### 命令模式
+
+命令模式每次都完整的执行初始化连接登录数据库，主要用户和操作系统其他命令配合，或者用于批量执行，执行一次，计划任务等需求。
+
+#### 执行 SQL
+
+通过 `-e` 来指定 SQL 或者读取文本文件来执行。
+
+```bash
+$ ./sqlc <login> \
+-e"select current_timestamp" \
+-e"select 1,2,3" \
+-e ~/1.sql \
+-e ~/2.sql
+```
+
+> 如果是批量执行 DML 语句，可追加参数 `--with-tx` 来启用事务。
 >
-> 如果路径前面有`@`符号，那么此指令的逻辑是执行批量导入数据，文件类型支持：`tsv|csv|xlsx|xls|json|sql`，sql为**insert**语句。
->
-> 如果没有此参数，则进入**交互模式**。
+> 重定向导出查询结果 `-o` 必须在 一个 `-e` 的情况下才可用。
 
-> 更多参数说明请执行命令：`-h[elp]` 来查看。
+#### 导出查询
 
-## 交互模式
+根据软件规范，导出的**文件名就是目标表名**，特别是对于 `.sql` 文件，生成的 insert 语句表名来源于文件名：
 
-交互模式下，通过输入`:` 按下`Tab` 来查看内置的指令，可输入 `:help` 来查看所有命令的详细说明，以下，对其中几个指令做一些说明：
+```mermaid
+graph LR
+f[-o ~/test.guest.sql] --> i[insert into test.guest ...]
+```
 
-### :exec
+```bash
+$ ./sqlc <login> -e"select 1,2,3" -o ~/test.guest
+```
 
-**参数**：`[sql-file] [>>> output]`
+可以不用加后缀，默认导出格式为 tsv ，通过 `-f` 指定导出类型。
 
-如指令（`-e"[sql|path[>>> output]]"`）的读取sql文件，如果是查询，则可重定向输出到文件；
+如果后缀为 `.sql` 则忽略 `-f` ，导出文件存在2种结构，根据查询结果字段：
 
-### :exec@
+- 全基本数据类型：`test.guest.sql`
 
-**参数**：`[input-file] [sheet-index] [header-index]`
+- 包含二进制：
 
-如指令： `-e"[@path]"`，执行批量导入数据操作：
-
-- 如果是excel文件，可以指定第二个可选参数 `sheet-index` 来读取指定的sheet，第三个可选参数 `header-index` 指定表头在第几行；
-- 如果是tsv和csv文件，第二个可选参数为：`header-index`；
-
-### :exec&
-
-**参数**：`[sql-name]`
-
-执行一条由[XQLFileManager](https://github.com/chengyuxing/rabbit-sql/tree/rabbit-sql-7#XQLFileManager)
-加载的sql，可支持动态sql，执行此指令的前提是通过 **:load** 指令加载了xql文件；
-
-### :load
-
-**参数**：`[xql-file]` as `[alias]`
-
-加载一个xql文件，并为其命名别名；
-
-### :tx
-
-**参数**：`[begin|commit|rollback]`
-
-### :edit
-
-**参数**：[[proc|tg|view]:object]
-
-编辑并保存**存储过程/函数 | 触发器 | 视图**，可通过输入前缀按下 `Tab` 来获取建议，类似的还有指令 `:ddl`。
-
-> 更多指令和使用说明可以通过输入 `:help` 来查看。
-
-## 附录
-
-- 大多数时候可以通过 `Tab` 来获取一些输入建议；
-- 建议的输入记录可以通过 `Ctrl + o` 来前进每个单词，而不是直接到结尾；
-- `Ctrl + r` 调用搜索历史记录；
-- 重定向操作符 `>>> ` 只能作用于查询语句；
-- 重定向导出sql类型文件和批量导入sql文件，支持二进制文件类型；
-
-- 批量导入`@`文件操作，**文件名即是表名**，如：`test.user.json`，生成的sql语句形如：
-
-  ```sql
-  insert into test.user (...) values (...);
+  ```
+  test.guest_3994950495045/
+    |- test.guest.sql
+    |- blobs/
+       |- blob_0
+       |- blob_1
+       ...
+    |-README.md
   ```
 
-- 自定义数据库的自动完成提示：`/completion` 文件夹下，文件格式为：`数据库名.cnf`；
+> ⚠️ 如果需要将结果继续批量导入到其他数据库表，不要修改当前文件结构。
 
-- 添加jdbc驱动：`/drivers` 文件夹下；
+#### 批量导入数据
 
-- 当事务启用生效时，题词颜色显示为==高亮黄色==；
+批量导入需要按照约定规范文件，**文件名即是要导入的目标表名**，程序通过文件名自动提取数据库表名并生成 **insert** 语句：
 
-### 执行sql脚本
+```mermaid
+graph LR
+f[--import ~/test.guest.json] --> t[insert into test.guest ...];
+```
 
-- 预编译sql语句参数占位符格式为**传名参数**形如：
+如果是 `.tsv` ， `.csv` ，`.xls(s)` 按照约定，第一行数据是数据库字段名（**index** 从 `0` 开始）：
 
-  ```sql
-  select ... from table where id = :id;
-  ```
+| id   | name        | age  |
+| ---- | ----------- | ---- |
+| 1    | chengyuxing | 13   |
+| ...  | ...         | ...  |
 
-- sql语句中的字符串模版格式为：
+其他情况指定 `--header-index=`：
 
-  ```sql
-  select * from table where ${cnd};
-  ```
+- 不存在表头：`-1` 自动通过查询数据库列名**按顺序**进行映射
+- 不在第一行，则指定表头所在的行号
+- Excel 数据不在第一个 Sheet，指定 `--sheet-index`
 
-- 存储过程/函数预编译参数格式同样为传**名参数**形如：
+```bash
+$ ./sqlc <login> --import ~/test.guest.excel \
+--sheet-index=1 \
+--header-index=1
+```
 
-  无返回值：
+**导入 insert SQL 文件**：
 
-  ```sql
-  {call test.multi_query(:num, :factorial, :users, :animals)};
-  ```
+指定 insert SQL 文件，如果**需要导入二进制数**据前提是必须符合以下规范：
 
-  > ```plsql
-  > create function multi_query(num integer, OUT factorial bigint, OUT users refcursor, OUT animals refcursor) returns record
-  >     language plpgsql
-  > as
-  > $$
-  > begin
-  >     factorial := factorial(num);
-  >     open users for select * from test.big limit 10;
-  >     open animals for select 'cat' as name, 12 as age, 'fish' as hobby;
-  > end;
-  > $$;
-  > ```
+- SQL 文件所在目录下必须有 `blobs` 文件夹
+- `blobs` 文件夹内的文件名必须和 SQL 的参数名一一对应
+- insert SQL 文件，二进制部分必须使用预编译参数 `:name` 来与 `blobs` 下的文件名一一对应
 
-  有返回值：
+文件结构如下：
 
-  ```sql
-  {:res = call myfunc(:arg)}
-  ```
+```
+~/my_folder/
+  |- test.guest.sql
+  |- blobs/
+      |- photo_0
+      |- photo_1
+      |- photo_5
+      ...
+```
 
-  参数类型支持：**IN**、**OUT**、**IN OUT**，格式如下：
+SQL 格式：
 
-    - **IN**: `[IN value]`
-    - **OUT**:  `out [OUT code]`
-    - **IN OUT**: `inout [OUT code] [IN value]`
+```sql
+insert into test.guest(name, age, photo) values ('cyx', 13, :photo_0);
+insert into test.guest(name, age, photo) values ('cyx', 13, :photo_1);
 
-### 预编译sql参数
+...
+```
 
-- 支持的基本数据类型：string(`"some string"`), boolean(`true`, `false`), double, int, null；
+> 如果是通过指令 `-o` 导出的 insert SQL 包含二进制数据，则默认就是如上的结构，可直接导入其他其他表或其他数据库。
 
-- 支持的数据类型：int[], float[], double[], string[], long[]，需要使用类型声明，如下：
+#### 参数说明
 
-  ```shell
-  [1,2,3,4]::int[] #默认使用,号
-  [a,b,c]::string[]
-  [a;b;c]::string[;] #使用;号分隔数组
-  ```
+| 参数               | 默认值 | 描述                                                         |
+| ------------------ | ------ | ------------------------------------------------------------ |
+| `-e` , `--execute` | `[]`   | 读取文件或字符串执行一条或多条 SQL                           |
+| `-o` , `--output`  |        | 输出查询结果到文件，文件类型由 `-f` 决定，默认 `tsv` ，如果文件后缀以 `.sql` 结尾，则忽略此参数并导出 insert 语句 SQL 文件 |
+| `-f` , `--format=tsv\csv\json\excel` | `tsv`  | 指定打印结果和输出文件的格式                                 |
+| `--import`         |        | 执行批量导入数据，**文件名为表名**，支持文件类型：`.csv` ,  `.tsv` ,  `.json` ,  `.xls(x)` ,  `.sql` |
+| `--sheet-index`    | `0` | `--import` 文件类型 `.xls(x)` 的 Sheet 序号 |
+| `--header-index`   | `0` | `--import` 文件类型 `.xls(x)` ,  `.csv` ,  `.tsv`的字段表头所在行 |
+| `--with-tx`        | `false` | `-e` , `--import`启用事务，成功则提交，失败则回滚 |
+| `--ping`           |        | 检测数据库是否连接成功，成功则返回 `pong` |
 
-- 支持文件语法为以路径开头，例如：`./`，`../` ，`/`；
+### 交互模式
 
-- 支持日期格式：`yyyy-MM-dd`, `yyyy/MM/dd`, `yyyy-MM-dd HH:mm:ss`, `HH:mm:ss`，需要使用类型声明如下：`2021-12-23::date`。
+登录一次，进入交互终端，持续输入 SQL 或指令来完成一些列操作。
 
-## 例子
+```bash
+$ ./sqlc <login>
+```
 
-- 登录：`./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres`
+#### 执行 SQL
 
-  > 如果没有指定 -n 和 -p，则进行交互式输入。
+多行 SQL 直接按 <kbd>Enter</kbd> 换行即可，以 `;` 结尾判定输入完成并执行。
 
-- 读取并执行sql：`-e/usr/local/a.sql`
+![](images/cli-interactive-start.png)
 
-- 批量导入insert sql文件：``-e@/usr/local/a.sql``
+或者通过 `:exec` 读取一个文本文件内的 SQL ，`:paste` 打开编辑器粘贴一段 SQL 来执行。
 
-- 命令模式导出一个查询结果：
+#### 导出查询
 
-  ```shell
-  ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -e"select * from big >>> /Users/chengyuxing/Downloads/test.big" -fjson
-  ```
+通过指令 `:output <file>` 开启**持续输出模式**，后续所有查询都将进行重定向输出到目标文件，格式通过 `:view` 来指定，输出文件格式逻辑同命令模式的 `-o` 参数。
 
-  :warning: 如果sql中有字符串模版常量，需要改为使用单引号：
+如果要输出到不同的文件，重新执行指令输出到新文件。
 
-  ```shell
-  -e'select * from big where ${cnd}'
-  ```
+关闭输出模式则输入 `:output` 不指定文件，即退出输出模式。
 
-- 执行查询并导出结果：
+![](images/cli-output-mode.png)
 
-  ```sql
-  select * from big >>> /Users/chengyuxing/Downloads/big;
-  ```
+#### 批量导入数据
 
-## 截图
+```
+:import <file [sheetIndex [headerIndex]] | [headerIndex]>
+```
 
-- [命令模式执行预编译sql](screen_shot/command_prepare_query.gif)
-- [切换结果打印视图](screen_shot/change_view.gif)
-- [加载xql文件执行动态sql](screen_shot/xql.gif)
-- [查询结果重定向到文件](screen_shot/redirect_to_file.gif)
-- [批量导入数据](screen_shot/exec@.gif)
-- [插入文件](screen_shot/insert_blob.gif)
-- [执行存储过程](screen_shot/procedure.gif)
-- [编辑存储过程](screen_shot/edit.gif)
+逻辑和 `--import` 一样，后面分别根据文件类型指定 Sheet 和 header 的 index：
+
+```
+127.0.0.1:5432> :import ~/test.guest.xlsx 1 1
+```
+
+#### 加载 XQL 文件
+
+在登录时通过 `--xql` 或者进入交互模式后通过 `:xql` 来指定文件或文件夹。
+
+加载完成后即可实现以下功能：
+
+- 使用 `:status &` 命令来查看 [XQL](https://github.com/chengyuxing/rabbit-sql#dynamic-sql) 加载信息
+- 使用 `:exec &<sqlName>`  来执行动态 SQL
+
+#### 参数说明
+
+| 参数    | 默认值 | 描述                                         |
+| ------- | ------ | -------------------------------------------- |
+| `--xql=<file\folder>` | `[]`   | 加载 `xql` 文件，或文件夹下的所有 `xql` 文件 |
+
+> 如果有且仅一个，并且是文件夹，则加载文件夹下的所有 `xql` ，否则认为是 `xql` 文件。
+
+| 指令 | 默认值 | 描述 |
+| ---- | ------ | ---- |
+| `:exec <sqlFile\&sqlName>`  |        | 读取文件执行 SQL 或执行一个 XQL 动态 SQL |
+| `:import <file> [s] [h]` |        | 批量导入一个文件，并可选的指定 Sheet(`s`) 和 header(`h`) 序号，同 `--import` |
+| `:xql <file\folder>` |        | 同 `--xql` |
+| `:paste` | | 使用 nano 编辑器输入或粘贴大段 SQL 执行：<kbd>Ctrl o</kbd> <kbd>Enter</kbd> <kbd>Ctrl x</kbd> |
+| `:tx <[begin\commit\rollback]>` | `begin` | 开启/提交/回滚事务 |
+| `:output <[file]>` |  | 指定输出目录则开启查询重定向输出，否则关闭重定向输出 |
+| `:view <csv\tsv\json\excel>` | `tsv` | 指定查询结果打印格式和 `:output` 输出文件格式，逻辑同 `-o` |
+| `:status <[&[<alias>[.<name>]]]>` |  | 查看当前配置状态：默认查看概括，`&` 查看 xql 文件资源列表，`&<alias>` 查看 xql 文件所有 SQL 对象，`&<alias>.<name>` 查看 SQL 内容 |
+| `:q` |  | 退出程序 |
+| `:help` |  | 查看指令帮助说明 |
+
+### 标准输入模式
+
+通过标准输入和输出来配合终端的重定向和管道功能来增强使用体验，标准输入接收一段 SQL，标准输出打印执行 SQL 的结果，由于标准输入无法弹出输入框，有如下限制：
+
+- 如果有用户名和密码，需要显示指定 `-n` 和 `-p`
+- 无法使用预编译 SQL，只能执行普通 SQL
+- 输出重定向无法输出 Excel(`.xqls(x)`) 二进制文件（使用 `-o` 替代）
+
+输入和输出支持的参数有：
+
+- `-u` , `-n` , `-p` , `--driver` , `--print-rows`
+- `-f` , `-o` , `--with-tx`
+
+以下例子通过组合指令实现：
+
+1. 使用 `cat` 读取一个 SQL 文件内容输入给 `sqlc`
+2. 执行查询并输出 JSON 数据
+3. 通过管道使用 `jq` 格式化美化
+4. 把美化后的 json 结果写到文件 `result.json`
+
+```bash
+$ cat ~/1.sql | ./sqlc -ujdbc:postgresql://127.0.0.1:5432/postgres -fjson | jq > result.json
+```
+
+输出：
+
+```json
+[
+  {
+    "column0": 1,
+    "column1": 2,
+    "column2": 3,
+    "now": 1781103977943
+  }
+]
+```
+
+从标准输入读取一个 SQL 文件：
+
+![](images/cli-stdin-jq.png)
+
+## 其他
+
+程序目录 `drivers` 内已有 redis 驱动，但 java 环境至少需要 JDK11，连接 redis 效果如下：
+
+![](images/cli-redis.png)
+
+最后 <kbd>Ctrl c</kbd> Bye bye :)
+
+
+
+[github_release]:https://github.com/chengyuxing/sqlc/releases
