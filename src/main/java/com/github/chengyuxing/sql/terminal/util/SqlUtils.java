@@ -269,13 +269,4 @@ public class SqlUtils {
         }
         return names;
     }
-
-    public static boolean allowOutput2file(String sql) {
-        SqlType sqlType = SqlUtils.detectSQLType(sql);
-        if (sqlType != SqlType.QUERY) {
-            Stdout.printlnWarning("Only query can output to file");
-            return false;
-        }
-        return true;
-    }
 }

@@ -11,6 +11,7 @@ import com.github.chengyuxing.sql.terminal.core.writer.*;
 import com.github.chengyuxing.sql.terminal.cli.Context;
 import com.github.chengyuxing.sql.terminal.progress.impl.WaitingPrinter;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
+import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
 
 import java.io.*;
@@ -28,10 +29,15 @@ public final class FileHelper {
     public static final IWriter jsonWriter = new JSONWriter();
     public static final InsertSQLWriter sqlWriter = new InsertSQLWriter();
 
-    public static void writeFile(BakiDao baki, String sqlOrRef, Map<String, Object> args, String output) throws IOException {
-        try (Stream<DataRow> s = WaitingPrinter.waiting("Preparing...",
-                () -> baki.query(sqlOrRef).args(args).stream())) {
-            Stdout.printlnPrimary("Redirect query to file...");
+    public static void writeFile(BakiDao baki, String sqlOrRef, SqlType type, Map<String, Object> args, String output) throws IOException {
+        if (type == SqlType.PROCEDURE) {
+            Stdout.printlnWarning("Procedure/Function can not output to file");
+            return;
+        }
+        try (Stream<DataRow> s = type == SqlType.QUERY
+                ? WaitingPrinter.waiting(() -> baki.query(sqlOrRef).args(args).stream())
+                : PrintHelper.executedRow2Stream(baki, sqlOrRef, args)) {
+            Stdout.printlnPrimary("Redirect result to file...");
             Path path = PathUtils.resolve(output);
             if (Files.isDirectory(path)) {
                 path = path.resolve("query_result_" + System.currentTimeMillis());

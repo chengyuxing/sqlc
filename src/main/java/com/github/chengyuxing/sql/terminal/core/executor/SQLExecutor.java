@@ -3,6 +3,7 @@ package com.github.chengyuxing.sql.terminal.core.executor;
 import com.github.chengyuxing.sql.BakiDao;
 import com.github.chengyuxing.sql.terminal.core.FileHelper;
 import com.github.chengyuxing.sql.terminal.core.PrintHelper;
+import com.github.chengyuxing.sql.terminal.types.SqlType;
 import com.github.chengyuxing.sql.terminal.util.PathUtils;
 import com.github.chengyuxing.sql.terminal.util.SqlUtils;
 
@@ -30,9 +31,8 @@ public abstract class SQLExecutor extends AbstractExecutor {
     protected void outputResult(String sql, String output) throws IOException {
         prepareSQL(sql, (mysql, args) -> {
             try {
-                if (SqlUtils.allowOutput2file(mysql)) {
-                    FileHelper.writeFile(baki, mysql, args, output);
-                }
+                SqlType type = SqlUtils.detectSQLType(mysql);
+                FileHelper.writeFile(baki, mysql, type, args, output);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
