@@ -37,7 +37,7 @@ public final class Stdout {
         System.err.printf(s, args);
     }
 
-    public static void println(String str, Style color) {
+    public static void println(String str, Style... color) {
         if (IS_XTERM) {
             Printer.println(str, color);
         } else {
@@ -45,7 +45,7 @@ public final class Stdout {
         }
     }
 
-    public static void print(String str, Style color) {
+    public static void print(String str, Style... color) {
         if (IS_XTERM) {
             Printer.print(str, color);
         } else {
