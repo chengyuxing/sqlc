@@ -187,7 +187,7 @@ public class App implements Callable<Integer> {
             Stdout.print(FigletFont.convertOneLine(Help.coreName), Style.CYAN);
             Stdout.printf("Welcome to %s %s (%s, %s)%n", Help.appName, Help.version, System.getProperty("java.runtime.version"), System.getProperty("java.vm.name"));
             Stdout.printf("Go to %s get more information about this.%n", Stdout.colorful(Help.url, Style.UNDERLINE));
-            Stdout.printf("DataBase: %s %s%n", bakiLoader.dbName(), bakiLoader.dbVersion());
+            Stdout.printf("DataBase: %s %s%n", Stdout.colorful(bakiLoader.dbName(), Style.BLUE), bakiLoader.dbVersion());
 
             initializeBeforeStartup(bakiLoader);
 
