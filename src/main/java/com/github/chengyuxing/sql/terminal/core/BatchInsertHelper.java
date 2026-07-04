@@ -173,7 +173,7 @@ public class BatchInsertHelper {
                 Map<String, Object> obj = iterator.next();
 
                 if (example.get().isEmpty()) {
-                    example.set(baki.getSqlGenerator().generateNamedParamInsert(tableName, obj.keySet()));
+                    example.set(baki.getSqlGenerator().generateNamedParamInsert(tableName, obj.keySet(), null));
                 }
 
                 String insert = baki.getSqlGenerator()
@@ -230,7 +230,7 @@ public class BatchInsertHelper {
                     .skip(next)
                     .forEach(cols -> {
                         if (example.get().isEmpty()) {
-                            example.set(baki.getSqlGenerator().generateNamedParamInsert(tableName, Arrays.asList(tableFields.get())));
+                            example.set(baki.getSqlGenerator().generateNamedParamInsert(tableName, Arrays.asList(tableFields.get()), null));
                         }
 
                         DataRow row = DataRow.of(tableFields.get(), cols);
@@ -292,7 +292,7 @@ public class BatchInsertHelper {
                         .filter(d -> !d.isEmpty())
                         .forEach(d -> {
                             if (example.get().isEmpty()) {
-                                example.set(baki.getSqlGenerator().generateNamedParamInsert(finalTableName, d.keySet()));
+                                example.set(baki.getSqlGenerator().generateNamedParamInsert(finalTableName, d.keySet(), null));
                             }
                             String insert = baki.getSqlGenerator()
                                     .generateSql(example.get(), d, v -> SqlUtils.toSqlLiteral(v, true));
