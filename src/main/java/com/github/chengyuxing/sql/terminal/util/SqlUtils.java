@@ -1,6 +1,7 @@
 package com.github.chengyuxing.sql.terminal.util;
 
 import com.github.chengyuxing.common.console.Style;
+import com.github.chengyuxing.common.script.ast.impl.KeyExpressionParser;
 import com.github.chengyuxing.common.tuple.Pair;
 import com.github.chengyuxing.common.util.StringUtils;
 import com.github.chengyuxing.sql.terminal.common.Stdout;
@@ -250,17 +251,7 @@ public class SqlUtils {
         List<String> names = new ArrayList<>();
         while (m.find()) {
             String name = m.group("key");
-            int idx = -1;
-            for (int i = 0; i < name.length(); i++) {
-                if (name.charAt(i) == '.') {
-                    idx = i;
-                    break;
-                }
-                if (name.charAt(i) == '[') {
-                    idx = i;
-                    break;
-                }
-            }
+            int idx = KeyExpressionParser.getFirstDotIndex(name);
             if (idx == -1) {
                 names.add(name);
             } else {
