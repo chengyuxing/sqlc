@@ -1,6 +1,5 @@
 package com.github.chengyuxing.sql.terminal.util;
 
-import com.github.chengyuxing.common.io.FileResource;
 import com.github.chengyuxing.sql.terminal.cli.App;
 import com.github.chengyuxing.sql.terminal.common.Constants;
 
@@ -16,11 +15,7 @@ import java.util.stream.Stream;
 
 public class PathUtils {
     public static boolean isFileURI(String path) {
-        return new FileResource(path) {
-            public boolean isURIPath() {
-                return isURI();
-            }
-        }.isURIPath();
+        return URI.create(path).isAbsolute();
     }
 
     public static boolean isFilePath(String s) {
