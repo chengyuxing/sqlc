@@ -1,5 +1,6 @@
 package com.github.chengyuxing.sql.terminal.util;
 
+import com.github.chengyuxing.common.script.ast.impl.KeyExpressionParser;
 import com.github.chengyuxing.common.script.lang.Token;
 import com.github.chengyuxing.common.script.lang.TokenType;
 import com.github.chengyuxing.common.script.lexer.RabbitScriptLexer;
@@ -10,9 +11,10 @@ import com.github.chengyuxing.sql.util.SqlGenerator;
 import com.github.chengyuxing.sql.util.SqlUtils;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.github.chengyuxing.common.util.StringUtils.scan;
 
 public class RabbitScriptParamParser {
     private final SqlGenerator sqlGenerator;
@@ -55,42 +57,13 @@ public class RabbitScriptParamParser {
         String key = name;
         String prop = "";
 
-        int idx = -1;
-        for (int i = 0; i < name.length(); i++) {
-            if (name.charAt(i) == '.') {
-                idx = i;
-                break;
-            }
-            if (name.charAt(i) == '[') {
-                idx = i;
-                break;
-            }
-        }
+        int idx = KeyExpressionParser.getFirstDotIndex(name);
 
         if (idx != -1) {
             key = name.substring(0, idx);
             prop = name.substring(idx);
         }
         return Pair.of(key, prop);
-    }
-
-    private static void scan(
-            String text,
-            Pattern p,
-            BiConsumer<String, Boolean> consumer // true = matched
-    ) {
-        Matcher m = p.matcher(text);
-        int lastEnd = 0;
-        while (m.find()) {
-            if (m.start() > lastEnd) {
-                consumer.accept(text.substring(lastEnd, m.start()), false);
-            }
-            consumer.accept(m.group(), true);
-            lastEnd = m.end();
-        }
-        if (lastEnd < text.length()) {
-            consumer.accept(text.substring(lastEnd), false);
-        }
     }
 
     private void appendToken(StringJoiner sb, Token token) {
